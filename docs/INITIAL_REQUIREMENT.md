@@ -57,6 +57,7 @@ Provide a lightweight finance management tool where users can track expenses and
 - **Database:** PostgreSQL with Prisma ORM
 - **Auth:** Better Auth for local authentication
 - **Styling:** Tailwind CSS and **ShadCN** UI components
+- **Validation** Zod for schema validation on the backend and frontend forms
 
 ---
 
