@@ -1,15 +1,44 @@
-import express from 'express';
-import dotenv from 'dotenv';
+import http from 'http';
+import express, { type Application } from 'express';
+import helmet from 'helmet';
+import hpp from 'hpp';
+import morgan from 'morgan';
+import { getLogger } from './libs/logger';
+import notFoundMiddleware from './middlewares/not-found.middleware';
+import errorHandler from './middlewares/error-handler.middleware';
 
-dotenv.config();
+const logger = getLogger('Server');
+
+// Configuration
+const PORT = process.env['PORT'] ?? 4000;
+const NODE_ENV = process.env['NODE_ENV'] ?? 'development';
 
 const app = express();
-app.use(express.json());
+const server = http.createServer(app);
 
-app.get('/', (req, res) => {
-  res.send('API is running');
+// Basic middleware
+app.use(morgan('dev'));
+app.use(express.json({ limit: '50mb' }));
+app.use(helmet());
+app.use(hpp());
+
+// Custom middleware
+
+// Routes and error handling
+// app.use('/api/v1', routes);
+app.use(notFoundMiddleware);
+app.use(errorHandler);
+
+server.on('listening', () => {
+	logger.info(`Server listening in mode: '${NODE_ENV}' on port: ${PORT}`);
 });
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`Server listening on port `));
+server.on('error', async (err) => {
+	logger.error(`Server error`, err);
+	process.exit(1);
+});
 
+server.listen(PORT);
+
+// Start the application
+logger.info('Application bootstrap completed successfully');
