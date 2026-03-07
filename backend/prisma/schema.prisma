@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -11,4 +5,120 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum AccountType {
+  CASH
+  CHECKING
+  SAVINGS
+  CREDIT_CARD
+  INVESTMENT
+  LOAN
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  name         String
+  currency     String        @default("USD")
+  accounts     Account[]
+  categories   Category[]
+  budgets      Budget[]
+  transactions Transaction[] @relation("UserTransactions")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Account {
+  id                  String        @id @default(uuid())
+  userId              String
+  name                String
+  type                AccountType
+  currency            String        @default("USD")
+  openingBalance      Decimal       @default(0) @db.Decimal(14, 2)
+  currentBalance      Decimal       @default(0) @db.Decimal(14, 2)
+  institutionName     String?
+  accountNumberMasked String?
+  isArchived          Boolean       @default(false)
+  user                User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions        Transaction[] @relation("PrimaryAccountTransactions")
+  transferTransactions Transaction[] @relation("TransferDestinationAccount")
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  @@index([userId])
+  @@unique([userId, name])
+}
+
+model Category {
+  id           String        @id @default(uuid())
+  userId       String
+  name         String
+  type         CategoryType
+  color        String?
+  icon         String?
+  isSystem     Boolean       @default(false)
+  isArchived   Boolean       @default(false)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  budgets      Budget[]
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([userId, type])
+  @@unique([userId, type, name])
+}
+
+model Transaction {
+  id                   String          @id @default(uuid())
+  userId               String
+  accountId            String
+  categoryId           String?
+  type                 TransactionType
+  amount               Decimal         @db.Decimal(14, 2)
+  description          String
+  notes                String?
+  transactionDate      DateTime
+  transferAccountId    String?
+  externalReference    String?
+  user                 User            @relation("UserTransactions", fields: [userId], references: [id], onDelete: Cascade)
+  account              Account         @relation("PrimaryAccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
+  category             Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  transferAccount      Account?        @relation("TransferDestinationAccount", fields: [transferAccountId], references: [id], onDelete: SetNull)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  @@index([userId, transactionDate])
+  @@index([accountId, transactionDate])
+  @@index([categoryId])
+  @@index([transferAccountId])
+}
+
+model Budget {
+  id          String    @id @default(uuid())
+  userId      String
+  categoryId  String
+  amount      Decimal   @db.Decimal(14, 2)
+  month       Int
+  year        Int
+  notes       String?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId, year, month])
+  @@unique([userId, categoryId, month, year])
 }
