@@ -13,7 +13,12 @@ interface IErrorResponse {
 
 const GENERIC_ERROR = 'An unexpected error occurred';
 
-export default function errorHandler(error: any, req: Request, res: any, _next: NextFunction) {
+export default function errorHandler(
+  error: any,
+  req: Request,
+  res: any,
+  _next: NextFunction
+) {
   let statusCode = 500;
   let message = GENERIC_ERROR;
 

@@ -5,7 +5,11 @@ import createHttpError from 'http-errors';
 /**
  * Input sanitization middleware for search and filter parameters
  */
-export default function sanitizeInput(req: Request, res: Response, next: NextFunction) {
+export default function sanitizeInput(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   // Sanitize query parameters
   if (req.query) {
     for (const [key, value] of Object.entries(req.query)) {
@@ -13,12 +17,18 @@ export default function sanitizeInput(req: Request, res: Response, next: NextFun
         // Remove potential SQL injection patterns
         const sanitized = value
           .replace(/[<>'"&]/g, '') // Remove HTML/XML characters
-          .replace(/(\b(ALTER|CREATE|DELETE|DROP|EXEC|INSERT|SELECT|UNION|UPDATE)\b)/gi, '') // Remove SQL keywords
+          .replace(
+            /(\b(ALTER|CREATE|DELETE|DROP|EXEC|INSERT|SELECT|UNION|UPDATE)\b)/gi,
+            ''
+          ) // Remove SQL keywords
           .trim();
 
         // Validate length
         if (sanitized.length > 255) {
-          throw createHttpError(400, `Query parameter '${key}' is too long (max 255 characters)`);
+          throw createHttpError(
+            400,
+            `Query parameter '${key}' is too long (max 255 characters)`
+          );
         }
 
         req.query[key] = sanitized;
@@ -39,7 +49,10 @@ export default function sanitizeInput(req: Request, res: Response, next: NextFun
           ) {
             obj[key] = value
               .replace(/[<>'"&]/g, '')
-              .replace(/(\b(ALTER|CREATE|DELETE|DROP|EXEC|INSERT|SELECT|UNION|UPDATE)\b)/gi, '')
+              .replace(
+                /(\b(ALTER|CREATE|DELETE|DROP|EXEC|INSERT|SELECT|UNION|UPDATE)\b)/gi,
+                ''
+              )
               .trim();
           }
         } else if (typeof value === 'object' && value !== null) {

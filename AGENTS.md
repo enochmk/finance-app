@@ -36,6 +36,7 @@ If any of them are added later, treat them as additional instructions and merge 
 - Dev server: `npm --prefix frontend run dev`
 - Production build: `npm --prefix frontend run build`
 - Preview build: `npm --prefix frontend run preview`
+- Format code: `npm --prefix frontend run format`
 - Run all tests: `npm --prefix frontend run test`
 - Run a single test file: `npm --prefix frontend run test -- src/path/to/file.test.tsx`
 - Run a single named test: `npm --prefix frontend run test -- -t "test name"`
@@ -47,6 +48,7 @@ If any of them are added later, treat them as additional instructions and merge 
 - Dev server: `npm --prefix backend run dev`
 - Production build: `npm --prefix backend run build`
 - Start compiled server: `npm --prefix backend run start`
+- Format code: `npm --prefix backend run format`
 - Test script currently fails intentionally: `npm --prefix backend run test`
 - Type-check only: `npm --prefix backend exec tsc -- --noEmit`
 
@@ -59,8 +61,8 @@ If any of them are added later, treat them as additional instructions and merge 
 ## Linting Status
 
 - No ESLint config was found at the repo root, `backend/`, or `frontend/`.
-- No Prettier config was found.
-- No lint npm scripts currently exist.
+- Prettier config is in `backend/.prettierrc` and `frontend/.prettierrc`.
+- Format scripts are available: `npm --prefix backend run format` and `npm --prefix frontend run format`.
 - Do not invent a lint command in automation output; say explicitly that linting is not configured.
 
 ## Testing Status
@@ -72,7 +74,7 @@ If any of them are added later, treat them as additional instructions and merge 
 
 ## General Code Style
 
-- Respect existing local style; this repo is not formatter-enforced.
+- Use Prettier to format code; both apps have `format` scripts.
 - Prefer TypeScript everywhere; both apps use `strict: true`.
 - Keep functions small and composable; avoid broad refactors unless required.
 - Prefer `const` over `let`, explicit returns when helpful, and avoid `any` unless tightly contained.
@@ -88,9 +90,9 @@ If any of them are added later, treat them as additional instructions and merge 
 
 ### Backend
 
-- Backend formatting is mixed; many files use single quotes and semicolons, with either tabs or 2 spaces.
-- Match the surrounding file instead of normalizing unrelated lines.
-- Do not reformat the whole backend unless explicitly asked.
+- Backend now uses Prettier: 2-space indentation, single quotes, semicolons enabled.
+- Run `npm --prefix backend run format` to ensure consistent formatting.
+
 
 ## Imports
 

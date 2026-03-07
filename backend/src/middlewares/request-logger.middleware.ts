@@ -6,7 +6,11 @@ import { getLogger, sanitizeSensitiveInfo } from '../libs/logger';
 
 const logger = getLogger('Request-Logger');
 
-export default async function requestLogger(req: Request, res: Response, next: NextFunction) {
+export default async function requestLogger(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   res.locals.requestId = rtracer.id();
   res.locals.timestamp = dayjs().toISOString();
   res.locals.requestTimestamp = dayjs().toISOString();

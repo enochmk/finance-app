@@ -30,12 +30,12 @@ app.use(notFoundMiddleware);
 app.use(errorHandler);
 
 server.on('listening', () => {
-	logger.info(`Server listening in mode: '${NODE_ENV}' on port: ${PORT}`);
+  logger.info(`Server listening in mode: '${NODE_ENV}' on port: ${PORT}`);
 });
 
 server.on('error', async (err) => {
-	logger.error(`Server error`, err);
-	process.exit(1);
+  logger.error(`Server error`, err);
+  process.exit(1);
 });
 
 server.listen(PORT);
