@@ -34,6 +34,8 @@ class TransactionsService {
   }
 
   async create(data: CreateTransactionInput) {
+    await this.validateOwnership(data);
+
     return prisma.transaction.create({
       data: {
         userId: data.userId,
@@ -56,7 +58,24 @@ class TransactionsService {
   }
 
   async update(id: string, data: UpdateTransactionInput) {
-    await this.ensureOwnedTransaction(id, data.userId);
+    const existingTransaction = await this.ensureOwnedTransaction(
+      id,
+      data.userId
+    );
+
+    await this.validateOwnership({
+      userId: data.userId,
+      accountId: data.accountId ?? existingTransaction.accountId,
+      categoryId:
+        data.categoryId === undefined
+          ? (existingTransaction.categoryId ?? undefined)
+          : data.categoryId,
+      type: data.type ?? existingTransaction.type,
+      transferAccountId:
+        data.transferAccountId === undefined
+          ? (existingTransaction.transferAccountId ?? undefined)
+          : data.transferAccountId,
+    });
 
     return prisma.transaction.update({
       where: { id },
@@ -89,15 +108,98 @@ class TransactionsService {
     });
   }
 
+  private async validateOwnership(data: {
+    userId: string;
+    accountId: string;
+    categoryId?: string;
+    type: string;
+    transferAccountId?: string;
+  }) {
+    await this.ensureOwnedAccount(data.accountId, data.userId, 'account');
+
+    if (data.categoryId) {
+      await this.ensureOwnedCategory(data.categoryId, data.userId);
+    }
+
+    if (data.type === 'TRANSFER') {
+      if (!data.transferAccountId) {
+        throw createHttpError(
+          400,
+          'transferAccountId is required for transfer transactions'
+        );
+      }
+
+      await this.ensureOwnedAccount(
+        data.transferAccountId,
+        data.userId,
+        'transfer account'
+      );
+
+      if (data.transferAccountId === data.accountId) {
+        throw createHttpError(
+          400,
+          'transferAccountId must be different from accountId'
+        );
+      }
+    }
+
+    if (data.type !== 'TRANSFER' && data.transferAccountId) {
+      throw createHttpError(
+        400,
+        'transferAccountId can only be used with transfer transactions'
+      );
+    }
+  }
+
+  private async ensureOwnedAccount(
+    id: string,
+    userId: string,
+    label: 'account' | 'transfer account'
+  ) {
+    const account = await prisma.account.findFirst({
+      where: { id, userId },
+      select: { id: true },
+    });
+
+    if (!account) {
+      throw createHttpError(404, `${label} not found`);
+    }
+  }
+
+  private async ensureOwnedCategory(id: string, userId: string) {
+    const category = await prisma.category.findFirst({
+      where: { id, userId },
+      select: { id: true },
+    });
+
+    if (!category) {
+      throw createHttpError(404, 'Category not found');
+    }
+  }
+
   private async ensureOwnedTransaction(id: string, userId: string) {
     const transaction = await prisma.transaction.findFirst({
       where: { id, userId },
-      select: { id: true },
+      select: {
+        id: true,
+        userId: true,
+        accountId: true,
+        categoryId: true,
+        type: true,
+        amount: true,
+        description: true,
+        notes: true,
+        transactionDate: true,
+        transferAccountId: true,
+        externalReference: true,
+      },
     });
 
     if (!transaction) {
       throw createHttpError(404, 'Transaction not found');
     }
+
+    return transaction;
   }
 }
 
