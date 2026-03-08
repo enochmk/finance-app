@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import rtracer from 'cls-rtracer';
 
 import './env';
+import env from './env';
 import { getLogger } from './libs/logger';
 import prisma from './libs/prisma';
 import requestLogger from './middlewares/request-logger.middleware';
@@ -13,12 +14,13 @@ import sanitizeInput from './middlewares/sanitization.middleware';
 import notFoundMiddleware from './middlewares/not-found.middleware';
 import errorHandler from './middlewares/error-handler.middleware';
 import apiRoutes from './routes';
+import { bootstrapDevData } from './scripts/bootstrap-dev';
 
 const logger = getLogger('Server');
 
 // Configuration
-const PORT = process.env['PORT'] ?? 4000;
-const NODE_ENV = process.env['NODE_ENV'] ?? 'development';
+const PORT = env.PORT;
+const NODE_ENV = env.NODE_ENV;
 
 const app = express();
 const server = http.createServer(app);
@@ -55,6 +57,10 @@ server.on('listening', () => {
 server.on('error', async (err) => {
   logger.error(`Server error`, err);
   process.exit(1);
+});
+
+void bootstrapDevData().catch((error) => {
+  logger.error('Development bootstrap failed', { error });
 });
 
 process.on('SIGINT', async () => {
