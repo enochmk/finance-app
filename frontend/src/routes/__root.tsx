@@ -1,8 +1,10 @@
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
-import Footer from '../components/Footer'
-import Header from '../components/Header'
+
+import { AppSidebar } from '#/components/app-sidebar'
+import { SidebarStateProvider, useSidebarState } from '#/components/sidebar-state'
+import { AppToaster } from '#/components/ui/sonner'
 
 import appCss from '../styles.css?url'
 
@@ -40,9 +42,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(79,184,178,0.24)]">
-        <Header />
-        {children}
-        <Footer />
+        <SidebarStateProvider>
+          <RootLayout>{children}</RootLayout>
+        </SidebarStateProvider>
+        <AppToaster />
         <TanStackDevtools
           config={{
             position: 'bottom-right',
@@ -57,5 +60,19 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <Scripts />
       </body>
     </html>
+  )
+}
+
+function RootLayout({ children }: { children: React.ReactNode }) {
+  const { isCollapsed } = useSidebarState()
+
+  return (
+    <div
+      className="min-h-screen bg-[var(--background)] text-[var(--foreground)] lg:grid"
+      style={{ gridTemplateColumns: isCollapsed ? '6rem 1fr' : '18rem 1fr' }}
+    >
+      <AppSidebar />
+      <div className="min-w-0">{children}</div>
+    </div>
   )
 }

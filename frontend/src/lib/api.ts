@@ -139,6 +139,12 @@ function getStoredToken() {
   return window.localStorage.getItem('finance-token')
 }
 
+export function logoutSeedUser() {
+  if (typeof window !== 'undefined') {
+    window.localStorage.removeItem('finance-token')
+  }
+}
+
 async function request<T>(path: string) {
   const token = getStoredToken()
 

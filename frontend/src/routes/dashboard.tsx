@@ -1,11 +1,23 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { ArrowRight, Landmark, TrendingDown, TrendingUp, Wallet } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { toast } from 'sonner'
 
 import {
   getDashboardSummary,
   loginWithSeedUser,
   type DashboardSummary,
 } from '#/lib/api'
+import { Alert, AlertDescription, AlertTitle } from '#/components/ui/alert'
+import { Badge } from '#/components/ui/badge'
+import { Button } from '#/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '#/components/ui/card'
+import { ChartContainer, ChartTooltipContent } from '#/components/ui/chart'
+import { Progress } from '#/components/ui/progress'
+import { Skeleton } from '#/components/ui/skeleton'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '#/components/ui/table'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '#/components/ui/tabs'
 
 export const Route = createFileRoute('/dashboard')({
   component: DashboardPage,
@@ -17,6 +29,32 @@ function formatCurrency(value: number) {
     currency: 'USD',
     maximumFractionDigits: 2,
   }).format(value)
+}
+
+function DashboardLoadingState() {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <Card key={index}>
+            <CardHeader className="space-y-3">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-8 w-32" />
+            </CardHeader>
+          </Card>
+        ))}
+      </div>
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-4 w-72" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-[280px] w-full" />
+        </CardContent>
+      </Card>
+    </div>
+  )
 }
 
 function DashboardPage() {
@@ -39,11 +77,15 @@ function DashboardPage() {
         }
       } catch (loadError) {
         if (!cancelled) {
-          setError(
+          const message =
             loadError instanceof Error
               ? loadError.message
               : 'Unable to load dashboard summary.'
-          )
+
+          setError(message)
+          toast.error('Dashboard unavailable', {
+            description: message,
+          })
         }
       } finally {
         if (!cancelled) {
@@ -59,162 +101,233 @@ function DashboardPage() {
     }
   }, [])
 
-  const headline = useMemo(() => {
+  const transactionChartData = useMemo(() => {
     if (!data) {
-      return 'Your finance snapshot'
+      return []
     }
 
-    return `Month ${data.period.month}, ${data.period.year}`
+    return [...data.recentTransactions]
+      .reverse()
+      .map((transaction) => ({
+        label: new Date(transaction.transactionDate).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+        }),
+        amount: Number(transaction.amount),
+      }))
   }, [data])
 
   return (
-    <main className="page-wrap px-4 pb-12 pt-12">
-      <section className="island-shell rise-in relative overflow-hidden rounded-[2rem] px-6 py-8 sm:px-10 sm:py-10">
-        <div className="pointer-events-none absolute -right-14 -top-14 h-52 w-52 rounded-full bg-[radial-gradient(circle,rgba(79,184,178,0.28),transparent_68%)]" />
-        <p className="island-kicker mb-3">Dashboard</p>
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="display-title text-4xl leading-[1.02] font-bold tracking-tight text-[var(--sea-ink)] sm:text-5xl">
-              {headline}
-            </h1>
-            <p className="mt-3 max-w-2xl text-base text-[var(--sea-ink-soft)] sm:text-lg">
-              Live totals from your backend summary endpoint with balances,
-              budgets, and recent movements.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <Link
-              to="/reports"
-              className="rounded-full border border-[rgba(50,143,151,0.3)] bg-[rgba(79,184,178,0.14)] px-5 py-2.5 text-sm font-semibold text-[var(--lagoon-deep)] no-underline transition hover:-translate-y-0.5 hover:bg-[rgba(79,184,178,0.24)]"
-            >
-              Open Reports
-            </Link>
-          </div>
+    <main className="w-full px-4 py-8 lg:px-8 xl:px-10">
+      <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <Badge variant="secondary" className="mb-3">
+            Live dashboard
+          </Badge>
+          <h1 className="display-title text-4xl font-bold tracking-tight text-[var(--foreground)] sm:text-5xl">
+            Monthly money command center
+          </h1>
+          <p className="mt-3 max-w-3xl text-base leading-7 text-[var(--muted-foreground)]">
+            Review balances, budget pressure, and recent movement without leaving
+            the admin workspace.
+          </p>
         </div>
-      </section>
+
+        <Button asChild>
+          <Link to="/reports">
+            Open reports
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </Button>
+      </div>
 
       {isLoading ? (
-        <section className="island-shell mt-8 rounded-2xl p-6 text-sm text-[var(--sea-ink-soft)]">
-          Loading dashboard summary...
-        </section>
+        <DashboardLoadingState />
       ) : error ? (
-        <section className="island-shell mt-8 rounded-2xl border-[rgba(167,60,43,0.24)] p-6 text-sm text-[var(--sea-ink)]">
-          <p className="m-0 font-semibold">Dashboard unavailable</p>
-          <p className="mt-2 mb-0 text-[var(--sea-ink-soft)]">{error}</p>
-        </section>
+        <Alert variant="destructive">
+          <AlertTitle>Dashboard unavailable</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       ) : data ? (
-        <>
-          <section className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {[
-              ['Total Balance', formatCurrency(data.overview.totalBalance)],
-              ['Income', formatCurrency(data.overview.totalIncome)],
-              ['Expenses', formatCurrency(data.overview.totalExpenses)],
-              ['Net Cash Flow', formatCurrency(data.overview.netCashFlow)],
-            ].map(([label, value], index) => (
-              <article
-                key={label}
-                className="island-shell feature-card rise-in rounded-2xl p-5"
-                style={{ animationDelay: `${index * 80 + 60}ms` }}
-              >
-                <p className="island-kicker mb-2">{label}</p>
-                <p className="m-0 text-2xl font-bold text-[var(--sea-ink)]">
-                  {value}
-                </p>
-              </article>
-            ))}
-          </section>
+              {
+                label: 'Total balance',
+                value: formatCurrency(data.overview.totalBalance),
+                icon: Wallet,
+                hint: 'All active accounts',
+              },
+              {
+                label: 'Income',
+                value: formatCurrency(data.overview.totalIncome),
+                icon: TrendingUp,
+                hint: 'Selected month',
+              },
+              {
+                label: 'Expenses',
+                value: formatCurrency(data.overview.totalExpenses),
+                icon: TrendingDown,
+                hint: 'Selected month',
+              },
+              {
+                label: 'Budgeted',
+                value: formatCurrency(data.overview.totalBudgeted),
+                icon: Landmark,
+                hint: 'Current budget plan',
+              },
+            ].map((item) => {
+              const Icon = item.icon
 
-          <section className="mt-8 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-            <article className="island-shell rounded-2xl p-6">
-              <div className="mb-5 flex items-center justify-between gap-4">
-                <div>
-                  <p className="island-kicker mb-2">Recent Transactions</p>
-                  <h2 className="m-0 text-2xl font-semibold text-[var(--sea-ink)]">
-                    Latest activity
-                  </h2>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                {data.recentTransactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="rounded-2xl border border-[var(--line)] bg-[rgba(255,255,255,0.45)] px-4 py-3"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="m-0 font-semibold text-[var(--sea-ink)]">
-                          {transaction.description}
-                        </p>
-                        <p className="mt-1 mb-0 text-sm text-[var(--sea-ink-soft)]">
-                          {transaction.account.name}
-                          {transaction.category
-                            ? ` • ${transaction.category.name}`
-                            : ''}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="m-0 font-semibold text-[var(--sea-ink)]">
-                          {formatCurrency(Number(transaction.amount))}
-                        </p>
-                        <p className="mt-1 mb-0 text-xs uppercase tracking-[0.16em] text-[var(--kicker)]">
-                          {transaction.type}
-                        </p>
-                      </div>
+              return (
+                <Card key={item.label}>
+                  <CardHeader className="flex flex-row items-start justify-between space-y-0">
+                    <div>
+                      <CardDescription>{item.label}</CardDescription>
+                      <CardTitle className="mt-3 text-3xl">{item.value}</CardTitle>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </article>
+                    <div className="rounded-full bg-[var(--primary-soft)] p-2 text-[var(--primary)]">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-[var(--muted-foreground)]">{item.hint}</p>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
 
-            <article className="island-shell rounded-2xl p-6">
-              <p className="island-kicker mb-2">Budget Usage</p>
-              <h2 className="m-0 text-2xl font-semibold text-[var(--sea-ink)]">
-                Current month budgets
-              </h2>
+          <div className="grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent movement curve</CardTitle>
+                <CardDescription>
+                  Last {data.recentTransactions.length} transactions from the live summary endpoint.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={transactionChartData}>
+                      <defs>
+                        <linearGradient id="dashboardArea" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.45} />
+                          <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.05} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
+                      <XAxis dataKey="label" stroke="var(--muted-foreground)" tickLine={false} axisLine={false} />
+                      <YAxis stroke="var(--muted-foreground)" tickLine={false} axisLine={false} width={70} />
+                      <Tooltip content={<ChartTooltipContent />} />
+                      <Area
+                        type="monotone"
+                        dataKey="amount"
+                        stroke="var(--primary)"
+                        fill="url(#dashboardArea)"
+                        strokeWidth={2}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
 
-              <div className="mt-5 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Budget utilization</CardTitle>
+                <CardDescription>Category pressure for the current period.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-5">
                 {data.budgets.map((budget) => {
-                  const progress = Math.min(Math.max(budget.utilizationRate * 100, 0), 100)
+                  const percent = Math.min(Math.round(budget.utilizationRate * 100), 100)
 
                   return (
-                    <div key={budget.id}>
-                      <div className="mb-2 flex items-center justify-between gap-3 text-sm">
-                        <span className="font-semibold text-[var(--sea-ink)]">
-                          {budget.category.name}
-                        </span>
-                        <span className="text-[var(--sea-ink-soft)]">
-                          {formatCurrency(budget.spent)} / {formatCurrency(budget.amount)}
-                        </span>
+                    <div key={budget.id} className="space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-medium text-[var(--foreground)]">
+                            {budget.category.name}
+                          </p>
+                          <p className="text-xs text-[var(--muted-foreground)]">
+                            {formatCurrency(budget.spent)} spent
+                          </p>
+                        </div>
+                        <Badge variant={percent >= 85 ? 'warning' : 'default'}>{percent}%</Badge>
                       </div>
-                      <div className="h-3 rounded-full bg-[rgba(23,58,64,0.08)]">
-                        <div
-                          className="h-3 rounded-full bg-[linear-gradient(90deg,var(--lagoon),#7ed3bf)]"
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
+                      <Progress value={percent} />
                     </div>
                   )
                 })}
-              </div>
-            </article>
-          </section>
+              </CardContent>
+            </Card>
+          </div>
 
-          <section className="mt-8 grid gap-4 lg:grid-cols-3">
-            {data.accounts.map((account) => (
-              <article key={account.id} className="island-shell rounded-2xl p-5">
-                <p className="island-kicker mb-2">{account.type.replaceAll('_', ' ')}</p>
-                <h3 className="m-0 text-xl font-semibold text-[var(--sea-ink)]">
-                  {account.name}
-                </h3>
-                <p className="mt-3 mb-0 text-2xl font-bold text-[var(--sea-ink)]">
-                  {formatCurrency(account.currentBalance)}
-                </p>
-              </article>
-            ))}
-          </section>
-        </>
+          <Tabs defaultValue="activity" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="activity">Activity</TabsTrigger>
+              <TabsTrigger value="accounts">Accounts</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="activity">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent transactions</CardTitle>
+                  <CardDescription>Latest synced activity from the backend.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Account</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data.recentTransactions.map((transaction) => (
+                        <TableRow key={transaction.id}>
+                          <TableCell className="font-medium">{transaction.description}</TableCell>
+                          <TableCell>{transaction.account.name}</TableCell>
+                          <TableCell>{transaction.category?.name ?? 'Uncategorized'}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{transaction.type}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatCurrency(Number(transaction.amount))}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="accounts">
+              <div className="grid gap-4 lg:grid-cols-3">
+                {data.accounts.map((account) => (
+                  <Card key={account.id}>
+                    <CardHeader>
+                      <CardDescription>{account.type.replaceAll('_', ' ')}</CardDescription>
+                      <CardTitle>{account.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <p className="text-3xl font-semibold text-[var(--foreground)]">
+                        {formatCurrency(account.currentBalance)}
+                      </p>
+                      <p className="text-sm text-[var(--muted-foreground)]">
+                        Opening balance {formatCurrency(account.openingBalance)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
       ) : null}
     </main>
   )
