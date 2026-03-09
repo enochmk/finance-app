@@ -14,6 +14,9 @@ type RecurringTransactionOwnershipData = {
   categoryId?: string;
   type: CreateRecurringTransactionBody['type'];
   transferAccountId?: string;
+  frequency: CreateRecurringTransactionBody['frequency'];
+  dayOfMonth?: number;
+  dayOfWeek?: number;
 };
 
 function clampDayOfMonth(year: number, monthIndex: number, dayOfMonth: number) {
@@ -277,6 +280,22 @@ class RecurringTransactionsService {
         'transferAccountId can only be used with transfer recurring transactions'
       );
     }
+
+    if (
+      (data.frequency === 'MONTHLY' ||
+        data.frequency === 'QUARTERLY' ||
+        data.frequency === 'YEARLY') &&
+      data.dayOfMonth === undefined
+    ) {
+      throw createHttpError(
+        400,
+        'dayOfMonth is required for monthly, quarterly, or yearly recurrence'
+      );
+    }
+
+    if (data.frequency === 'WEEKLY' && data.dayOfWeek === undefined) {
+      throw createHttpError(400, 'dayOfWeek is required for weekly recurrence');
+    }
   };
 
   resolveUpdateOwnershipValidationData = async (
@@ -297,10 +316,19 @@ class RecurringTransactionsService {
           ? (existingRecurringTransaction.categoryId ?? undefined)
           : data.categoryId,
       type: data.type ?? existingRecurringTransaction.type,
+      frequency: data.frequency ?? existingRecurringTransaction.frequency,
       transferAccountId:
         data.transferAccountId === undefined
           ? (existingRecurringTransaction.transferAccountId ?? undefined)
           : data.transferAccountId,
+      dayOfMonth:
+        data.dayOfMonth === undefined
+          ? (existingRecurringTransaction.dayOfMonth ?? undefined)
+          : data.dayOfMonth,
+      dayOfWeek:
+        data.dayOfWeek === undefined
+          ? (existingRecurringTransaction.dayOfWeek ?? undefined)
+          : data.dayOfWeek,
     };
   };
 
@@ -313,6 +341,9 @@ class RecurringTransactionsService {
         categoryId: true,
         type: true,
         transferAccountId: true,
+        frequency: true,
+        dayOfMonth: true,
+        dayOfWeek: true,
       },
     });
 

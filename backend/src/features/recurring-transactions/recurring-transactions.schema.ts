@@ -10,32 +10,34 @@ const recurringFrequencySchema = z.enum([
 const recurringStatusSchema = z.enum(['ACTIVE', 'PAUSED', 'COMPLETED']);
 const transactionTypeSchema = z.enum(['INCOME', 'EXPENSE', 'TRANSFER']);
 
+const recurringTransactionBodyFields = {
+  accountId: z.string().uuid('accountId must be a valid UUID'),
+  categoryId: z.string().uuid('categoryId must be a valid UUID').optional(),
+  transferAccountId: z
+    .string()
+    .uuid('transferAccountId must be a valid UUID')
+    .optional(),
+  type: transactionTypeSchema,
+  amount: z.number().finite().positive('Amount must be greater than zero'),
+  description: z.string().trim().min(1).max(255),
+  notes: z.string().trim().max(2000).optional(),
+  frequency: recurringFrequencySchema,
+  intervalCount: z.number().int().min(1).max(24).optional(),
+  dayOfMonth: z.number().int().min(1).max(31).optional(),
+  dayOfWeek: z.number().int().min(0).max(6).optional(),
+  startDate: z.string().datetime({
+    message: 'startDate must be a valid ISO datetime string',
+  }),
+  endDate: z
+    .string()
+    .datetime({ message: 'endDate must be a valid ISO datetime string' })
+    .optional(),
+  status: recurringStatusSchema.optional(),
+  externalReference: z.string().trim().max(255).optional(),
+};
+
 const recurringTransactionBodySchema = z
-  .object({
-    accountId: z.string().uuid('accountId must be a valid UUID'),
-    categoryId: z.string().uuid('categoryId must be a valid UUID').optional(),
-    transferAccountId: z
-      .string()
-      .uuid('transferAccountId must be a valid UUID')
-      .optional(),
-    type: transactionTypeSchema,
-    amount: z.number().finite().positive('Amount must be greater than zero'),
-    description: z.string().trim().min(1).max(255),
-    notes: z.string().trim().max(2000).optional(),
-    frequency: recurringFrequencySchema,
-    intervalCount: z.number().int().min(1).max(24).optional(),
-    dayOfMonth: z.number().int().min(1).max(31).optional(),
-    dayOfWeek: z.number().int().min(0).max(6).optional(),
-    startDate: z.string().datetime({
-      message: 'startDate must be a valid ISO datetime string',
-    }),
-    endDate: z
-      .string()
-      .datetime({ message: 'endDate must be a valid ISO datetime string' })
-      .optional(),
-    status: recurringStatusSchema.optional(),
-    externalReference: z.string().trim().max(255).optional(),
-  })
+  .object(recurringTransactionBodyFields)
   .superRefine((value, ctx) => {
     if (value.type === 'TRANSFER' && !value.transferAccountId) {
       ctx.addIssue({
@@ -76,6 +78,24 @@ const recurringTransactionBodySchema = z
     }
   });
 
+const updateRecurringTransactionBodySchema = z.object({
+  accountId: recurringTransactionBodyFields.accountId.optional(),
+  categoryId: recurringTransactionBodyFields.categoryId,
+  transferAccountId: recurringTransactionBodyFields.transferAccountId,
+  type: transactionTypeSchema.optional(),
+  amount: recurringTransactionBodyFields.amount.optional(),
+  description: recurringTransactionBodyFields.description.optional(),
+  notes: recurringTransactionBodyFields.notes,
+  frequency: recurringTransactionBodyFields.frequency.optional(),
+  intervalCount: recurringTransactionBodyFields.intervalCount,
+  dayOfMonth: recurringTransactionBodyFields.dayOfMonth,
+  dayOfWeek: recurringTransactionBodyFields.dayOfWeek,
+  startDate: recurringTransactionBodyFields.startDate.optional(),
+  endDate: recurringTransactionBodyFields.endDate,
+  status: recurringTransactionBodyFields.status,
+  externalReference: recurringTransactionBodyFields.externalReference,
+});
+
 export const listRecurringTransactionsSchema = z.object({
   params: z.object({}),
   body: z.object({}).optional(),
@@ -96,7 +116,7 @@ export const updateRecurringTransactionSchema = z.object({
     id: z.string().uuid('Recurring transaction id must be a valid UUID'),
   }),
   query: z.object({}),
-  body: recurringTransactionBodySchema.partial(),
+  body: updateRecurringTransactionBodySchema,
 });
 
 export const deleteRecurringTransactionSchema = z.object({
