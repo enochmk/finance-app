@@ -1,12 +1,12 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { ArrowRight, Landmark, TrendingDown, TrendingUp, Wallet } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { toast } from 'sonner'
 
+import { useSession } from '#/components/session-provider'
 import {
   getDashboardSummary,
-  loginWithSeedUser,
   type DashboardSummary,
 } from '#/lib/api'
 import { Alert, AlertDescription, AlertTitle } from '#/components/ui/alert'
@@ -58,18 +58,29 @@ function DashboardLoadingState() {
 }
 
 function DashboardPage() {
+  const navigate = useNavigate()
+  const { isAuthenticated, isLoading: isSessionLoading } = useSession()
   const [data, setData] = useState<DashboardSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
+    if (!isSessionLoading && !isAuthenticated) {
+      void navigate({ to: '/sign-in' })
+    }
+  }, [isAuthenticated, isSessionLoading, navigate])
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return
+    }
+
     let cancelled = false
 
     async function load() {
       try {
         setIsLoading(true)
         setError(null)
-        await loginWithSeedUser()
         const summary = await getDashboardSummary()
 
         if (!cancelled) {
@@ -99,7 +110,7 @@ function DashboardPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [isAuthenticated])
 
   const transactionChartData = useMemo(() => {
     if (!data) {
@@ -140,6 +151,8 @@ function DashboardPage() {
           </Link>
         </Button>
       </div>
+
+      {!isAuthenticated && !isSessionLoading ? null : null}
 
       {isLoading ? (
         <DashboardLoadingState />
@@ -262,6 +275,48 @@ function DashboardPage() {
               </CardContent>
             </Card>
           </div>
+
+          <Card>
+            <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <CardTitle>Recurring schedule</CardTitle>
+                <CardDescription>Upcoming recurring transactions from the backend schedule engine.</CardDescription>
+              </div>
+              <Button variant="outline" asChild>
+                <Link to="/manage">Manage recurring items</Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Frequency</TableHead>
+                    <TableHead>Account</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Next run</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.recurringTransactions.map((transaction) => (
+                    <TableRow key={transaction.id}>
+                      <TableCell className="font-medium">{transaction.description}</TableCell>
+                      <TableCell>{transaction.frequency}</TableCell>
+                      <TableCell>{transaction.account.name}</TableCell>
+                      <TableCell>
+                        <Badge variant={transaction.status === 'ACTIVE' ? 'success' : 'outline'}>
+                          {transaction.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {new Date(transaction.nextRunAt).toLocaleString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
 
           <Tabs defaultValue="activity" className="space-y-4">
             <TabsList>

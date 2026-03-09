@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { CalendarRange, CircleDollarSign, Landmark, TrendingDown, TrendingUp } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
@@ -6,9 +6,9 @@ import { toast } from 'sonner'
 
 import {
   getMonthlyReport,
-  loginWithSeedUser,
   type MonthlyReport,
 } from '#/lib/api'
+import { useSession } from '#/components/session-provider'
 import { Alert, AlertDescription, AlertTitle } from '#/components/ui/alert'
 import { Badge } from '#/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '#/components/ui/card'
@@ -57,6 +57,8 @@ function ReportsLoadingState() {
 }
 
 function ReportsPage() {
+  const navigate = useNavigate()
+  const { isAuthenticated, isLoading: isSessionLoading } = useSession()
   const [data, setData] = useState<MonthlyReport | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -64,13 +66,22 @@ function ReportsPage() {
   const [year, setYear] = useState<string>('')
 
   useEffect(() => {
+    if (!isSessionLoading && !isAuthenticated) {
+      void navigate({ to: '/sign-in' })
+    }
+  }, [isAuthenticated, isSessionLoading, navigate])
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return
+    }
+
     let cancelled = false
 
     async function load() {
       try {
         setIsLoading(true)
         setError(null)
-        await loginWithSeedUser()
 
         const query = new URLSearchParams()
         if (month) {
@@ -109,7 +120,7 @@ function ReportsPage() {
     return () => {
       cancelled = true
     }
-  }, [month, year])
+  }, [isAuthenticated, month, year])
 
   const pieData = useMemo(() => {
     if (!data) {

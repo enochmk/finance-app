@@ -23,13 +23,13 @@ function App() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg" className="bg-white text-[#0f2d34] hover:bg-white/92">
-                <Link to="/dashboard">
-                  Open dashboard
+                <Link to="/sign-in">
+                  Sign in
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="border-white/20 bg-white/6 text-white hover:bg-white/12">
-                <Link to="/reports">Explore reports</Link>
+                <Link to="/manage">Open workspace</Link>
               </Button>
             </div>
           </div>
@@ -78,7 +78,7 @@ function App() {
             {[
               'Seed the backend with npm --prefix backend run seed:dev',
               'Run the API at http://127.0.0.1:4000 and the frontend at http://127.0.0.1:3000',
-              'Use /dashboard and /reports for live backend-powered finance views',
+              'Use /sign-in, /manage, /dashboard, and /reports for the full finance flow',
             ].map((item, index) => (
               <div key={index} className="rounded-xl border border-[var(--border)] bg-[var(--secondary)]/40 p-4 text-sm text-[var(--muted-foreground)]">
                 {item}

@@ -79,6 +79,20 @@ class DashboardService {
         }),
       ]);
 
+    const upcomingRecurringTransactions = await prisma.recurringTransaction.findMany({
+      where: {
+        userId,
+        status: 'ACTIVE',
+      },
+      include: {
+        account: true,
+        category: true,
+        transferAccount: true,
+      },
+      orderBy: [{ nextRunAt: 'asc' }],
+      take: 5,
+    });
+
     const totalsByType = transactionGroups.reduce(
       (acc, group) => {
         acc[group.type] = toNumber(group._sum.amount);
@@ -172,6 +186,29 @@ class DashboardService {
         openingBalance: toNumber(account.openingBalance),
       })),
       budgets: budgetsWithUsage,
+      recurringTransactions: upcomingRecurringTransactions.map(
+        (recurringTransaction) => ({
+          id: recurringTransaction.id,
+          description: recurringTransaction.description,
+          type: recurringTransaction.type,
+          amount: toNumber(recurringTransaction.amount),
+          frequency: recurringTransaction.frequency,
+          nextRunAt: recurringTransaction.nextRunAt.toISOString(),
+          status: recurringTransaction.status,
+          account: {
+            id: recurringTransaction.account.id,
+            name: recurringTransaction.account.name,
+            currency: recurringTransaction.account.currency,
+          },
+          category: recurringTransaction.category
+            ? {
+                id: recurringTransaction.category.id,
+                name: recurringTransaction.category.name,
+                type: recurringTransaction.category.type,
+              }
+            : null,
+        })
+      ),
       recentTransactions,
     };
   };

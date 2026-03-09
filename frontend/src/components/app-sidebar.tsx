@@ -10,6 +10,7 @@ import {
   MoonStar,
   ReceiptText,
   Settings,
+  SquarePen,
   Wallet,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -36,6 +37,7 @@ const navigationItems = [
   { to: '/', label: 'Overview', icon: Wallet },
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/reports', label: 'Reports', icon: BarChart3 },
+  { to: '/manage', label: 'Manage', icon: SquarePen },
   { to: '/about', label: 'Project', icon: ReceiptText },
 ] as const
 

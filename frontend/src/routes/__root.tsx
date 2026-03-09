@@ -3,6 +3,7 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import { AppSidebar } from '#/components/app-sidebar'
+import { SessionProvider } from '#/components/session-provider'
 import { SidebarStateProvider, useSidebarState } from '#/components/sidebar-state'
 import { AppToaster } from '#/components/ui/sonner'
 
@@ -42,9 +43,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(79,184,178,0.24)]">
-        <SidebarStateProvider>
-          <RootLayout>{children}</RootLayout>
-        </SidebarStateProvider>
+        <SessionProvider>
+          <SidebarStateProvider>
+            <RootLayout>{children}</RootLayout>
+          </SidebarStateProvider>
+        </SessionProvider>
         <AppToaster />
         <TanStackDevtools
           config={{
