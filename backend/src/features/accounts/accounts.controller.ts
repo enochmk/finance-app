@@ -11,6 +11,7 @@ class AccountsController {
   async list(req: Request, res: Response, next: NextFunction) {
     try {
       const accounts = await accountsService.list(
+        String(req.user?.id),
         req.query as unknown as ListAccountsInput
       );
 
@@ -26,6 +27,7 @@ class AccountsController {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const account = await accountsService.create(
+        String(req.user?.id),
         req.body as CreateAccountInput
       );
 
@@ -41,6 +43,7 @@ class AccountsController {
     try {
       const account = await accountsService.update(
         String(req.params.id),
+        String(req.user?.id),
         req.body as UpdateAccountInput
       );
 
@@ -56,7 +59,7 @@ class AccountsController {
     try {
       const account = await accountsService.remove(
         String(req.params.id),
-        String(req.query.userId)
+        String(req.user?.id)
       );
 
       return res.status(200).json({

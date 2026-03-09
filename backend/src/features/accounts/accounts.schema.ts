@@ -10,7 +10,6 @@ const accountTypeSchema = z.enum([
 ]);
 
 const accountBodySchema = z.object({
-  userId: z.string().uuid('userId must be a valid UUID'),
   name: z.string().trim().min(1).max(120),
   type: accountTypeSchema,
   currency: z.string().trim().length(3).toUpperCase().optional(),
@@ -23,7 +22,6 @@ const accountBodySchema = z.object({
 
 export const listAccountsSchema = z.object({
   query: z.object({
-    userId: z.string().uuid('userId must be a valid UUID'),
     type: accountTypeSchema.optional(),
     isArchived: z.coerce.boolean().optional(),
   }),
@@ -42,18 +40,14 @@ export const updateAccountSchema = z.object({
     id: z.string().uuid('Account id must be a valid UUID'),
   }),
   query: z.object({}),
-  body: accountBodySchema.partial().extend({
-    userId: z.string().uuid('userId must be a valid UUID'),
-  }),
+  body: accountBodySchema.partial(),
 });
 
 export const deleteAccountSchema = z.object({
   params: z.object({
     id: z.string().uuid('Account id must be a valid UUID'),
   }),
-  query: z.object({
-    userId: z.string().uuid('userId must be a valid UUID'),
-  }),
+  query: z.object({}),
   body: z.object({}).optional(),
 });
 

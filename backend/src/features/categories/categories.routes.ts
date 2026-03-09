@@ -1,5 +1,6 @@
 import { Router } from 'express';
 
+import requireAuth from '../../middlewares/require-auth.middleware';
 import resourceValidator from '../../middlewares/schema-validation.middleware';
 import categoriesController from './categories.controller';
 import {
@@ -10,6 +11,8 @@ import {
 } from './categories.schema';
 
 const categoriesRoutes = Router();
+
+categoriesRoutes.use(requireAuth);
 
 categoriesRoutes.get(
   '/',

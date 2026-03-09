@@ -3,7 +3,6 @@ import { z } from 'zod';
 const categoryTypeSchema = z.enum(['INCOME', 'EXPENSE']);
 
 const categoryBodySchema = z.object({
-  userId: z.string().uuid('userId must be a valid UUID'),
   name: z.string().trim().min(1).max(80),
   type: categoryTypeSchema,
   color: z.string().trim().max(32).optional(),
@@ -14,7 +13,6 @@ const categoryBodySchema = z.object({
 
 export const listCategoriesSchema = z.object({
   query: z.object({
-    userId: z.string().uuid('userId must be a valid UUID'),
     type: categoryTypeSchema.optional(),
     isArchived: z.coerce.boolean().optional(),
   }),
@@ -33,18 +31,14 @@ export const updateCategorySchema = z.object({
     id: z.string().uuid('Category id must be a valid UUID'),
   }),
   query: z.object({}),
-  body: categoryBodySchema.partial().extend({
-    userId: z.string().uuid('userId must be a valid UUID'),
-  }),
+  body: categoryBodySchema.partial(),
 });
 
 export const deleteCategorySchema = z.object({
   params: z.object({
     id: z.string().uuid('Category id must be a valid UUID'),
   }),
-  query: z.object({
-    userId: z.string().uuid('userId must be a valid UUID'),
-  }),
+  query: z.object({}),
   body: z.object({}).optional(),
 });
 

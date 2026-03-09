@@ -1,6 +1,7 @@
 import { Router } from 'express';
 
 import accountsRoutes from '../features/accounts/accounts.routes';
+import authRoutes from '../features/auth/auth.routes';
 import budgetsRoutes from '../features/budgets/budgets.routes';
 import categoriesRoutes from '../features/categories/categories.routes';
 import transactionsRoutes from '../features/transactions/transactions.routes';
@@ -9,6 +10,7 @@ import healthRoutes from './health.routes';
 const apiRoutes = Router();
 
 apiRoutes.use('/health', healthRoutes);
+apiRoutes.use('/auth', authRoutes);
 apiRoutes.use('/accounts', accountsRoutes);
 apiRoutes.use('/budgets', budgetsRoutes);
 apiRoutes.use('/categories', categoriesRoutes);

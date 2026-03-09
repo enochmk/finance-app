@@ -8,10 +8,10 @@ import type {
 } from './transactions.schema';
 
 class TransactionsService {
-  async list(filters: ListTransactionsInput) {
+  async list(userId: string, filters: ListTransactionsInput) {
     return prisma.transaction.findMany({
       where: {
-        userId: filters.userId,
+        userId,
         accountId: filters.accountId,
         categoryId: filters.categoryId,
         type: filters.type,
@@ -33,12 +33,12 @@ class TransactionsService {
     });
   }
 
-  async create(data: CreateTransactionInput) {
-    await this.validateOwnership(data);
+  async create(userId: string, data: CreateTransactionInput) {
+    await this.validateOwnership({ ...data, userId });
 
     return prisma.transaction.create({
       data: {
-        userId: data.userId,
+        userId,
         accountId: data.accountId,
         categoryId: data.categoryId,
         type: data.type,
@@ -57,14 +57,11 @@ class TransactionsService {
     });
   }
 
-  async update(id: string, data: UpdateTransactionInput) {
-    const existingTransaction = await this.ensureOwnedTransaction(
-      id,
-      data.userId
-    );
+  async update(id: string, userId: string, data: UpdateTransactionInput) {
+    const existingTransaction = await this.ensureOwnedTransaction(id, userId);
 
     await this.validateOwnership({
-      userId: data.userId,
+      userId,
       accountId: data.accountId ?? existingTransaction.accountId,
       categoryId:
         data.categoryId === undefined

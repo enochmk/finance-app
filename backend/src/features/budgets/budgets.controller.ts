@@ -11,6 +11,7 @@ class BudgetsController {
   async list(req: Request, res: Response, next: NextFunction) {
     try {
       const budgets = await budgetsService.list(
+        String(req.user?.id),
         req.query as unknown as ListBudgetsInput
       );
 
@@ -25,7 +26,10 @@ class BudgetsController {
 
   async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const budget = await budgetsService.create(req.body as CreateBudgetInput);
+      const budget = await budgetsService.create(
+        String(req.user?.id),
+        req.body as CreateBudgetInput
+      );
 
       return res.status(201).json({
         data: budget,
@@ -39,6 +43,7 @@ class BudgetsController {
     try {
       const budget = await budgetsService.update(
         String(req.params.id),
+        String(req.user?.id),
         req.body as UpdateBudgetInput
       );
 
@@ -54,7 +59,7 @@ class BudgetsController {
     try {
       const budget = await budgetsService.remove(
         String(req.params.id),
-        String(req.query.userId)
+        String(req.user?.id)
       );
 
       return res.status(200).json({

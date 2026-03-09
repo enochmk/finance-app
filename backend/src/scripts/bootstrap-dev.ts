@@ -1,3 +1,5 @@
+import bcrypt from 'bcryptjs';
+
 import prisma from '../libs/prisma';
 import env from '../env';
 import { AccountType, CategoryType } from '../../generated/prisma/enums';
@@ -10,13 +12,21 @@ export async function bootstrapDevData() {
     return;
   }
 
+  const passwordHash = await bcrypt.hash(
+    env.DEV_SEED_USER_PASSWORD,
+    env.BCRYPT_ROUNDS
+  );
+
   const user = await prisma.user.upsert({
     where: { email: env.DEV_SEED_USER_EMAIL },
-    update: { name: env.DEV_SEED_USER_NAME },
+    update: {
+      name: env.DEV_SEED_USER_NAME,
+      passwordHash,
+    },
     create: {
       email: env.DEV_SEED_USER_EMAIL,
       name: env.DEV_SEED_USER_NAME,
-      passwordHash: 'dev-seed-password',
+      passwordHash,
     },
   });
 

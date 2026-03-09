@@ -1,5 +1,6 @@
 import { Router } from 'express';
 
+import requireAuth from '../../middlewares/require-auth.middleware';
 import resourceValidator from '../../middlewares/schema-validation.middleware';
 import transactionsController from './transactions.controller';
 import {
@@ -10,6 +11,8 @@ import {
 } from './transactions.schema';
 
 const transactionsRoutes = Router();
+
+transactionsRoutes.use(requireAuth);
 
 transactionsRoutes.get(
   '/',

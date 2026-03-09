@@ -8,10 +8,10 @@ import type {
 } from './categories.schema';
 
 class CategoriesService {
-  async list(filters: ListCategoriesInput) {
+  async list(userId: string, filters: ListCategoriesInput) {
     return prisma.category.findMany({
       where: {
-        userId: filters.userId,
+        userId,
         type: filters.type,
         isArchived: filters.isArchived,
       },
@@ -19,10 +19,10 @@ class CategoriesService {
     });
   }
 
-  async create(data: CreateCategoryInput) {
+  async create(userId: string, data: CreateCategoryInput) {
     return prisma.category.create({
       data: {
-        userId: data.userId,
+        userId,
         name: data.name,
         type: data.type,
         color: data.color,
@@ -33,8 +33,8 @@ class CategoriesService {
     });
   }
 
-  async update(id: string, data: UpdateCategoryInput) {
-    await this.ensureOwnedCategory(id, data.userId);
+  async update(id: string, userId: string, data: UpdateCategoryInput) {
+    await this.ensureOwnedCategory(id, userId);
 
     return prisma.category.update({
       where: { id },

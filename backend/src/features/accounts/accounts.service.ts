@@ -8,10 +8,10 @@ import type {
 } from './accounts.schema';
 
 class AccountsService {
-  async list(filters: ListAccountsInput) {
+  async list(userId: string, filters: ListAccountsInput) {
     return prisma.account.findMany({
       where: {
-        userId: filters.userId,
+        userId,
         type: filters.type,
         isArchived: filters.isArchived,
       },
@@ -19,10 +19,10 @@ class AccountsService {
     });
   }
 
-  async create(data: CreateAccountInput) {
+  async create(userId: string, data: CreateAccountInput) {
     return prisma.account.create({
       data: {
-        userId: data.userId,
+        userId,
         name: data.name,
         type: data.type,
         currency: data.currency ?? 'USD',
@@ -35,8 +35,8 @@ class AccountsService {
     });
   }
 
-  async update(id: string, data: UpdateAccountInput) {
-    await this.ensureOwnedAccount(id, data.userId);
+  async update(id: string, userId: string, data: UpdateAccountInput) {
+    await this.ensureOwnedAccount(id, userId);
 
     return prisma.account.update({
       where: { id },

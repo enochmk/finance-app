@@ -1,5 +1,6 @@
 import { Router } from 'express';
 
+import requireAuth from '../../middlewares/require-auth.middleware';
 import resourceValidator from '../../middlewares/schema-validation.middleware';
 import budgetsController from './budgets.controller';
 import {
@@ -10,6 +11,8 @@ import {
 } from './budgets.schema';
 
 const budgetsRoutes = Router();
+
+budgetsRoutes.use(requireAuth);
 
 budgetsRoutes.get(
   '/',

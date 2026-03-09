@@ -11,22 +11,23 @@ const isoDateSchema = z
   .string()
   .datetime({ message: 'transactionDate must be a valid ISO datetime string' });
 
+const transactionBodyFields = {
+  accountId: z.string().uuid('accountId must be a valid UUID'),
+  categoryId: z.string().uuid('categoryId must be a valid UUID').optional(),
+  type: transactionTypeSchema,
+  amount: decimalAmountSchema,
+  description: z.string().trim().min(1).max(255),
+  notes: z.string().trim().max(2000).optional(),
+  transactionDate: isoDateSchema,
+  transferAccountId: z
+    .string()
+    .uuid('transferAccountId must be a valid UUID')
+    .optional(),
+  externalReference: z.string().trim().max(255).optional(),
+};
+
 const baseTransactionBodySchema = z
-  .object({
-    userId: z.string().uuid('userId must be a valid UUID'),
-    accountId: z.string().uuid('accountId must be a valid UUID'),
-    categoryId: z.string().uuid('categoryId must be a valid UUID').optional(),
-    type: transactionTypeSchema,
-    amount: decimalAmountSchema,
-    description: z.string().trim().min(1).max(255),
-    notes: z.string().trim().max(2000).optional(),
-    transactionDate: isoDateSchema,
-    transferAccountId: z
-      .string()
-      .uuid('transferAccountId must be a valid UUID')
-      .optional(),
-    externalReference: z.string().trim().max(255).optional(),
-  })
+  .object(transactionBodyFields)
   .superRefine((value, ctx) => {
     if (value.type === 'TRANSFER' && !value.transferAccountId) {
       ctx.addIssue({
@@ -48,9 +49,34 @@ const baseTransactionBodySchema = z
     }
   });
 
+const updateTransactionBodySchema = z
+  .object({
+    accountId: transactionBodyFields.accountId.optional(),
+    categoryId: transactionBodyFields.categoryId,
+    type: transactionTypeSchema.optional(),
+    amount: decimalAmountSchema.optional(),
+    description: transactionBodyFields.description.optional(),
+    notes: transactionBodyFields.notes,
+    transactionDate: isoDateSchema.optional(),
+    transferAccountId: transactionBodyFields.transferAccountId,
+    externalReference: transactionBodyFields.externalReference,
+  })
+  .superRefine((value, ctx) => {
+    if (
+      value.transferAccountId &&
+      value.accountId &&
+      value.transferAccountId === value.accountId
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['transferAccountId'],
+        message: 'transferAccountId must be different from accountId',
+      });
+    }
+  });
+
 export const listTransactionsSchema = z.object({
   query: z.object({
-    userId: z.string().uuid('userId must be a valid UUID'),
     accountId: z.string().uuid('accountId must be a valid UUID').optional(),
     categoryId: z.string().uuid('categoryId must be a valid UUID').optional(),
     type: transactionTypeSchema.optional(),
@@ -73,18 +99,14 @@ export const updateTransactionSchema = z.object({
     id: z.string().uuid('Transaction id must be a valid UUID'),
   }),
   query: z.object({}),
-  body: baseTransactionBodySchema.partial().extend({
-    userId: z.string().uuid('userId must be a valid UUID'),
-  }),
+  body: updateTransactionBodySchema,
 });
 
 export const deleteTransactionSchema = z.object({
   params: z.object({
     id: z.string().uuid('Transaction id must be a valid UUID'),
   }),
-  query: z.object({
-    userId: z.string().uuid('userId must be a valid UUID'),
-  }),
+  query: z.object({}),
   body: z.object({}).optional(),
 });
 

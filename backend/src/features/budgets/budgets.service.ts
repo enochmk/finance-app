@@ -8,10 +8,10 @@ import type {
 } from './budgets.schema';
 
 class BudgetsService {
-  async list(filters: ListBudgetsInput) {
+  async list(userId: string, filters: ListBudgetsInput) {
     return prisma.budget.findMany({
       where: {
-        userId: filters.userId,
+        userId,
         month: filters.month,
         year: filters.year,
         categoryId: filters.categoryId,
@@ -23,12 +23,12 @@ class BudgetsService {
     });
   }
 
-  async create(data: CreateBudgetInput) {
-    await this.ensureOwnedCategory(data.categoryId, data.userId);
+  async create(userId: string, data: CreateBudgetInput) {
+    await this.ensureOwnedCategory(data.categoryId, userId);
 
     return prisma.budget.create({
       data: {
-        userId: data.userId,
+        userId,
         categoryId: data.categoryId,
         amount: data.amount,
         month: data.month,
@@ -41,11 +41,11 @@ class BudgetsService {
     });
   }
 
-  async update(id: string, data: UpdateBudgetInput) {
-    const existingBudget = await this.ensureOwnedBudget(id, data.userId);
+  async update(id: string, userId: string, data: UpdateBudgetInput) {
+    const existingBudget = await this.ensureOwnedBudget(id, userId);
 
     const categoryId = data.categoryId ?? existingBudget.categoryId;
-    await this.ensureOwnedCategory(categoryId, data.userId);
+    await this.ensureOwnedCategory(categoryId, userId);
 
     return prisma.budget.update({
       where: { id },

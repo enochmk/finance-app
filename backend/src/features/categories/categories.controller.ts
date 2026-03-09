@@ -11,6 +11,7 @@ class CategoriesController {
   async list(req: Request, res: Response, next: NextFunction) {
     try {
       const categories = await categoriesService.list(
+        String(req.user?.id),
         req.query as unknown as ListCategoriesInput
       );
 
@@ -26,6 +27,7 @@ class CategoriesController {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const category = await categoriesService.create(
+        String(req.user?.id),
         req.body as CreateCategoryInput
       );
 
@@ -41,6 +43,7 @@ class CategoriesController {
     try {
       const category = await categoriesService.update(
         String(req.params.id),
+        String(req.user?.id),
         req.body as UpdateCategoryInput
       );
 
@@ -56,7 +59,7 @@ class CategoriesController {
     try {
       const category = await categoriesService.remove(
         String(req.params.id),
-        String(req.query.userId)
+        String(req.user?.id)
       );
 
       return res.status(200).json({

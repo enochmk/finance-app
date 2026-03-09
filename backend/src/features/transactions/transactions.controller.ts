@@ -11,6 +11,7 @@ class TransactionsController {
   async list(req: Request, res: Response, next: NextFunction) {
     try {
       const transactions = await transactionsService.list(
+        String(req.user?.id),
         req.query as unknown as ListTransactionsInput
       );
 
@@ -26,6 +27,7 @@ class TransactionsController {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const transaction = await transactionsService.create(
+        String(req.user?.id),
         req.body as CreateTransactionInput
       );
 
@@ -41,6 +43,7 @@ class TransactionsController {
     try {
       const transaction = await transactionsService.update(
         String(req.params.id),
+        String(req.user?.id),
         req.body as UpdateTransactionInput
       );
 
@@ -56,7 +59,7 @@ class TransactionsController {
     try {
       const transaction = await transactionsService.remove(
         String(req.params.id),
-        String(req.query.userId)
+        String(req.user?.id)
       );
 
       return res.status(200).json({
