@@ -1,15 +1,13 @@
 import type { ReactNode } from 'react'
 
 import { Badge } from '#/components/ui/badge'
-import { Button } from '#/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '#/components/ui/card'
 
 type CrudPageShellProps = {
   badge: string
   title: string
   description: string
-  actionLabel: string
-  onAction: () => void
+  actions?: ReactNode
+  navigation?: ReactNode
   children: ReactNode
 }
 
@@ -17,8 +15,8 @@ export function CrudPageShell({
   badge,
   title,
   description,
-  actionLabel,
-  onAction,
+  actions,
+  navigation,
   children,
 }: CrudPageShellProps) {
   return (
@@ -36,16 +34,12 @@ export function CrudPageShell({
           </p>
         </div>
 
-        <Button onClick={onAction}>{actionLabel}</Button>
+        {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-        <CardContent>{children}</CardContent>
-      </Card>
+      {navigation}
+
+      <div className="space-y-6">{children}</div>
     </main>
   )
 }

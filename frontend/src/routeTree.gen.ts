@@ -15,6 +15,11 @@ import { Route as ManageRouteImport } from './routes/manage'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ManageTransactionsRouteImport } from './routes/manage.transactions'
+import { Route as ManageRecurringRouteImport } from './routes/manage.recurring'
+import { Route as ManageCategoriesRouteImport } from './routes/manage.categories'
+import { Route as ManageBudgetsRouteImport } from './routes/manage.budgets'
+import { Route as ManageAccountsRouteImport } from './routes/manage.accounts'
 
 const SignInRoute = SignInRouteImport.update({
   id: '/sign-in',
@@ -46,37 +51,99 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ManageTransactionsRoute = ManageTransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
+  getParentRoute: () => ManageRoute,
+} as any)
+const ManageRecurringRoute = ManageRecurringRouteImport.update({
+  id: '/recurring',
+  path: '/recurring',
+  getParentRoute: () => ManageRoute,
+} as any)
+const ManageCategoriesRoute = ManageCategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
+  getParentRoute: () => ManageRoute,
+} as any)
+const ManageBudgetsRoute = ManageBudgetsRouteImport.update({
+  id: '/budgets',
+  path: '/budgets',
+  getParentRoute: () => ManageRoute,
+} as any)
+const ManageAccountsRoute = ManageAccountsRouteImport.update({
+  id: '/accounts',
+  path: '/accounts',
+  getParentRoute: () => ManageRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/dashboard': typeof DashboardRoute
-  '/manage': typeof ManageRoute
+  '/manage': typeof ManageRouteWithChildren
   '/reports': typeof ReportsRoute
   '/sign-in': typeof SignInRoute
+  '/manage/accounts': typeof ManageAccountsRoute
+  '/manage/budgets': typeof ManageBudgetsRoute
+  '/manage/categories': typeof ManageCategoriesRoute
+  '/manage/recurring': typeof ManageRecurringRoute
+  '/manage/transactions': typeof ManageTransactionsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/dashboard': typeof DashboardRoute
-  '/manage': typeof ManageRoute
+  '/manage': typeof ManageRouteWithChildren
   '/reports': typeof ReportsRoute
   '/sign-in': typeof SignInRoute
+  '/manage/accounts': typeof ManageAccountsRoute
+  '/manage/budgets': typeof ManageBudgetsRoute
+  '/manage/categories': typeof ManageCategoriesRoute
+  '/manage/recurring': typeof ManageRecurringRoute
+  '/manage/transactions': typeof ManageTransactionsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/dashboard': typeof DashboardRoute
-  '/manage': typeof ManageRoute
+  '/manage': typeof ManageRouteWithChildren
   '/reports': typeof ReportsRoute
   '/sign-in': typeof SignInRoute
+  '/manage/accounts': typeof ManageAccountsRoute
+  '/manage/budgets': typeof ManageBudgetsRoute
+  '/manage/categories': typeof ManageCategoriesRoute
+  '/manage/recurring': typeof ManageRecurringRoute
+  '/manage/transactions': typeof ManageTransactionsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/dashboard' | '/manage' | '/reports' | '/sign-in'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/dashboard'
+    | '/manage'
+    | '/reports'
+    | '/sign-in'
+    | '/manage/accounts'
+    | '/manage/budgets'
+    | '/manage/categories'
+    | '/manage/recurring'
+    | '/manage/transactions'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/dashboard' | '/manage' | '/reports' | '/sign-in'
+  to:
+    | '/'
+    | '/about'
+    | '/dashboard'
+    | '/manage'
+    | '/reports'
+    | '/sign-in'
+    | '/manage/accounts'
+    | '/manage/budgets'
+    | '/manage/categories'
+    | '/manage/recurring'
+    | '/manage/transactions'
   id:
     | '__root__'
     | '/'
@@ -85,13 +152,18 @@ export interface FileRouteTypes {
     | '/manage'
     | '/reports'
     | '/sign-in'
+    | '/manage/accounts'
+    | '/manage/budgets'
+    | '/manage/categories'
+    | '/manage/recurring'
+    | '/manage/transactions'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   DashboardRoute: typeof DashboardRoute
-  ManageRoute: typeof ManageRoute
+  ManageRoute: typeof ManageRouteWithChildren
   ReportsRoute: typeof ReportsRoute
   SignInRoute: typeof SignInRoute
 }
@@ -140,14 +212,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/manage/transactions': {
+      id: '/manage/transactions'
+      path: '/transactions'
+      fullPath: '/manage/transactions'
+      preLoaderRoute: typeof ManageTransactionsRouteImport
+      parentRoute: typeof ManageRoute
+    }
+    '/manage/recurring': {
+      id: '/manage/recurring'
+      path: '/recurring'
+      fullPath: '/manage/recurring'
+      preLoaderRoute: typeof ManageRecurringRouteImport
+      parentRoute: typeof ManageRoute
+    }
+    '/manage/categories': {
+      id: '/manage/categories'
+      path: '/categories'
+      fullPath: '/manage/categories'
+      preLoaderRoute: typeof ManageCategoriesRouteImport
+      parentRoute: typeof ManageRoute
+    }
+    '/manage/budgets': {
+      id: '/manage/budgets'
+      path: '/budgets'
+      fullPath: '/manage/budgets'
+      preLoaderRoute: typeof ManageBudgetsRouteImport
+      parentRoute: typeof ManageRoute
+    }
+    '/manage/accounts': {
+      id: '/manage/accounts'
+      path: '/accounts'
+      fullPath: '/manage/accounts'
+      preLoaderRoute: typeof ManageAccountsRouteImport
+      parentRoute: typeof ManageRoute
+    }
   }
 }
+
+interface ManageRouteChildren {
+  ManageAccountsRoute: typeof ManageAccountsRoute
+  ManageBudgetsRoute: typeof ManageBudgetsRoute
+  ManageCategoriesRoute: typeof ManageCategoriesRoute
+  ManageRecurringRoute: typeof ManageRecurringRoute
+  ManageTransactionsRoute: typeof ManageTransactionsRoute
+}
+
+const ManageRouteChildren: ManageRouteChildren = {
+  ManageAccountsRoute: ManageAccountsRoute,
+  ManageBudgetsRoute: ManageBudgetsRoute,
+  ManageCategoriesRoute: ManageCategoriesRoute,
+  ManageRecurringRoute: ManageRecurringRoute,
+  ManageTransactionsRoute: ManageTransactionsRoute,
+}
+
+const ManageRouteWithChildren =
+  ManageRoute._addFileChildren(ManageRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   DashboardRoute: DashboardRoute,
-  ManageRoute: ManageRoute,
+  ManageRoute: ManageRouteWithChildren,
   ReportsRoute: ReportsRoute,
   SignInRoute: SignInRoute,
 }

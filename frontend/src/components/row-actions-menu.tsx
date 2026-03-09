@@ -1,4 +1,4 @@
-import { MoreHorizontal, Pencil, Eye, Trash2 } from 'lucide-react'
+import { MoreHorizontal, type LucideIcon } from 'lucide-react'
 
 import { Button } from '#/components/ui/button'
 import {
@@ -7,38 +7,51 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '#/components/ui/dropdown-menu'
+import { cn } from '#/lib/utils'
+
+type RowAction = {
+  label: string
+  onSelect: () => void
+  icon?: LucideIcon
+  destructive?: boolean
+  disabled?: boolean
+}
 
 type RowActionsMenuProps = {
-  onView: () => void
-  onEdit: () => void
-  onDelete: () => void
+  actions: RowAction[]
+  ariaLabel?: string
 }
 
 export function RowActionsMenu({
-  onView,
-  onEdit,
-  onDelete,
+  actions,
+  ariaLabel = 'Open row actions',
 }: RowActionsMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Open row actions">
+        <Button variant="ghost" size="icon" aria-label={ariaLabel}>
           <MoreHorizontal data-icon="inline-end" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={onView}>
-          <Eye data-icon="inline-start" />
-          View
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={onEdit}>
-          <Pencil data-icon="inline-start" />
-          Edit
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={onDelete}>
-          <Trash2 data-icon="inline-start" />
-          Delete
-        </DropdownMenuItem>
+        {actions.map((action) => {
+          const Icon = action.icon
+
+          return (
+            <DropdownMenuItem
+              key={action.label}
+              disabled={action.disabled}
+              className={cn(
+                action.destructive &&
+                  'text-[var(--destructive)] focus:text-[var(--destructive)]'
+              )}
+              onSelect={action.onSelect}
+            >
+              {Icon ? <Icon data-icon="inline-start" /> : null}
+              {action.label}
+            </DropdownMenuItem>
+          )
+        })}
       </DropdownMenuContent>
     </DropdownMenu>
   )

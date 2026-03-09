@@ -1,22 +1,46 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { ArrowRight, Landmark, TrendingDown, TrendingUp, Wallet } from 'lucide-react'
+import {
+  ArrowRight,
+  Landmark,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
+} from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import { toast } from 'sonner'
 
 import { useSession } from '#/components/session-provider'
-import {
-  getDashboardSummary,
-  type DashboardSummary,
-} from '#/lib/api'
+import { getDashboardSummary, type DashboardSummary } from '#/lib/api'
 import { Alert, AlertDescription, AlertTitle } from '#/components/ui/alert'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '#/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '#/components/ui/card'
 import { ChartContainer, ChartTooltipContent } from '#/components/ui/chart'
 import { Progress } from '#/components/ui/progress'
 import { Skeleton } from '#/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '#/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '#/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '#/components/ui/tabs'
 
 export const Route = createFileRoute('/dashboard')({
@@ -117,15 +141,13 @@ function DashboardPage() {
       return []
     }
 
-    return [...data.recentTransactions]
-      .reverse()
-      .map((transaction) => ({
-        label: new Date(transaction.transactionDate).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-        }),
-        amount: Number(transaction.amount),
-      }))
+    return [...data.recentTransactions].reverse().map((transaction) => ({
+      label: new Date(transaction.transactionDate).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      }),
+      amount: Number(transaction.amount),
+    }))
   }, [data])
 
   return (
@@ -139,8 +161,8 @@ function DashboardPage() {
             Monthly money command center
           </h1>
           <p className="mt-3 max-w-3xl text-base leading-7 text-[var(--muted-foreground)]">
-            Review balances, budget pressure, and recent movement without leaving
-            the admin workspace.
+            Review balances, budget pressure, and recent movement without
+            leaving the admin workspace.
           </p>
         </div>
 
@@ -197,14 +219,18 @@ function DashboardPage() {
                   <CardHeader className="flex flex-row items-start justify-between space-y-0">
                     <div>
                       <CardDescription>{item.label}</CardDescription>
-                      <CardTitle className="mt-3 text-3xl">{item.value}</CardTitle>
+                      <CardTitle className="mt-3 text-3xl">
+                        {item.value}
+                      </CardTitle>
                     </div>
                     <div className="rounded-full bg-[var(--primary-soft)] p-2 text-[var(--primary)]">
                       <Icon className="h-4 w-4" />
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-[var(--muted-foreground)]">{item.hint}</p>
+                    <p className="text-sm text-[var(--muted-foreground)]">
+                      {item.hint}
+                    </p>
                   </CardContent>
                 </Card>
               )
@@ -216,7 +242,8 @@ function DashboardPage() {
               <CardHeader>
                 <CardTitle>Recent movement curve</CardTitle>
                 <CardDescription>
-                  Last {data.recentTransactions.length} transactions from the live summary endpoint.
+                  Last {data.recentTransactions.length} transactions from the
+                  live summary endpoint.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -224,7 +251,8 @@ function DashboardPage() {
                   <Alert>
                     <AlertTitle>No recent movement yet</AlertTitle>
                     <AlertDescription>
-                      Add transactions from the management workspace to unlock your trend chart.
+                      Add transactions from the management workspace to unlock
+                      your trend chart.
                     </AlertDescription>
                   </Alert>
                 ) : (
@@ -232,14 +260,42 @@ function DashboardPage() {
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={transactionChartData}>
                         <defs>
-                          <linearGradient id="dashboardArea" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.45} />
-                            <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.05} />
+                          <linearGradient
+                            id="dashboardArea"
+                            x1="0"
+                            y1="0"
+                            x2="0"
+                            y2="1"
+                          >
+                            <stop
+                              offset="0%"
+                              stopColor="var(--primary)"
+                              stopOpacity={0.45}
+                            />
+                            <stop
+                              offset="100%"
+                              stopColor="var(--primary)"
+                              stopOpacity={0.05}
+                            />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
-                        <XAxis dataKey="label" stroke="var(--muted-foreground)" tickLine={false} axisLine={false} />
-                        <YAxis stroke="var(--muted-foreground)" tickLine={false} axisLine={false} width={70} />
+                        <CartesianGrid
+                          stroke="var(--border)"
+                          strokeDasharray="4 4"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="label"
+                          stroke="var(--muted-foreground)"
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          stroke="var(--muted-foreground)"
+                          tickLine={false}
+                          axisLine={false}
+                          width={70}
+                        />
                         <Tooltip content={<ChartTooltipContent />} />
                         <Area
                           type="monotone"
@@ -258,19 +314,25 @@ function DashboardPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Budget utilization</CardTitle>
-                <CardDescription>Category pressure for the current period.</CardDescription>
+                <CardDescription>
+                  Category pressure for the current period.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
                 {data.budgets.length === 0 ? (
                   <Alert>
                     <AlertTitle>No budgets for this month</AlertTitle>
                     <AlertDescription>
-                      Create a budget in the management workspace to see category utilization here.
+                      Create a budget in the management workspace to see
+                      category utilization here.
                     </AlertDescription>
                   </Alert>
                 ) : (
                   data.budgets.map((budget) => {
-                    const percent = Math.min(Math.round(budget.utilizationRate * 100), 100)
+                    const percent = Math.min(
+                      Math.round(budget.utilizationRate * 100),
+                      100
+                    )
 
                     return (
                       <div key={budget.id} className="space-y-2">
@@ -283,7 +345,11 @@ function DashboardPage() {
                               {formatCurrency(budget.spent)} spent
                             </p>
                           </div>
-                          <Badge variant={percent >= 85 ? 'warning' : 'default'}>{percent}%</Badge>
+                          <Badge
+                            variant={percent >= 85 ? 'warning' : 'default'}
+                          >
+                            {percent}%
+                          </Badge>
                         </div>
                         <Progress value={percent} />
                       </div>
@@ -298,10 +364,13 @@ function DashboardPage() {
             <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <CardTitle>Recurring schedule</CardTitle>
-                <CardDescription>Upcoming recurring transactions from the backend schedule engine.</CardDescription>
+                <CardDescription>
+                  Upcoming recurring transactions from the backend schedule
+                  engine.
+                </CardDescription>
               </div>
               <Button variant="outline" asChild>
-                <Link to="/manage">Manage recurring items</Link>
+                <Link to="/manage/recurring">Manage recurring items</Link>
               </Button>
             </CardHeader>
             <CardContent>
@@ -309,7 +378,8 @@ function DashboardPage() {
                 <Alert>
                   <AlertTitle>No recurring schedules yet</AlertTitle>
                   <AlertDescription>
-                    Create recurring transactions in the management page to preview upcoming automated cash flow.
+                    Create recurring transactions in the recurring section to
+                    preview upcoming automated cash flow.
                   </AlertDescription>
                 </Alert>
               ) : (
@@ -326,11 +396,19 @@ function DashboardPage() {
                   <TableBody>
                     {data.recurringTransactions.map((transaction) => (
                       <TableRow key={transaction.id}>
-                        <TableCell className="font-medium">{transaction.description}</TableCell>
+                        <TableCell className="font-medium">
+                          {transaction.description}
+                        </TableCell>
                         <TableCell>{transaction.frequency}</TableCell>
                         <TableCell>{transaction.account.name}</TableCell>
                         <TableCell>
-                          <Badge variant={transaction.status === 'ACTIVE' ? 'success' : 'outline'}>
+                          <Badge
+                            variant={
+                              transaction.status === 'ACTIVE'
+                                ? 'success'
+                                : 'outline'
+                            }
+                          >
                             {transaction.status}
                           </Badge>
                         </TableCell>
@@ -355,14 +433,17 @@ function DashboardPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Recent transactions</CardTitle>
-                  <CardDescription>Latest synced activity from the backend.</CardDescription>
+                  <CardDescription>
+                    Latest synced activity from the backend.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {data.recentTransactions.length === 0 ? (
                     <Alert>
                       <AlertTitle>No transactions recorded</AlertTitle>
                       <AlertDescription>
-                        Visit the management page to add your first transaction and unlock recent activity insights.
+                        Visit the management page to add your first transaction
+                        and unlock recent activity insights.
                       </AlertDescription>
                     </Alert>
                   ) : (
@@ -379,11 +460,17 @@ function DashboardPage() {
                       <TableBody>
                         {data.recentTransactions.map((transaction) => (
                           <TableRow key={transaction.id}>
-                            <TableCell className="font-medium">{transaction.description}</TableCell>
+                            <TableCell className="font-medium">
+                              {transaction.description}
+                            </TableCell>
                             <TableCell>{transaction.account.name}</TableCell>
-                            <TableCell>{transaction.category?.name ?? 'Uncategorized'}</TableCell>
                             <TableCell>
-                              <Badge variant="outline">{transaction.type}</Badge>
+                              {transaction.category?.name ?? 'Uncategorized'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">
+                                {transaction.type}
+                              </Badge>
                             </TableCell>
                             <TableCell className="text-right">
                               {formatCurrency(Number(transaction.amount))}
@@ -402,7 +489,9 @@ function DashboardPage() {
                 {data.accounts.map((account) => (
                   <Card key={account.id}>
                     <CardHeader>
-                      <CardDescription>{account.type.replaceAll('_', ' ')}</CardDescription>
+                      <CardDescription>
+                        {account.type.replaceAll('_', ' ')}
+                      </CardDescription>
                       <CardTitle>{account.name}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-2">
