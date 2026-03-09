@@ -42,6 +42,12 @@ export const deleteCategorySchema = z.object({
   body: z.object({}).optional(),
 });
 
+export const seedCategoriesSchema = z.object({
+  params: z.object({}),
+  query: z.object({}),
+  body: z.object({}).optional(),
+});
+
 export type ListCategoriesQuery = z.infer<typeof listCategoriesSchema>['query'];
 export type CreateCategoryBody = z.infer<typeof createCategorySchema>['body'];
 export type UpdateCategoryParams = z.infer<
@@ -51,3 +57,4 @@ export type UpdateCategoryBody = z.infer<typeof updateCategorySchema>['body'];
 export type DeleteCategoryParams = z.infer<
   typeof deleteCategorySchema
 >['params'];
+export type SeedCategoriesBody = z.infer<typeof seedCategoriesSchema>['body'];

@@ -49,9 +49,12 @@ import {
   type Transaction,
 } from '#/lib/api'
 import {
+  ENTRY_MODE_OPTIONS,
   TRANSACTION_TYPE_OPTIONS,
   formatCurrency,
   formatDateTime,
+  getEntryModeLabel,
+  getTransactionTypeLabel,
   paginateItems,
   toDateTimeLocalValue,
 } from '#/lib/finance'
@@ -65,6 +68,7 @@ const transactionSchema = z.object({
   categoryId: z.string().optional(),
   transferAccountId: z.string().optional(),
   type: z.enum(['INCOME', 'EXPENSE', 'TRANSFER']),
+  entryMode: z.enum(['MANUAL', 'AUTOMATED']),
   amount: z.coerce
     .number()
     .positive('Transaction amount must be greater than zero'),
@@ -93,6 +97,7 @@ function TransactionsPage() {
       categoryId: '',
       transferAccountId: '',
       type: 'EXPENSE',
+      entryMode: 'MANUAL',
       amount: 0,
       description: '',
       transactionDate: toDateTimeLocalValue(),
@@ -104,6 +109,7 @@ function TransactionsPage() {
     categoryId: '',
     transferAccountId: '',
     type: 'EXPENSE',
+    entryMode: 'MANUAL' as 'MANUAL' | 'AUTOMATED',
     amount: '0',
     description: '',
     transactionDate: toDateTimeLocalValue(),
@@ -147,6 +153,7 @@ function TransactionsPage() {
             ? values.transferAccountId || undefined
             : undefined,
         type: values.type,
+        entryMode: values.entryMode,
         amount: values.amount,
         description: values.description,
         transactionDate: new Date(values.transactionDate).toISOString(),
@@ -157,6 +164,7 @@ function TransactionsPage() {
         categoryId: '',
         transferAccountId: '',
         type: 'EXPENSE',
+        entryMode: 'MANUAL',
         amount: 0,
         description: '',
         transactionDate: toDateTimeLocalValue(),
@@ -178,6 +186,7 @@ function TransactionsPage() {
       categoryId: transaction.category?.id ?? '',
       transferAccountId: transaction.transferAccount?.id ?? '',
       type: transaction.type,
+      entryMode: transaction.entryMode ?? 'MANUAL',
       amount: String(transaction.amount),
       description: transaction.description,
       transactionDate: toDateTimeLocalValue(transaction.transactionDate),
@@ -204,6 +213,7 @@ function TransactionsPage() {
             ? editValues.transferAccountId || undefined
             : undefined,
         type: editValues.type,
+        entryMode: editValues.entryMode,
         amount: Number(editValues.amount),
         description: editValues.description,
         transactionDate: new Date(editValues.transactionDate).toISOString(),
@@ -244,8 +254,8 @@ function TransactionsPage() {
   return (
     <CrudPageShell
       badge="Finance workspace"
-      title="Transactions"
-      description="Capture one-off money movement with filters that make large histories easier to scan."
+        title="Transactions"
+        description="Capture credits, debits, and transfers with enough context to track where money moved and how it was entered."
       navigation={<FinanceSectionNav />}
       actions={
         <Button onClick={() => setIsCreateOpen(true)}>Add transaction</Button>
@@ -254,7 +264,7 @@ function TransactionsPage() {
       {error ? (
         <CrudTableCard
           title="Transactions"
-          description="One-off income, expenses, and transfers."
+          description="One-off credits, debits, and transfers."
           emptyTitle="Transactions unavailable"
           emptyDescription={error}
           isEmpty
@@ -264,7 +274,7 @@ function TransactionsPage() {
       ) : (
         <CrudTableCard
           title="Transactions"
-          description="One-off income, expenses, and transfers."
+          description="One-off credits, debits, and transfers."
           emptyTitle="No matching transactions"
           emptyDescription="Adjust your filters or add a transaction to start building activity history."
           isEmpty={filteredTransactions.length === 0}
@@ -325,6 +335,7 @@ function TransactionsPage() {
               <TableRow>
                 <TableHead>Description</TableHead>
                 <TableHead>Type</TableHead>
+                <TableHead>Source</TableHead>
                 <TableHead>Account</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
@@ -347,7 +358,8 @@ function TransactionsPage() {
                       </p>
                     </div>
                   </TableCell>
-                  <TableCell>{transaction.type}</TableCell>
+                  <TableCell>{getTransactionTypeLabel(transaction.type)}</TableCell>
+                  <TableCell>{getEntryModeLabel(transaction.entryMode)}</TableCell>
                   <TableCell>{transaction.account.name}</TableCell>
                   <TableCell>
                     {formatDateTime(transaction.transactionDate)}
@@ -388,7 +400,7 @@ function TransactionsPage() {
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
         title="Create transaction"
-        description="Record a one-off income, expense, or transfer."
+        description="Record a one-off credit, debit, or transfer."
       >
         <Form {...createForm}>
           <form
@@ -468,17 +480,19 @@ function TransactionsPage() {
                           value={field.value || ''}
                           onValueChange={field.onChange}
                         >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Optional category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categories.map((category) => (
-                              <SelectItem key={category.id} value={category.id}>
-                                {category.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {categories
+                                .filter((category) => !category.isArchived)
+                                .map((category) => (
+                                <SelectItem key={category.id} value={category.id}>
+                                  {category.name}
+                                </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -487,6 +501,30 @@ function TransactionsPage() {
               )}
             </div>
             <div className="grid gap-4 md:grid-cols-2">
+              <FormField
+                control={createForm.control}
+                name="entryMode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Source</FormLabel>
+                    <FormControl>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ENTRY_MODE_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={createForm.control}
                 name="type"
@@ -581,6 +619,26 @@ function TransactionsPage() {
         <form onSubmit={submitEditTransaction} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <Select
+              value={editValues.entryMode}
+              onValueChange={(value) =>
+                setEditValues((current) => ({
+                  ...current,
+                  entryMode: value as 'MANUAL' | 'AUTOMATED',
+                }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Source" />
+              </SelectTrigger>
+              <SelectContent>
+                {ENTRY_MODE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
               value={editValues.accountId}
               onValueChange={(value) =>
                 setEditValues((current) => ({ ...current, accountId: value }))
@@ -634,11 +692,16 @@ function TransactionsPage() {
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map((category) => (
+                  {categories
+                    .filter(
+                      (category) =>
+                        !category.isArchived || category.id === editValues.categoryId
+                    )
+                    .map((category) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}
                     </SelectItem>
-                  ))}
+                    ))}
                 </SelectContent>
               </Select>
             )}

@@ -18,6 +18,8 @@ export type Account = {
   name: string
   type: string
   currency: string
+  color?: string | null
+  entryMode?: 'MANUAL' | 'AUTOMATED'
   openingBalance: string | number
   currentBalance: string | number
   institutionName?: string | null
@@ -50,6 +52,7 @@ export type Transaction = {
   amount: string | number
   description: string
   notes?: string | null
+  entryMode?: 'MANUAL' | 'AUTOMATED'
   transactionDate: string
   account: Account
   category: Category | null
@@ -299,6 +302,8 @@ export async function createAccount(payload: {
   name: string
   type: string
   currency?: string
+  color?: string
+  entryMode?: 'MANUAL' | 'AUTOMATED'
   openingBalance?: number
   currentBalance?: number
   institutionName?: string
@@ -316,6 +321,8 @@ export async function updateAccount(
     name?: string
     type?: string
     currency?: string
+    color?: string
+    entryMode?: 'MANUAL' | 'AUTOMATED'
     openingBalance?: number
     currentBalance?: number
     institutionName?: string
@@ -344,6 +351,7 @@ export async function createCategory(payload: {
   type: string
   color?: string
   icon?: string
+  isArchived?: boolean
 }) {
   return request<Category>('/categories', {
     method: 'POST',
@@ -364,6 +372,12 @@ export async function updateCategory(
   return request<Category>(`/categories/${id}`, {
     method: 'PATCH',
     body: payload,
+  })
+}
+
+export async function seedDefaultCategories() {
+  return request<Category[]>('/categories/seed-defaults', {
+    method: 'POST',
   })
 }
 
@@ -424,6 +438,7 @@ export async function createTransaction(payload: {
   amount: number
   description: string
   notes?: string
+  entryMode?: 'MANUAL' | 'AUTOMATED'
   transactionDate: string
   externalReference?: string
 }) {
@@ -443,6 +458,7 @@ export async function updateTransaction(
     amount?: number
     description?: string
     notes?: string
+    entryMode?: 'MANUAL' | 'AUTOMATED'
     transactionDate?: string
     externalReference?: string
   }

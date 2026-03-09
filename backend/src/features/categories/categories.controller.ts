@@ -64,6 +64,23 @@ class CategoriesController {
     }
   };
 
+  seedDefaults = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const categories = await categoriesService.seedDefaults(req.user!.id);
+
+      return res.status(200).json({
+        data: categories,
+        count: categories.length,
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
   update = async (
     req: UpdateCategoryRequest,
     res: Response,

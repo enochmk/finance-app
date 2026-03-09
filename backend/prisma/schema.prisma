@@ -40,12 +40,17 @@ enum RecurringTransactionStatus {
   COMPLETED
 }
 
+enum EntryMode {
+  MANUAL
+  AUTOMATED
+}
+
 model User {
   id           String        @id @default(uuid())
   email        String        @unique
   passwordHash String
   name         String
-  currency     String        @default("USD")
+  currency     String        @default("GHS")
   accounts     Account[]
   categories   Category[]
   budgets      Budget[]
@@ -60,7 +65,9 @@ model Account {
   userId              String
   name                String
   type                AccountType
-  currency            String        @default("USD")
+  currency            String        @default("GHS")
+  color               String?       @default("#176b6c")
+  entryMode           EntryMode     @default(MANUAL)
   openingBalance      Decimal       @default(0) @db.Decimal(14, 2)
   currentBalance      Decimal       @default(0) @db.Decimal(14, 2)
   institutionName     String?
@@ -107,6 +114,7 @@ model Transaction {
   amount               Decimal         @db.Decimal(14, 2)
   description          String
   notes                String?
+  entryMode            EntryMode       @default(MANUAL)
   transactionDate      DateTime
   transferAccountId    String?
   externalReference    String?

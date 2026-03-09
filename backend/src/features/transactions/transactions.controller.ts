@@ -78,6 +78,7 @@ class TransactionsController {
     try {
       const transaction = await transactionsService.update(
         req.params.id,
+        req.user!.id,
         req.body
       );
 
@@ -95,7 +96,10 @@ class TransactionsController {
     next: NextFunction
   ) => {
     try {
-      const transaction = await transactionsService.remove(req.params.id);
+      const transaction = await transactionsService.remove(
+        req.params.id,
+        req.user!.id
+      );
 
       return res.status(200).json({
         data: transaction,

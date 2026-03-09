@@ -24,7 +24,7 @@ class AuthService {
         email: data.email.toLowerCase(),
         passwordHash,
         name: data.name,
-        currency: data.currency ?? 'USD',
+        currency: data.currency ?? 'GHS',
       },
     });
 

@@ -51,7 +51,9 @@ import {
 } from '#/lib/api'
 import {
   ACCOUNT_TYPE_OPTIONS,
+  ENTRY_MODE_OPTIONS,
   formatCurrency,
+  getEntryModeLabel,
   paginateItems,
 } from '#/lib/finance'
 
@@ -61,7 +63,7 @@ export const Route = createFileRoute('/manage/accounts')({
 
 const accountSchema = z.object({
   name: z.string().trim().min(1, 'Account name is required').max(120),
-  type: z.enum([
+type: z.enum([
     'CASH',
     'CHECKING',
     'SAVINGS',
@@ -69,6 +71,9 @@ const accountSchema = z.object({
     'INVESTMENT',
     'LOAN',
   ]),
+  currency: z.string().trim().length(3, 'Use a 3-letter currency'),
+  color: z.string().trim().min(1, 'Color is required'),
+  entryMode: z.enum(['MANUAL', 'AUTOMATED']),
   openingBalance: z.coerce.number().finite(),
 })
 
@@ -82,11 +87,16 @@ function AccountsPage() {
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
 
+  type AccountFormValues = z.infer<typeof accountSchema>
+
   const createForm = useForm<z.infer<typeof accountSchema>>({
     resolver: zodResolver(accountSchema),
     defaultValues: {
       name: '',
       type: 'CHECKING',
+      currency: 'GHS',
+      color: '#176b6c',
+      entryMode: 'MANUAL',
       openingBalance: 0,
     },
   })
@@ -94,16 +104,22 @@ function AccountsPage() {
   const [editValues, setEditValues] = useState({
     name: '',
     type: 'CHECKING',
+    currency: 'GHS',
+    color: '#176b6c',
+    entryMode: 'MANUAL' as 'MANUAL' | 'AUTOMATED',
     currentBalance: '0',
   })
 
   const paginatedAccounts = paginateItems(accounts, currentPage, 8)
 
-  async function handleCreateAccount(values: z.infer<typeof accountSchema>) {
+  async function handleCreateAccount(values: AccountFormValues) {
     try {
       await createAccount({
         name: values.name,
         type: values.type,
+        currency: values.currency,
+        color: values.color,
+        entryMode: values.entryMode,
         openingBalance: values.openingBalance,
         currentBalance: values.openingBalance,
       })
@@ -111,6 +127,9 @@ function AccountsPage() {
       createForm.reset({
         name: '',
         type: 'CHECKING',
+        currency: 'GHS',
+        color: '#176b6c',
+        entryMode: 'MANUAL',
         openingBalance: 0,
       })
       setIsCreateOpen(false)
@@ -128,6 +147,9 @@ function AccountsPage() {
     setEditValues({
       name: account.name,
       type: account.type,
+      currency: account.currency,
+      color: account.color ?? '#176b6c',
+      entryMode: account.entryMode ?? 'MANUAL',
       currentBalance: String(account.currentBalance),
     })
     setEditingAccount(account)
@@ -144,6 +166,9 @@ function AccountsPage() {
       await updateAccount(editingAccount.id, {
         name: editValues.name,
         type: editValues.type,
+        currency: editValues.currency,
+        color: editValues.color,
+        entryMode: editValues.entryMode,
         currentBalance: Number(editValues.currentBalance),
       })
       await refreshAll()
@@ -183,7 +208,7 @@ function AccountsPage() {
     <CrudPageShell
       badge="Finance workspace"
       title="Accounts"
-      description="Manage every balance-holding resource that powers the dashboard and reports."
+      description="Manage the finance buckets that power your balances, transactions, and account dashboard."
       navigation={<FinanceSectionNav />}
       actions={
         <Button onClick={() => setIsCreateOpen(true)}>Add account</Button>
@@ -192,7 +217,7 @@ function AccountsPage() {
       {error ? (
         <CrudTableCard
           title="Accounts"
-          description="Bank accounts, cards, cash, investments, and loans."
+          description="Personal finance buckets such as savings, mobile money, wedding, and bank accounts."
           emptyTitle="Accounts unavailable"
           emptyDescription={error}
           isEmpty
@@ -202,7 +227,7 @@ function AccountsPage() {
       ) : (
         <CrudTableCard
           title="Accounts"
-          description="Bank accounts, cards, cash, investments, and loans."
+          description="Personal finance buckets such as savings, mobile money, wedding, and bank accounts."
           emptyTitle="No accounts yet"
           emptyDescription="Create an account to start tracking balances across your workspace."
           isEmpty={accounts.length === 0}
@@ -221,13 +246,13 @@ function AccountsPage() {
         >
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Institution</TableHead>
-                <TableHead className="text-right">Balance</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Purpose</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead className="text-right">Balance</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedAccounts.pageItems.map((account) => (
@@ -237,19 +262,17 @@ function AccountsPage() {
                       <p className="font-medium text-[var(--foreground)]">
                         {account.name}
                       </p>
-                      <p className="text-xs text-[var(--muted-foreground)]">
-                        {account.accountNumberMasked
-                          ? `•••• ${account.accountNumberMasked}`
-                          : account.isArchived
-                            ? 'Archived'
-                            : 'Active'}
-                      </p>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+                        <span
+                          className="inline-flex h-3 w-3 rounded-full border border-[var(--border)]"
+                          style={{ backgroundColor: account.color ?? '#176b6c' }}
+                        />
+                        <span>{account.isArchived ? 'Closed' : 'Open'}</span>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>{account.type.replaceAll('_', ' ')}</TableCell>
-                  <TableCell>
-                    {account.institutionName ?? 'Manual account'}
-                  </TableCell>
+                  <TableCell>{getEntryModeLabel(account.entryMode)}</TableCell>
                   <TableCell className="text-right">
                     {formatCurrency(account.currentBalance, account.currency)}
                   </TableCell>
@@ -261,6 +284,29 @@ function AccountsPage() {
                             label: 'Edit',
                             onSelect: () => openEditAccount(account),
                             icon: Pencil,
+                          },
+                          {
+                            label: account.isArchived ? 'Reopen' : 'Close',
+                            onSelect: async () => {
+                              try {
+                                await updateAccount(account.id, {
+                                  isArchived: !account.isArchived,
+                                })
+                                await refreshAll()
+                                toast.success(
+                                  account.isArchived
+                                    ? 'Account reopened'
+                                    : 'Account closed'
+                                )
+                              } catch (toggleError) {
+                                toast.error('Unable to update account status', {
+                                  description:
+                                    toggleError instanceof Error
+                                      ? toggleError.message
+                                      : 'Request failed',
+                                })
+                              }
+                            },
                           },
                           {
                             label: 'Delete',
@@ -283,7 +329,7 @@ function AccountsPage() {
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
         title="Create account"
-        description="Add a wallet, bank account, credit card, investment account, or loan."
+        description="Add a finance bucket such as savings, wedding, subscription, bank, or mobile money."
       >
         <Form {...createForm}>
           <form
@@ -303,6 +349,34 @@ function AccountsPage() {
                 </FormItem>
               )}
             />
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormField
+                control={createForm.control}
+                name="currency"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Currency</FormLabel>
+                    <FormControl>
+                      <Input {...field} maxLength={3} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={createForm.control}
+                name="color"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Color</FormLabel>
+                    <FormControl>
+                      <Input type="color" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={createForm.control}
               name="type"
@@ -316,6 +390,30 @@ function AccountsPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {ACCOUNT_TYPE_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={createForm.control}
+              name="entryMode"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Entry mode</FormLabel>
+                  <FormControl>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ENTRY_MODE_OPTIONS.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             {option.label}
                           </SelectItem>
@@ -365,7 +463,7 @@ function AccountsPage() {
         open={Boolean(editingAccount)}
         onOpenChange={(open) => !open && setEditingAccount(null)}
         title="Edit account"
-        description="Update the account name, classification, or current balance."
+        description="Update the account name, purpose, color, source mode, or balance."
       >
         <form onSubmit={submitEditAccount} className="space-y-4">
           <div className="space-y-2">
@@ -381,11 +479,45 @@ function AccountsPage() {
                   name: event.target.value,
                 }))
               }
-            />
+              />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <label htmlFor="edit-account-currency" className="text-sm font-medium">
+                Currency
+              </label>
+              <Input
+                id="edit-account-currency"
+                maxLength={3}
+                value={editValues.currency}
+                onChange={(event) =>
+                  setEditValues((current) => ({
+                    ...current,
+                    currency: event.target.value.toUpperCase(),
+                  }))
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="edit-account-color" className="text-sm font-medium">
+                Color
+              </label>
+              <Input
+                id="edit-account-color"
+                type="color"
+                value={editValues.color}
+                onChange={(event) =>
+                  setEditValues((current) => ({
+                    ...current,
+                    color: event.target.value,
+                  }))
+                }
+              />
+            </div>
           </div>
           <div className="space-y-2">
             <label htmlFor="edit-account-type" className="text-sm font-medium">
-              Type
+              Purpose
             </label>
             <Select
               value={editValues.type}
@@ -398,6 +530,31 @@ function AccountsPage() {
               </SelectTrigger>
               <SelectContent>
                 {ACCOUNT_TYPE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="edit-account-entry-mode" className="text-sm font-medium">
+              Entry mode
+            </label>
+            <Select
+              value={editValues.entryMode}
+              onValueChange={(value) =>
+                setEditValues((current) => ({
+                  ...current,
+                  entryMode: value as 'MANUAL' | 'AUTOMATED',
+                }))
+              }
+            >
+              <SelectTrigger id="edit-account-entry-mode">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ENTRY_MODE_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -441,7 +598,7 @@ function AccountsPage() {
         open={Boolean(deletingAccount)}
         onOpenChange={(open) => !open && setDeletingAccount(null)}
         title="Delete account"
-        description="This removes the selected account from the workspace. This action cannot be undone."
+        description="This permanently removes the selected account from the workspace. Closed accounts should usually be kept unless you are certain you want to delete it."
         confirmLabel="Delete account"
         onConfirm={confirmDeleteAccount}
       />

@@ -7,6 +7,7 @@ import {
   createCategorySchema,
   deleteCategorySchema,
   listCategoriesSchema,
+  seedCategoriesSchema,
   updateCategorySchema,
 } from './categories.schema';
 
@@ -24,6 +25,12 @@ categoriesRoutes.post(
   '/',
   resourceValidator(createCategorySchema),
   categoriesController.create
+);
+
+categoriesRoutes.post(
+  '/seed-defaults',
+  resourceValidator(seedCategoriesSchema),
+  categoriesController.seedDefaults
 );
 
 categoriesRoutes.patch(

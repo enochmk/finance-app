@@ -4,21 +4,15 @@ import {
   ChevronsUpDown,
   BarChart3,
   CreditCard,
-  FolderTree,
   LayoutDashboard,
   LogOut,
   Menu,
   MoonStar,
-  PiggyBank,
-  Repeat2,
-  ReceiptText,
   Settings,
-  SquarePen,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Avatar, AvatarFallback } from '#/components/ui/avatar'
-import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
 import {
   DropdownMenu,

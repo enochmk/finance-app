@@ -15,6 +15,22 @@ export type TransactionOwnershipValidationData = {
   transferAccountId?: string;
 };
 
+function getBalanceDelta(
+  type: 'INCOME' | 'EXPENSE' | 'TRANSFER',
+  amount: number,
+  direction: 'primary' | 'transfer'
+) {
+  if (type === 'INCOME') {
+    return direction === 'primary' ? amount : 0;
+  }
+
+  if (type === 'EXPENSE') {
+    return direction === 'primary' ? -amount : 0;
+  }
+
+  return direction === 'primary' ? -amount : amount;
+}
+
 class TransactionsService {
   list = async (userId: string, filters: ListTransactionsQuery) => {
     return prisma.transaction.findMany({
@@ -42,54 +58,163 @@ class TransactionsService {
   };
 
   create = async (userId: string, data: CreateTransactionBody) => {
-    return prisma.transaction.create({
-      data: {
-        userId,
-        accountId: data.accountId,
-        categoryId: data.categoryId,
-        type: data.type,
-        amount: data.amount,
-        description: data.description,
-        notes: data.notes,
-        transactionDate: new Date(data.transactionDate),
-        transferAccountId: data.transferAccountId,
-        externalReference: data.externalReference,
-      },
-      include: {
-        account: true,
-        category: true,
-        transferAccount: true,
-      },
+    const amount = Number(data.amount);
+
+    return prisma.$transaction(async (tx) => {
+      const transaction = await tx.transaction.create({
+        data: {
+          userId,
+          accountId: data.accountId,
+          categoryId: data.categoryId,
+          type: data.type,
+          amount: data.amount,
+          description: data.description,
+          notes: data.notes,
+          entryMode: data.entryMode ?? 'MANUAL',
+          transactionDate: new Date(data.transactionDate),
+          transferAccountId: data.transferAccountId,
+          externalReference: data.externalReference,
+        },
+      });
+
+      await tx.account.update({
+        where: { id: data.accountId },
+        data: {
+          currentBalance: {
+            increment: getBalanceDelta(data.type, amount, 'primary'),
+          },
+        },
+      });
+
+      if (data.type === 'TRANSFER' && data.transferAccountId) {
+        await tx.account.update({
+          where: { id: data.transferAccountId },
+          data: {
+            currentBalance: {
+              increment: getBalanceDelta(data.type, amount, 'transfer'),
+            },
+          },
+        });
+      }
+
+      return tx.transaction.findUniqueOrThrow({
+        where: { id: transaction.id },
+        include: {
+          account: true,
+          category: true,
+          transferAccount: true,
+        },
+      });
     });
   };
 
-  update = async (id: string, data: UpdateTransactionBody) => {
-    return prisma.transaction.update({
-      where: { id },
-      data: {
-        accountId: data.accountId,
-        categoryId: data.categoryId,
-        type: data.type,
-        amount: data.amount,
-        description: data.description,
-        notes: data.notes,
-        transactionDate: data.transactionDate
-          ? new Date(data.transactionDate)
-          : undefined,
-        transferAccountId: data.transferAccountId,
-        externalReference: data.externalReference,
-      },
-      include: {
-        account: true,
-        category: true,
-        transferAccount: true,
-      },
+  update = async (id: string, userId: string, data: UpdateTransactionBody) => {
+    const existingTransaction = await this.ensureOwnedTransaction(id, userId);
+
+    const nextAccountId = data.accountId ?? existingTransaction.accountId;
+    const nextType = data.type ?? existingTransaction.type;
+    const nextTransferAccountId =
+      data.transferAccountId === undefined
+        ? (existingTransaction.transferAccountId ?? undefined)
+        : data.transferAccountId;
+    const nextAmount = Number(data.amount ?? existingTransaction.amount);
+    const previousAmount = Number(existingTransaction.amount);
+
+    return prisma.$transaction(async (tx) => {
+      const balanceAdjustments = new Map<string, number>();
+
+      const applyAdjustment = (accountId: string | undefined, delta: number) => {
+        if (!accountId || delta === 0) {
+          return;
+        }
+
+        balanceAdjustments.set(accountId, (balanceAdjustments.get(accountId) ?? 0) + delta);
+      };
+
+      applyAdjustment(
+        existingTransaction.accountId,
+        -getBalanceDelta(existingTransaction.type, previousAmount, 'primary')
+      );
+      applyAdjustment(
+        existingTransaction.transferAccountId ?? undefined,
+        -getBalanceDelta(existingTransaction.type, previousAmount, 'transfer')
+      );
+      applyAdjustment(nextAccountId, getBalanceDelta(nextType, nextAmount, 'primary'));
+      applyAdjustment(
+        nextTransferAccountId,
+        getBalanceDelta(nextType, nextAmount, 'transfer')
+      );
+
+      for (const [accountId, delta] of balanceAdjustments.entries()) {
+        if (delta !== 0) {
+          await tx.account.update({
+            where: { id: accountId },
+            data: {
+              currentBalance: {
+                increment: delta,
+              },
+            },
+          });
+        }
+      }
+
+      await tx.transaction.update({
+        where: { id },
+        data: {
+          accountId: data.accountId,
+          categoryId: data.categoryId,
+          type: data.type,
+          amount: data.amount,
+          description: data.description,
+          notes: data.notes,
+          entryMode: data.entryMode,
+          transactionDate: data.transactionDate
+            ? new Date(data.transactionDate)
+            : undefined,
+          transferAccountId: data.transferAccountId,
+          externalReference: data.externalReference,
+        },
+      });
+
+      return tx.transaction.findUniqueOrThrow({
+        where: { id },
+        include: {
+          account: true,
+          category: true,
+          transferAccount: true,
+        },
+      });
     });
   };
 
-  remove = async (id: string) => {
-    return prisma.transaction.delete({
-      where: { id },
+  remove = async (id: string, userId: string) => {
+    const existingTransaction = await this.ensureOwnedTransaction(id, userId);
+    const amount = Number(existingTransaction.amount);
+
+    return prisma.$transaction(async (tx) => {
+      await tx.account.update({
+        where: { id: existingTransaction.accountId },
+        data: {
+          currentBalance: {
+            increment: -getBalanceDelta(existingTransaction.type, amount, 'primary'),
+          },
+        },
+      });
+
+      if (existingTransaction.transferAccountId) {
+        await tx.account.update({
+          where: { id: existingTransaction.transferAccountId },
+          data: {
+            currentBalance: {
+              increment: -getBalanceDelta(existingTransaction.type, amount, 'transfer'),
+            },
+          },
+        });
+      }
+
+      return tx.transaction.delete({
+        where: { id },
+      });
     });
   };
 
@@ -164,6 +289,7 @@ class TransactionsService {
         amount: true,
         description: true,
         notes: true,
+        entryMode: true,
         transactionDate: true,
         transferAccountId: true,
         externalReference: true,

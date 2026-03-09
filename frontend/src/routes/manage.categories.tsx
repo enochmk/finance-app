@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Pencil, Trash2 } from 'lucide-react'
+import { EyeOff, Pencil, RefreshCcw, Trash2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -45,6 +45,7 @@ import { useProtectedRoute } from '#/hooks/use-protected-route'
 import {
   createCategory,
   deleteCategory,
+  seedDefaultCategories,
   updateCategory,
   type Category,
 } from '#/lib/api'
@@ -151,6 +152,36 @@ function CategoriesPage() {
     }
   }
 
+  async function toggleCategoryVisibility(category: Category) {
+    try {
+      await updateCategory(category.id, {
+        isArchived: !category.isArchived,
+      })
+      await refreshAll()
+      toast.success(
+        category.isArchived ? 'Category enabled' : 'Category disabled'
+      )
+    } catch (toggleError) {
+      toast.error('Unable to update category visibility', {
+        description:
+          toggleError instanceof Error ? toggleError.message : 'Request failed',
+      })
+    }
+  }
+
+  async function handleSeedCategories() {
+    try {
+      await seedDefaultCategories()
+      await refreshAll()
+      toast.success('Starter categories seeded')
+    } catch (seedError) {
+      toast.error('Unable to seed starter categories', {
+        description:
+          seedError instanceof Error ? seedError.message : 'Request failed',
+      })
+    }
+  }
+
   if (!isAuthenticated && !isSessionLoading) {
     return null
   }
@@ -159,16 +190,21 @@ function CategoriesPage() {
     <CrudPageShell
       badge="Finance workspace"
       title="Categories"
-      description="Keep reporting and budgeting clean with consistent income and expense buckets."
+      description="Keep transaction entry clean with categories you can extend, disable, and reuse over time."
       navigation={<FinanceSectionNav />}
       actions={
-        <Button onClick={() => setIsCreateOpen(true)}>Add category</Button>
+        <>
+          <Button variant="outline" onClick={handleSeedCategories}>
+            Seed starter categories
+          </Button>
+          <Button onClick={() => setIsCreateOpen(true)}>Add category</Button>
+        </>
       }
     >
       {error ? (
         <CrudTableCard
           title="Categories"
-          description="Classification buckets for all finance activity."
+          description="Classification buckets for all finance activity, including disabled categories kept for history."
           emptyTitle="Categories unavailable"
           emptyDescription={error}
           isEmpty
@@ -178,7 +214,7 @@ function CategoriesPage() {
       ) : (
         <CrudTableCard
           title="Categories"
-          description="Classification buckets for all finance activity."
+          description="Classification buckets for all finance activity, including disabled categories kept for history."
           emptyTitle="No categories yet"
           emptyDescription="Create your first category to organize income and expense activity."
           isEmpty={categories.length === 0}
@@ -217,7 +253,7 @@ function CategoriesPage() {
                     />
                   </TableCell>
                   <TableCell>
-                    {category.isArchived ? 'Archived' : 'Active'}
+                    {category.isArchived ? 'Disabled' : 'Enabled'}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end">
@@ -227,6 +263,11 @@ function CategoriesPage() {
                             label: 'Edit',
                             onSelect: () => openEditCategory(category),
                             icon: Pencil,
+                          },
+                          {
+                            label: category.isArchived ? 'Enable' : 'Disable',
+                            onSelect: () => toggleCategoryVisibility(category),
+                            icon: category.isArchived ? RefreshCcw : EyeOff,
                           },
                           {
                             label: 'Delete',
@@ -249,7 +290,7 @@ function CategoriesPage() {
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
         title="Create category"
-        description="Add a new income or expense bucket for budgeting and reports."
+        description="Add a new income or expense bucket for classifying transactions."
       >
         <Form {...createForm}>
           <form
@@ -324,7 +365,7 @@ function CategoriesPage() {
         open={Boolean(editingCategory)}
         onOpenChange={(open) => !open && setEditingCategory(null)}
         title="Edit category"
-        description="Update the category name, type, or color treatment."
+        description="Update the category name, type, or color treatment, or use disable to hide it from entry forms."
       >
         <form onSubmit={submitEditCategory} className="space-y-4">
           <div className="space-y-2">

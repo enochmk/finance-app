@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const transactionTypeSchema = z.enum(['INCOME', 'EXPENSE', 'TRANSFER']);
+const entryModeSchema = z.enum(['MANUAL', 'AUTOMATED']);
 
 const decimalAmountSchema = z
   .number()
@@ -18,6 +19,7 @@ const transactionBodyFields = {
   amount: decimalAmountSchema,
   description: z.string().trim().min(1).max(255),
   notes: z.string().trim().max(2000).optional(),
+  entryMode: entryModeSchema.optional(),
   transactionDate: isoDateSchema,
   transferAccountId: z
     .string()
@@ -57,6 +59,7 @@ const updateTransactionBodySchema = z
     amount: decimalAmountSchema.optional(),
     description: transactionBodyFields.description.optional(),
     notes: transactionBodyFields.notes,
+    entryMode: transactionBodyFields.entryMode,
     transactionDate: isoDateSchema.optional(),
     transferAccountId: transactionBodyFields.transferAccountId,
     externalReference: transactionBodyFields.externalReference,

@@ -13,9 +13,14 @@ export const CATEGORY_TYPE_OPTIONS = [
 ] as const
 
 export const TRANSACTION_TYPE_OPTIONS = [
-  { value: 'INCOME', label: 'Income' },
-  { value: 'EXPENSE', label: 'Expense' },
+  { value: 'INCOME', label: 'Credit' },
+  { value: 'EXPENSE', label: 'Debit' },
   { value: 'TRANSFER', label: 'Transfer' },
+] as const
+
+export const ENTRY_MODE_OPTIONS = [
+  { value: 'MANUAL', label: 'Manual' },
+  { value: 'AUTOMATED', label: 'Automated' },
 ] as const
 
 export const RECURRING_FREQUENCY_OPTIONS = [
@@ -37,6 +42,22 @@ export function formatCurrency(value: number | string, currency = 'USD') {
     currency,
     maximumFractionDigits: 2,
   }).format(Number(value))
+}
+
+export function getTransactionTypeLabel(type: string) {
+  if (type === 'INCOME') {
+    return 'Credit'
+  }
+
+  if (type === 'EXPENSE') {
+    return 'Debit'
+  }
+
+  return 'Transfer'
+}
+
+export function getEntryModeLabel(value?: string | null) {
+  return value === 'AUTOMATED' ? 'Automated' : 'Manual'
 }
 
 export function formatDateTime(value: string | Date) {

@@ -101,6 +101,22 @@ function computeNextRunDate(recurringTransaction: {
   return nextRunAt;
 }
 
+function getBalanceDelta(
+  type: 'INCOME' | 'EXPENSE' | 'TRANSFER',
+  amount: number,
+  direction: 'primary' | 'transfer'
+) {
+  if (type === 'INCOME') {
+    return direction === 'primary' ? amount : 0;
+  }
+
+  if (type === 'EXPENSE') {
+    return direction === 'primary' ? -amount : 0;
+  }
+
+  return direction === 'primary' ? -amount : amount;
+}
+
 class RecurringTransactionsService {
   list = async (userId: string, filters: ListRecurringTransactionsQuery) => {
     return prisma.recurringTransaction.findMany({
@@ -209,20 +225,47 @@ class RecurringTransactionsService {
     const createdTransactionIds: string[] = [];
 
     for (const recurringTransaction of dueItems) {
-      const createdTransaction = await prisma.transaction.create({
-        data: {
-          userId,
-          accountId: recurringTransaction.accountId,
-          categoryId: recurringTransaction.categoryId,
-          transferAccountId: recurringTransaction.transferAccountId,
-          type: recurringTransaction.type,
-          amount: recurringTransaction.amount,
-          description: recurringTransaction.description,
-          notes: recurringTransaction.notes,
-          transactionDate: recurringTransaction.nextRunAt,
-          externalReference:
-            recurringTransaction.externalReference ?? `recurring:${recurringTransaction.id}`,
-        },
+      const createdTransaction = await prisma.$transaction(async (tx) => {
+        const transaction = await tx.transaction.create({
+          data: {
+            userId,
+            accountId: recurringTransaction.accountId,
+            categoryId: recurringTransaction.categoryId,
+            transferAccountId: recurringTransaction.transferAccountId,
+            type: recurringTransaction.type,
+            amount: recurringTransaction.amount,
+            description: recurringTransaction.description,
+            notes: recurringTransaction.notes,
+            entryMode: 'AUTOMATED',
+            transactionDate: recurringTransaction.nextRunAt,
+            externalReference:
+              recurringTransaction.externalReference ?? `recurring:${recurringTransaction.id}`,
+          },
+        });
+
+        const amount = Number(recurringTransaction.amount);
+
+        await tx.account.update({
+          where: { id: recurringTransaction.accountId },
+          data: {
+            currentBalance: {
+              increment: getBalanceDelta(recurringTransaction.type, amount, 'primary'),
+            },
+          },
+        });
+
+        if (recurringTransaction.type === 'TRANSFER' && recurringTransaction.transferAccountId) {
+          await tx.account.update({
+            where: { id: recurringTransaction.transferAccountId },
+            data: {
+              currentBalance: {
+                increment: getBalanceDelta(recurringTransaction.type, amount, 'transfer'),
+              },
+            },
+          });
+        }
+
+        return transaction;
       });
 
       createdTransactionIds.push(createdTransaction.id);

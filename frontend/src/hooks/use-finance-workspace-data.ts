@@ -29,6 +29,20 @@ const EMPTY_DATA: FinanceWorkspaceData = {
   recurringTransactions: [],
 }
 
+function sortCategoriesForWorkspace(categories: Category[]) {
+  return [...categories].sort((left, right) => {
+    if (left.isArchived !== right.isArchived) {
+      return left.isArchived ? 1 : -1
+    }
+
+    if (left.type !== right.type) {
+      return left.type.localeCompare(right.type)
+    }
+
+    return left.name.localeCompare(right.name)
+  })
+}
+
 export function useFinanceWorkspaceData(enabled: boolean) {
   const [data, setData] = useState<FinanceWorkspaceData>(EMPTY_DATA)
   const [isLoading, setIsLoading] = useState(true)
@@ -46,7 +60,7 @@ export function useFinanceWorkspaceData(enabled: boolean) {
 
     setData({
       accounts,
-      categories,
+      categories: sortCategoriesForWorkspace(categories),
       budgets,
       transactions,
       recurringTransactions,
@@ -83,7 +97,7 @@ export function useFinanceWorkspaceData(enabled: boolean) {
         if (!cancelled) {
           setData({
             accounts,
-            categories,
+            categories: sortCategoriesForWorkspace(categories),
             budgets,
             transactions,
             recurringTransactions,
