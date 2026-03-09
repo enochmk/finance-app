@@ -38,12 +38,6 @@ import { useSidebarState } from '#/components/sidebar-state'
 const navigationItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/reports', label: 'Reports', icon: BarChart3 },
-  { to: '/manage', label: 'Overview', icon: SquarePen },
-  { to: '/manage/accounts', label: 'Accounts', icon: CreditCard },
-  { to: '/manage/categories', label: 'Categories', icon: FolderTree },
-  { to: '/manage/budgets', label: 'Budgets', icon: PiggyBank },
-  { to: '/manage/transactions', label: 'Transactions', icon: ReceiptText },
-  { to: '/manage/recurring', label: 'Recurring', icon: Repeat2 },
 ] as const
 
 function SidebarContent({ mobile = false }: { mobile?: boolean }) {
@@ -111,19 +105,7 @@ function SidebarContent({ mobile = false }: { mobile?: boolean }) {
       <Separator className="my-4 bg-[var(--sidebar-border)]" />
 
       <div className="px-2">
-        {(!isCollapsed || mobile) && (
-          <div className="mb-3 flex items-center justify-between px-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--sidebar-muted-foreground)]">
-              Navigation
-            </p>
-            <Badge
-              variant="secondary"
-              className="bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)]"
-            >
-              Beta
-            </Badge>
-          </div>
-        )}
+        {(!isCollapsed || mobile) && <div className="mb-3 px-2" />}
 
         <nav className="space-y-1">
           {navigationItems.map((item) => {
