@@ -1,4 +1,5 @@
-export const API_BASE_URL = 'http://127.0.0.1:4000/api/v1'
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000/api/v1'
 
 export type AuthUser = {
   id: string
@@ -307,6 +308,31 @@ export async function createAccount(payload: {
   })
 }
 
+export async function updateAccount(
+  id: string,
+  payload: {
+    name?: string
+    type?: string
+    currency?: string
+    openingBalance?: number
+    currentBalance?: number
+    institutionName?: string
+    accountNumberMasked?: string
+    isArchived?: boolean
+  }
+) {
+  return request<Account>(`/accounts/${id}`, {
+    method: 'PATCH',
+    body: payload,
+  })
+}
+
+export async function deleteAccount(id: string) {
+  return request<Account>(`/accounts/${id}`, {
+    method: 'DELETE',
+  })
+}
+
 export async function getCategories() {
   return request<Category[]>('/categories')
 }
@@ -320,6 +346,28 @@ export async function createCategory(payload: {
   return request<Category>('/categories', {
     method: 'POST',
     body: payload,
+  })
+}
+
+export async function updateCategory(
+  id: string,
+  payload: {
+    name?: string
+    type?: string
+    color?: string
+    icon?: string
+    isArchived?: boolean
+  }
+) {
+  return request<Category>(`/categories/${id}`, {
+    method: 'PATCH',
+    body: payload,
+  })
+}
+
+export async function deleteCategory(id: string) {
+  return request<Category>(`/categories/${id}`, {
+    method: 'DELETE',
   })
 }
 
@@ -337,6 +385,28 @@ export async function createBudget(payload: {
   return request<Budget>('/budgets', {
     method: 'POST',
     body: payload,
+  })
+}
+
+export async function updateBudget(
+  id: string,
+  payload: {
+    categoryId?: string
+    amount?: number
+    month?: number
+    year?: number
+    notes?: string
+  }
+) {
+  return request<Budget>(`/budgets/${id}`, {
+    method: 'PATCH',
+    body: payload,
+  })
+}
+
+export async function deleteBudget(id: string) {
+  return request<Budget>(`/budgets/${id}`, {
+    method: 'DELETE',
   })
 }
 
@@ -358,6 +428,32 @@ export async function createTransaction(payload: {
   return request<Transaction>('/transactions', {
     method: 'POST',
     body: payload,
+  })
+}
+
+export async function updateTransaction(
+  id: string,
+  payload: {
+    accountId?: string
+    categoryId?: string
+    transferAccountId?: string
+    type?: string
+    amount?: number
+    description?: string
+    notes?: string
+    transactionDate?: string
+    externalReference?: string
+  }
+) {
+  return request<Transaction>(`/transactions/${id}`, {
+    method: 'PATCH',
+    body: payload,
+  })
+}
+
+export async function deleteTransaction(id: string) {
+  return request<Transaction>(`/transactions/${id}`, {
+    method: 'DELETE',
   })
 }
 
@@ -385,6 +481,38 @@ export async function createRecurringTransaction(payload: {
   return request<RecurringTransaction>('/recurring-transactions', {
     method: 'POST',
     body: payload,
+  })
+}
+
+export async function updateRecurringTransaction(
+  id: string,
+  payload: {
+    accountId?: string
+    categoryId?: string
+    transferAccountId?: string
+    type?: string
+    amount?: number
+    description?: string
+    notes?: string
+    frequency?: string
+    intervalCount?: number
+    dayOfMonth?: number
+    dayOfWeek?: number
+    startDate?: string
+    endDate?: string
+    status?: string
+    externalReference?: string
+  }
+) {
+  return request<RecurringTransaction>(`/recurring-transactions/${id}`, {
+    method: 'PATCH',
+    body: payload,
+  })
+}
+
+export async function deleteRecurringTransaction(id: string) {
+  return request<RecurringTransaction>(`/recurring-transactions/${id}`, {
+    method: 'DELETE',
   })
 }
 

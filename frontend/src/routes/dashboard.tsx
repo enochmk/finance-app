@@ -220,29 +220,38 @@ function DashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <ChartContainer>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={transactionChartData}>
-                      <defs>
-                        <linearGradient id="dashboardArea" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.45} />
-                          <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.05} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
-                      <XAxis dataKey="label" stroke="var(--muted-foreground)" tickLine={false} axisLine={false} />
-                      <YAxis stroke="var(--muted-foreground)" tickLine={false} axisLine={false} width={70} />
-                      <Tooltip content={<ChartTooltipContent />} />
-                      <Area
-                        type="monotone"
-                        dataKey="amount"
-                        stroke="var(--primary)"
-                        fill="url(#dashboardArea)"
-                        strokeWidth={2}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
+                {transactionChartData.length === 0 ? (
+                  <Alert>
+                    <AlertTitle>No recent movement yet</AlertTitle>
+                    <AlertDescription>
+                      Add transactions from the management workspace to unlock your trend chart.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <ChartContainer>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={transactionChartData}>
+                        <defs>
+                          <linearGradient id="dashboardArea" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.45} />
+                            <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.05} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
+                        <XAxis dataKey="label" stroke="var(--muted-foreground)" tickLine={false} axisLine={false} />
+                        <YAxis stroke="var(--muted-foreground)" tickLine={false} axisLine={false} width={70} />
+                        <Tooltip content={<ChartTooltipContent />} />
+                        <Area
+                          type="monotone"
+                          dataKey="amount"
+                          stroke="var(--primary)"
+                          fill="url(#dashboardArea)"
+                          strokeWidth={2}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                )}
               </CardContent>
             </Card>
 
@@ -252,26 +261,35 @@ function DashboardPage() {
                 <CardDescription>Category pressure for the current period.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
-                {data.budgets.map((budget) => {
-                  const percent = Math.min(Math.round(budget.utilizationRate * 100), 100)
+                {data.budgets.length === 0 ? (
+                  <Alert>
+                    <AlertTitle>No budgets for this month</AlertTitle>
+                    <AlertDescription>
+                      Create a budget in the management workspace to see category utilization here.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  data.budgets.map((budget) => {
+                    const percent = Math.min(Math.round(budget.utilizationRate * 100), 100)
 
-                  return (
-                    <div key={budget.id} className="space-y-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-medium text-[var(--foreground)]">
-                            {budget.category.name}
-                          </p>
-                          <p className="text-xs text-[var(--muted-foreground)]">
-                            {formatCurrency(budget.spent)} spent
-                          </p>
+                    return (
+                      <div key={budget.id} className="space-y-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-medium text-[var(--foreground)]">
+                              {budget.category.name}
+                            </p>
+                            <p className="text-xs text-[var(--muted-foreground)]">
+                              {formatCurrency(budget.spent)} spent
+                            </p>
+                          </div>
+                          <Badge variant={percent >= 85 ? 'warning' : 'default'}>{percent}%</Badge>
                         </div>
-                        <Badge variant={percent >= 85 ? 'warning' : 'default'}>{percent}%</Badge>
+                        <Progress value={percent} />
                       </div>
-                      <Progress value={percent} />
-                    </div>
-                  )
-                })}
+                    )
+                  })
+                )}
               </CardContent>
             </Card>
           </div>
@@ -287,34 +305,43 @@ function DashboardPage() {
               </Button>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Frequency</TableHead>
-                    <TableHead>Account</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Next run</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.recurringTransactions.map((transaction) => (
-                    <TableRow key={transaction.id}>
-                      <TableCell className="font-medium">{transaction.description}</TableCell>
-                      <TableCell>{transaction.frequency}</TableCell>
-                      <TableCell>{transaction.account.name}</TableCell>
-                      <TableCell>
-                        <Badge variant={transaction.status === 'ACTIVE' ? 'success' : 'outline'}>
-                          {transaction.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {new Date(transaction.nextRunAt).toLocaleString()}
-                      </TableCell>
+              {data.recurringTransactions.length === 0 ? (
+                <Alert>
+                  <AlertTitle>No recurring schedules yet</AlertTitle>
+                  <AlertDescription>
+                    Create recurring transactions in the management page to preview upcoming automated cash flow.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Frequency</TableHead>
+                      <TableHead>Account</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Next run</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {data.recurringTransactions.map((transaction) => (
+                      <TableRow key={transaction.id}>
+                        <TableCell className="font-medium">{transaction.description}</TableCell>
+                        <TableCell>{transaction.frequency}</TableCell>
+                        <TableCell>{transaction.account.name}</TableCell>
+                        <TableCell>
+                          <Badge variant={transaction.status === 'ACTIVE' ? 'success' : 'outline'}>
+                            {transaction.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {new Date(transaction.nextRunAt).toLocaleString()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
 
@@ -331,32 +358,41 @@ function DashboardPage() {
                   <CardDescription>Latest synced activity from the backend.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Account</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data.recentTransactions.map((transaction) => (
-                        <TableRow key={transaction.id}>
-                          <TableCell className="font-medium">{transaction.description}</TableCell>
-                          <TableCell>{transaction.account.name}</TableCell>
-                          <TableCell>{transaction.category?.name ?? 'Uncategorized'}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{transaction.type}</Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {formatCurrency(Number(transaction.amount))}
-                          </TableCell>
+                  {data.recentTransactions.length === 0 ? (
+                    <Alert>
+                      <AlertTitle>No transactions recorded</AlertTitle>
+                      <AlertDescription>
+                        Visit the management page to add your first transaction and unlock recent activity insights.
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Description</TableHead>
+                          <TableHead>Account</TableHead>
+                          <TableHead>Category</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead className="text-right">Amount</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {data.recentTransactions.map((transaction) => (
+                          <TableRow key={transaction.id}>
+                            <TableCell className="font-medium">{transaction.description}</TableCell>
+                            <TableCell>{transaction.account.name}</TableCell>
+                            <TableCell>{transaction.category?.name ?? 'Uncategorized'}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{transaction.type}</Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {formatCurrency(Number(transaction.amount))}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

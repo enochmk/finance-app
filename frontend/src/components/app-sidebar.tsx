@@ -1,4 +1,4 @@
-import { Link, useRouterState } from '@tanstack/react-router'
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import {
   ChevronLeft,
   ChevronsUpDown,
@@ -8,10 +8,8 @@ import {
   LogOut,
   Menu,
   MoonStar,
-  ReceiptText,
   Settings,
   SquarePen,
-  Wallet,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -29,27 +27,28 @@ import {
 import { Separator } from '#/components/ui/separator'
 import { Sheet, SheetContent, SheetTrigger } from '#/components/ui/sheet'
 import ThemeToggle from '#/components/ThemeToggle'
-import { logoutSeedUser } from '#/lib/api'
+import { useSession } from '#/components/session-provider'
 import { cn } from '#/lib/utils'
 import { useSidebarState } from '#/components/sidebar-state'
 
 const navigationItems = [
-  { to: '/', label: 'Overview', icon: Wallet },
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/reports', label: 'Reports', icon: BarChart3 },
   { to: '/manage', label: 'Manage', icon: SquarePen },
-  { to: '/about', label: 'Project', icon: ReceiptText },
 ] as const
 
 function SidebarContent({ mobile = false }: { mobile?: boolean }) {
+  const navigate = useNavigate()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const { isCollapsed, toggleSidebar, setMode } = useSidebarState()
+  const { signOut, user } = useSession()
 
   function handleLogout() {
-    logoutSeedUser()
+    signOut()
     toast.success('Logged out', {
-      description: 'Seed auth token removed from local storage.',
+      description: 'Your session has been cleared.',
     })
+    void navigate({ to: '/' })
   }
 
   function handleSettingsSoon() {
@@ -113,7 +112,7 @@ function SidebarContent({ mobile = false }: { mobile?: boolean }) {
                   'flex items-center rounded-xl px-3 py-2.5 text-sm font-medium no-underline transition-colors',
                   isCollapsed && !mobile ? 'justify-center' : 'gap-3',
                   active
-                    ? 'bg-[var(--sidebar-primary)] text-[var(--sidebar-primary-foreground)] shadow-sm'
+                    ? 'sidebar-nav-active text-[var(--sidebar-primary-foreground)] shadow-sm'
                     : 'text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]'
                 )}
                 title={isCollapsed && !mobile ? item.label : undefined}
@@ -156,10 +155,10 @@ function SidebarContent({ mobile = false }: { mobile?: boolean }) {
                   <>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-[var(--sidebar-foreground)]">
-                        Enoch
+                        {user?.name ?? 'Workspace user'}
                       </p>
                       <p className="truncate text-xs text-[var(--sidebar-muted-foreground)]">
-                        Dev workspace
+                        {user?.email ?? 'Finance workspace'}
                       </p>
                     </div>
                     <ChevronsUpDown className="h-4 w-4 text-[var(--sidebar-muted-foreground)]" />

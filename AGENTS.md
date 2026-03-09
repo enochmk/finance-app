@@ -17,7 +17,7 @@ If any of them are added later, treat them as additional instructions and merge 
 
 ## Repository Shape
 
-- There is no root `package.json`; run npm commands against `backend/` or `frontend/`.
+- The repo now has a small root `package.json` for convenience dev scripts; app-specific npm commands still primarily run against `backend/` or `frontend/`.
 - Backend code is mostly in `backend/src/`, with shared middleware in `backend/src/middlewares/` and logging helpers in `backend/src/libs/`.
 - Backend architecture notes in `docs/BACKEND_PATTERNS.md` prefer feature folders like `src/features/<feature>/` with files such as `.controller.ts`, `.service.ts`, `.schema.ts`, `.middleware.ts`, and `.routes.ts`.
 - Frontend routes live in `frontend/src/routes/`; shared UI lives in `frontend/src/components/`.
@@ -25,6 +25,7 @@ If any of them are added later, treat them as additional instructions and merge 
 
 ## Install And Setup
 
+- Install root convenience deps: `npm install`
 - Install backend deps: `npm --prefix backend install`
 - Install frontend deps: `npm --prefix frontend install`
 - Backend env is expected at `backend/.env`; Prisma config is in `backend/prisma.config.ts` and reads `DATABASE_URL`.
@@ -33,6 +34,7 @@ If any of them are added later, treat them as additional instructions and merge 
 
 ### Frontend
 
+- Combined dev server from repo root: `npm run dev`
 - Dev server: `npm --prefix frontend run dev`
 - Production build: `npm --prefix frontend run build`
 - Preview build: `npm --prefix frontend run preview`

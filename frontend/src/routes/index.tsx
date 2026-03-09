@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { ArrowRight, BarChart3, LayoutDashboard, ShieldCheck, Wallet } from 'lucide-react'
 
+import { useSession } from '#/components/session-provider'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '#/components/ui/card'
@@ -8,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '#/com
 export const Route = createFileRoute('/')({ component: App })
 
 function App() {
+  const { isAuthenticated } = useSession()
+
   return (
     <main className="w-full px-4 py-8 lg:px-8 xl:px-10">
       <Card className="relative overflow-hidden border-none bg-[linear-gradient(135deg,rgba(23,107,108,0.95),rgba(10,32,39,0.94))] text-white shadow-[0_30px_70px_rgba(15,23,42,0.25)]">
@@ -22,15 +25,31 @@ function App() {
               The app now uses a left-hand admin layout and live backend-powered finance views for dashboard and reporting flows.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button asChild size="lg" className="bg-white text-[#0f2d34] hover:bg-white/92">
-                <Link to="/sign-in">
-                  Sign in
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="border-white/20 bg-white/6 text-white hover:bg-white/12">
-                <Link to="/manage">Open workspace</Link>
-              </Button>
+              {isAuthenticated ? (
+                <>
+                  <Button asChild size="lg" className="bg-white text-[#0f2d34] hover:bg-white/92">
+                    <Link to="/dashboard">
+                      Open dashboard
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline" className="border-white/20 bg-white/6 text-white hover:bg-white/12">
+                    <Link to="/manage">Open workspace</Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button asChild size="lg" className="bg-white text-[#0f2d34] hover:bg-white/92">
+                    <Link to="/sign-in">
+                      Sign in
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline" className="border-white/20 bg-white/6 text-white hover:bg-white/12">
+                    <Link to="/about">Explore the project</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 

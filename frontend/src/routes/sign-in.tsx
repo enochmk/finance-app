@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { useSession } from '#/components/session-provider'
@@ -16,7 +16,7 @@ export const Route = createFileRoute('/sign-in')({
 
 function SignInPage() {
   const navigate = useNavigate()
-  const { signIn, signUp } = useSession()
+  const { isAuthenticated, isLoading, signIn, signUp } = useSession()
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-in')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -26,6 +26,12 @@ function SignInPage() {
     password: 'dev-password-123',
     currency: 'USD',
   })
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      void navigate({ to: '/dashboard' })
+    }
+  }, [isAuthenticated, isLoading, navigate])
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()

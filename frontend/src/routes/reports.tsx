@@ -237,18 +237,27 @@ function ReportsPage() {
                 <CardDescription>Income versus expenses across the selected month.</CardDescription>
               </CardHeader>
               <CardContent>
-                <ChartContainer className="h-[320px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data.dailyCashFlow}>
-                      <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
-                      <XAxis dataKey="date" stroke="var(--muted-foreground)" tickLine={false} axisLine={false} />
-                      <YAxis stroke="var(--muted-foreground)" tickLine={false} axisLine={false} width={72} />
-                      <Tooltip content={<ChartTooltipContent />} />
-                      <Bar dataKey="income" fill="var(--primary)" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="expenses" fill="#d97706" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
+                {data.dailyCashFlow.length === 0 ? (
+                  <Alert>
+                    <AlertTitle>No report data for this period</AlertTitle>
+                    <AlertDescription>
+                      Try another month or add transactions to populate the report.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <ChartContainer className="h-[320px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={data.dailyCashFlow}>
+                        <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
+                        <XAxis dataKey="date" stroke="var(--muted-foreground)" tickLine={false} axisLine={false} />
+                        <YAxis stroke="var(--muted-foreground)" tickLine={false} axisLine={false} width={72} />
+                        <Tooltip content={<ChartTooltipContent />} />
+                        <Bar dataKey="income" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="expenses" fill="#d97706" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                )}
               </CardContent>
             </Card>
 
@@ -258,14 +267,23 @@ function ReportsPage() {
                 <CardDescription>Largest spending categories this month.</CardDescription>
               </CardHeader>
               <CardContent>
-                <ChartContainer className="h-[320px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Tooltip content={<ChartTooltipContent />} />
-                      <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={70} outerRadius={110} paddingAngle={4} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
+                {pieData.length === 0 ? (
+                  <Alert>
+                    <AlertTitle>No expense categories to chart</AlertTitle>
+                    <AlertDescription>
+                      Once expenses are recorded, the category mix will appear here.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <ChartContainer className="h-[320px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Tooltip content={<ChartTooltipContent />} />
+                        <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={70} outerRadius={110} paddingAngle={4} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                )}
               </CardContent>
             </Card>
           </div>

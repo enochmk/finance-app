@@ -162,14 +162,14 @@ body::after {
   mask-image: radial-gradient(circle at 50% 30%, black, transparent 78%);
 }
 
-a {
+a:not([data-slot="button"]) {
   color: var(--primary);
   text-decoration-color: rgba(23, 107, 108, 0.35);
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
 }
 
-a:hover {
+a:not([data-slot="button"]):hover {
   color: var(--primary-strong);
 }
 
@@ -206,6 +206,22 @@ a {
   font-weight: 700;
   font-size: 0.69rem;
   color: var(--muted-foreground);
+}
+
+.sidebar-nav-active {
+  background-image: var(--sidebar-primary);
+  background-color: rgba(43, 184, 173, 0.16);
+  color: var(--sidebar-primary-foreground) !important;
+  text-decoration: none;
+}
+
+.sidebar-nav-active:hover,
+.sidebar-nav-active:visited {
+  color: var(--sidebar-primary-foreground) !important;
+}
+
+.sidebar-nav-active svg {
+  color: inherit;
 }
 
 .rise-in {
