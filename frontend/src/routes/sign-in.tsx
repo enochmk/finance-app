@@ -6,7 +6,13 @@ import { useSession } from '#/components/session-provider'
 import { Alert, AlertDescription, AlertTitle } from '#/components/ui/alert'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '#/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '#/components/ui/card'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
 
@@ -76,10 +82,13 @@ function SignInPage() {
             Finance access
           </Badge>
           <CardTitle className="display-title text-4xl">
-            {mode === 'sign-in' ? 'Sign in to your workspace' : 'Create a finance workspace'}
+            {mode === 'sign-in'
+              ? 'Sign in to your workspace'
+              : 'Create a finance workspace'}
           </CardTitle>
           <CardDescription>
-            Use the seeded dev account or create a new profile for your personal finance admin panel.
+            Use the seeded dev account or create a new profile for your personal
+            finance admin panel.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -98,7 +107,10 @@ function SignInPage() {
                   id="name"
                   value={form.name}
                   onChange={(event) =>
-                    setForm((current) => ({ ...current, name: event.target.value }))
+                    setForm((current) => ({
+                      ...current,
+                      name: event.target.value,
+                    }))
                   }
                   required
                 />
@@ -112,7 +124,10 @@ function SignInPage() {
                 type="email"
                 value={form.email}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, email: event.target.value }))
+                  setForm((current) => ({
+                    ...current,
+                    email: event.target.value,
+                  }))
                 }
                 required
               />
@@ -125,7 +140,10 @@ function SignInPage() {
                 type="password"
                 value={form.password}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, password: event.target.value }))
+                  setForm((current) => ({
+                    ...current,
+                    password: event.target.value,
+                  }))
                 }
                 required
               />
@@ -138,7 +156,10 @@ function SignInPage() {
                   id="currency"
                   value={form.currency}
                   onChange={(event) =>
-                    setForm((current) => ({ ...current, currency: event.target.value.toUpperCase() }))
+                    setForm((current) => ({
+                      ...current,
+                      currency: event.target.value.toUpperCase(),
+                    }))
                   }
                 />
               </div>

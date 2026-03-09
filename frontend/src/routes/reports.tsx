@@ -1,23 +1,55 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { CalendarRange, CircleDollarSign, Landmark, TrendingDown, TrendingUp } from 'lucide-react'
+import {
+  CalendarRange,
+  CircleDollarSign,
+  Landmark,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { Bar, BarChart, CartesianGrid, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 import { toast } from 'sonner'
 
-import {
-  getMonthlyReport,
-  type MonthlyReport,
-} from '#/lib/api'
+import { getMonthlyReport, type MonthlyReport } from '#/lib/api'
 import { useSession } from '#/components/session-provider'
 import { Alert, AlertDescription, AlertTitle } from '#/components/ui/alert'
 import { Badge } from '#/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '#/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '#/components/ui/card'
 import { ChartContainer, ChartTooltipContent } from '#/components/ui/chart'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '#/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '#/components/ui/select'
 import { Skeleton } from '#/components/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '#/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '#/components/ui/table'
 
 export const Route = createFileRoute('/reports')({
   component: ReportsPage,
@@ -145,8 +177,8 @@ function ReportsPage() {
             Cash flow, categories, and account movement
           </h1>
           <p className="mt-3 max-w-3xl text-base leading-7 text-[var(--muted-foreground)]">
-            A reporting workspace built from the backend report endpoint with charts,
-            filters, and category breakdowns.
+            A reporting workspace built from the backend report endpoint with
+            charts, filters, and category breakdowns.
           </p>
         </div>
 
@@ -154,7 +186,12 @@ function ReportsPage() {
           <CardContent className="grid gap-4 p-6 md:grid-cols-[1fr_1fr_auto] md:items-end">
             <div className="space-y-2">
               <Label htmlFor="report-month">Month</Label>
-              <Select value={month || 'auto'} onValueChange={(value) => setMonth(value === 'auto' ? '' : value)}>
+              <Select
+                value={month || 'auto'}
+                onValueChange={(value) =>
+                  setMonth(value === 'auto' ? '' : value)
+                }
+              >
                 <SelectTrigger id="report-month">
                   <SelectValue placeholder="Current month" />
                 </SelectTrigger>
@@ -162,7 +199,9 @@ function ReportsPage() {
                   <SelectItem value="auto">Current month</SelectItem>
                   {Array.from({ length: 12 }).map((_, index) => (
                     <SelectItem key={index + 1} value={String(index + 1)}>
-                      {new Date(2026, index, 1).toLocaleDateString('en-US', { month: 'long' })}
+                      {new Date(2026, index, 1).toLocaleDateString('en-US', {
+                        month: 'long',
+                      })}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -199,9 +238,17 @@ function ReportsPage() {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             {[
               { label: 'Income', value: data.totals.income, icon: TrendingUp },
-              { label: 'Expenses', value: data.totals.expenses, icon: TrendingDown },
+              {
+                label: 'Expenses',
+                value: data.totals.expenses,
+                icon: TrendingDown,
+              },
               { label: 'Net', value: data.totals.net, icon: CircleDollarSign },
-              { label: 'Transfers', value: data.totals.transfers, icon: Landmark },
+              {
+                label: 'Transfers',
+                value: data.totals.transfers,
+                icon: Landmark,
+              },
               {
                 label: 'Transactions',
                 value: data.totals.transactionCount,
@@ -216,7 +263,8 @@ function ReportsPage() {
                     <div>
                       <CardDescription>{item.label}</CardDescription>
                       <CardTitle className="mt-3 text-3xl">
-                        {typeof item.value === 'number' && item.label !== 'Transactions'
+                        {typeof item.value === 'number' &&
+                        item.label !== 'Transactions'
                           ? formatCurrency(item.value)
                           : item.value}
                       </CardTitle>
@@ -234,26 +282,51 @@ function ReportsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Daily cash flow</CardTitle>
-                <CardDescription>Income versus expenses across the selected month.</CardDescription>
+                <CardDescription>
+                  Income versus expenses across the selected month.
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {data.dailyCashFlow.length === 0 ? (
                   <Alert>
                     <AlertTitle>No report data for this period</AlertTitle>
                     <AlertDescription>
-                      Try another month or add transactions to populate the report.
+                      Try another month or add transactions to populate the
+                      report.
                     </AlertDescription>
                   </Alert>
                 ) : (
                   <ChartContainer className="h-[320px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={data.dailyCashFlow}>
-                        <CartesianGrid stroke="var(--border)" strokeDasharray="4 4" vertical={false} />
-                        <XAxis dataKey="date" stroke="var(--muted-foreground)" tickLine={false} axisLine={false} />
-                        <YAxis stroke="var(--muted-foreground)" tickLine={false} axisLine={false} width={72} />
+                        <CartesianGrid
+                          stroke="var(--border)"
+                          strokeDasharray="4 4"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="date"
+                          stroke="var(--muted-foreground)"
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          stroke="var(--muted-foreground)"
+                          tickLine={false}
+                          axisLine={false}
+                          width={72}
+                        />
                         <Tooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="income" fill="var(--primary)" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="expenses" fill="#d97706" radius={[4, 4, 0, 0]} />
+                        <Bar
+                          dataKey="income"
+                          fill="var(--primary)"
+                          radius={[4, 4, 0, 0]}
+                        />
+                        <Bar
+                          dataKey="expenses"
+                          fill="#d97706"
+                          radius={[4, 4, 0, 0]}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   </ChartContainer>
@@ -264,14 +337,17 @@ function ReportsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Top expense mix</CardTitle>
-                <CardDescription>Largest spending categories this month.</CardDescription>
+                <CardDescription>
+                  Largest spending categories this month.
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {pieData.length === 0 ? (
                   <Alert>
                     <AlertTitle>No expense categories to chart</AlertTitle>
                     <AlertDescription>
-                      Once expenses are recorded, the category mix will appear here.
+                      Once expenses are recorded, the category mix will appear
+                      here.
                     </AlertDescription>
                   </Alert>
                 ) : (
@@ -279,7 +355,14 @@ function ReportsPage() {
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Tooltip content={<ChartTooltipContent />} />
-                        <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={70} outerRadius={110} paddingAngle={4} />
+                        <Pie
+                          data={pieData}
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius={70}
+                          outerRadius={110}
+                          paddingAngle={4}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   </ChartContainer>
@@ -292,7 +375,9 @@ function ReportsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Expense categories</CardTitle>
-                <CardDescription>Ranked by total spend for the selected month.</CardDescription>
+                <CardDescription>
+                  Ranked by total spend for the selected month.
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -305,14 +390,20 @@ function ReportsPage() {
                   </TableHeader>
                   <TableBody>
                     {data.expenseCategoryBreakdown.map((item, index) => (
-                      <TableRow key={`${item.category?.id ?? 'expense'}-${index}`}>
+                      <TableRow
+                        key={`${item.category?.id ?? 'expense'}-${index}`}
+                      >
                         <TableCell className="font-medium">
                           {item.category?.name ?? 'Uncategorized'}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">{item.category?.type ?? 'EXPENSE'}</Badge>
+                          <Badge variant="outline">
+                            {item.category?.type ?? 'EXPENSE'}
+                          </Badge>
                         </TableCell>
-                        <TableCell className="text-right">{formatCurrency(item.amount)}</TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrency(item.amount)}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -323,7 +414,9 @@ function ReportsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Account activity</CardTitle>
-                <CardDescription>Net movement and transfer activity per account.</CardDescription>
+                <CardDescription>
+                  Net movement and transfer activity per account.
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -338,10 +431,16 @@ function ReportsPage() {
                   <TableBody>
                     {data.accountActivity.map((account) => (
                       <TableRow key={account.accountId}>
-                        <TableCell className="font-medium">{account.accountName}</TableCell>
+                        <TableCell className="font-medium">
+                          {account.accountName}
+                        </TableCell>
                         <TableCell>{formatCurrency(account.income)}</TableCell>
-                        <TableCell>{formatCurrency(account.transfersIn)}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(account.net)}</TableCell>
+                        <TableCell>
+                          {formatCurrency(account.transfersIn)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrency(account.net)}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

@@ -255,7 +255,9 @@ async function request<T>(
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    ...(options?.body !== undefined ? { body: JSON.stringify(options.body) } : {}),
+    ...(options?.body !== undefined
+      ? { body: JSON.stringify(options.body) }
+      : {}),
   })
 
   if (!response.ok) {

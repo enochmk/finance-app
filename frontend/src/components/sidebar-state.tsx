@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
 
 type SidebarMode = 'expanded' | 'collapsed'
 
@@ -50,7 +57,11 @@ export function SidebarStateProvider({ children }: { children: ReactNode }) {
     [mode]
   )
 
-  return <SidebarStateContext.Provider value={value}>{children}</SidebarStateContext.Provider>
+  return (
+    <SidebarStateContext.Provider value={value}>
+      {children}
+    </SidebarStateContext.Provider>
+  )
 }
 
 export function useSidebarState() {

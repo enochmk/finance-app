@@ -3,7 +3,12 @@ import * as React from 'react'
 import { cn } from '#/lib/utils'
 
 function Table({ className, ...props }: React.ComponentProps<'table'>) {
-  return <table className={cn('w-full caption-bottom text-sm', className)} {...props} />
+  return (
+    <table
+      className={cn('w-full caption-bottom text-sm', className)}
+      {...props}
+    />
+  )
 }
 
 function TableHeader({ className, ...props }: React.ComponentProps<'thead'>) {
@@ -11,13 +16,18 @@ function TableHeader({ className, ...props }: React.ComponentProps<'thead'>) {
 }
 
 function TableBody({ className, ...props }: React.ComponentProps<'tbody'>) {
-  return <tbody className={cn('[&_tr:last-child]:border-0', className)} {...props} />
+  return (
+    <tbody className={cn('[&_tr:last-child]:border-0', className)} {...props} />
+  )
 }
 
 function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
   return (
     <tr
-      className={cn('border-b border-[var(--border)] transition-colors hover:bg-[var(--accent)]/60', className)}
+      className={cn(
+        'border-b border-[var(--border)] transition-colors hover:bg-[var(--accent)]/60',
+        className
+      )}
       {...props}
     />
   )
@@ -26,7 +36,10 @@ function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
 function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
   return (
     <th
-      className={cn('h-10 px-4 text-left align-middle font-medium text-[var(--muted-foreground)]', className)}
+      className={cn(
+        'h-10 px-4 text-left align-middle font-medium text-[var(--muted-foreground)]',
+        className
+      )}
       {...props}
     />
   )

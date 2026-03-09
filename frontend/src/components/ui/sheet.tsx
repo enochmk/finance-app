@@ -8,15 +8,32 @@ const Sheet = DialogPrimitive.Root
 const SheetTrigger = DialogPrimitive.Trigger
 const SheetClose = DialogPrimitive.Close
 
-function SheetPortal({ ...props }: React.ComponentProps<typeof DialogPrimitive.Portal>) {
+function SheetPortal({
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Portal>) {
   return <DialogPrimitive.Portal {...props} />
 }
 
-function SheetOverlay({ className, ...props }: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
-  return <DialogPrimitive.Overlay className={cn('fixed inset-0 z-50 bg-black/40 backdrop-blur-sm', className)} {...props} />
+function SheetOverlay({
+  className,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
+  return (
+    <DialogPrimitive.Overlay
+      className={cn(
+        'fixed inset-0 z-50 bg-black/40 backdrop-blur-sm',
+        className
+      )}
+      {...props}
+    />
+  )
 }
 
-function SheetContent({ className, children, ...props }: React.ComponentProps<typeof DialogPrimitive.Content>) {
+function SheetContent({
+  className,
+  children,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Content>) {
   return (
     <SheetPortal>
       <SheetOverlay />

@@ -8,7 +8,14 @@ import {
   type ReactNode,
 } from 'react'
 
-import { getMe, login, logoutSeedUser, register, storeAuthToken, type AuthUser } from '#/lib/api'
+import {
+  getMe,
+  login,
+  logoutSeedUser,
+  register,
+  storeAuthToken,
+  type AuthUser,
+} from '#/lib/api'
 
 type SessionContextValue = {
   user: AuthUser | null
@@ -96,7 +103,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [user, isLoading, refreshSession]
   )
 
-  return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
+  return (
+    <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
+  )
 }
 
 export function useSession() {

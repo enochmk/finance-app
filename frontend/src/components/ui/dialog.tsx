@@ -15,7 +15,10 @@ function DialogOverlay({
 }: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
   return (
     <DialogPrimitive.Overlay
-      className={cn('fixed inset-0 z-50 bg-black/45 backdrop-blur-sm', className)}
+      className={cn(
+        'fixed inset-0 z-50 bg-black/45 backdrop-blur-sm',
+        className
+      )}
       {...props}
     />
   )
@@ -47,11 +50,24 @@ function DialogContent({
 }
 
 function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div className={cn('flex flex-col space-y-2 text-left', className)} {...props} />
+  return (
+    <div
+      className={cn('flex flex-col space-y-2 text-left', className)}
+      {...props}
+    />
+  )
 }
 
 function DialogFooter({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div className={cn('flex flex-col-reverse gap-2 sm:flex-row sm:justify-end', className)} {...props} />
+  return (
+    <div
+      className={cn(
+        'flex flex-col-reverse gap-2 sm:flex-row sm:justify-end',
+        className
+      )}
+      {...props}
+    />
+  )
 }
 
 function DialogTitle({
@@ -60,7 +76,10 @@ function DialogTitle({
 }: React.ComponentProps<typeof DialogPrimitive.Title>) {
   return (
     <DialogPrimitive.Title
-      className={cn('text-lg font-semibold leading-none tracking-tight', className)}
+      className={cn(
+        'text-lg font-semibold leading-none tracking-tight',
+        className
+      )}
       {...props}
     />
   )
