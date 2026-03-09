@@ -10,6 +10,6 @@ export const getDashboardSummarySchema = z.object({
   }),
 });
 
-export type GetDashboardSummaryInput = z.infer<
+export type GetDashboardSummaryQuery = z.infer<
   typeof getDashboardSummarySchema
 >['query'];

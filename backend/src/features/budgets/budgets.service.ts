@@ -2,13 +2,13 @@ import createHttpError from 'http-errors';
 
 import prisma from '../../libs/prisma';
 import type {
-  CreateBudgetInput,
-  ListBudgetsInput,
-  UpdateBudgetInput,
+  CreateBudgetBody,
+  ListBudgetsQuery,
+  UpdateBudgetBody,
 } from './budgets.schema';
 
 class BudgetsService {
-  async list(userId: string, filters: ListBudgetsInput) {
+  list = async (userId: string, filters: ListBudgetsQuery) => {
     return prisma.budget.findMany({
       where: {
         userId,
@@ -21,9 +21,9 @@ class BudgetsService {
       },
       orderBy: [{ year: 'desc' }, { month: 'desc' }, { createdAt: 'desc' }],
     });
-  }
+  };
 
-  async create(userId: string, data: CreateBudgetInput) {
+  create = async (userId: string, data: CreateBudgetBody) => {
     await this.ensureOwnedCategory(data.categoryId, userId);
 
     return prisma.budget.create({
@@ -39,9 +39,9 @@ class BudgetsService {
         category: true,
       },
     });
-  }
+  };
 
-  async update(id: string, userId: string, data: UpdateBudgetInput) {
+  update = async (id: string, userId: string, data: UpdateBudgetBody) => {
     const existingBudget = await this.ensureOwnedBudget(id, userId);
 
     const categoryId = data.categoryId ?? existingBudget.categoryId;
@@ -60,17 +60,17 @@ class BudgetsService {
         category: true,
       },
     });
-  }
+  };
 
-  async remove(id: string, userId: string) {
+  remove = async (id: string, userId: string) => {
     await this.ensureOwnedBudget(id, userId);
 
     return prisma.budget.delete({
       where: { id },
     });
-  }
+  };
 
-  private async ensureOwnedCategory(id: string, userId: string) {
+  private ensureOwnedCategory = async (id: string, userId: string) => {
     const category = await prisma.category.findFirst({
       where: { id, userId },
       select: { id: true },
@@ -79,9 +79,9 @@ class BudgetsService {
     if (!category) {
       throw createHttpError(404, 'Category not found');
     }
-  }
+  };
 
-  private async ensureOwnedBudget(id: string, userId: string) {
+  private ensureOwnedBudget = async (id: string, userId: string) => {
     const budget = await prisma.budget.findFirst({
       where: { id, userId },
       select: { id: true, categoryId: true },
@@ -92,7 +92,7 @@ class BudgetsService {
     }
 
     return budget;
-  }
+  };
 }
 
 const budgetsService = new BudgetsService();

@@ -4,6 +4,11 @@ import requireAuth from '../../middlewares/require-auth.middleware';
 import resourceValidator from '../../middlewares/schema-validation.middleware';
 import transactionsController from './transactions.controller';
 import {
+  ensureOwnedTransactionAccess,
+  validateCreateTransactionOwnership,
+  validateUpdateTransactionOwnership,
+} from './transactions.middleware';
+import {
   createTransactionSchema,
   deleteTransactionSchema,
   listTransactionsSchema,
@@ -17,25 +22,28 @@ transactionsRoutes.use(requireAuth);
 transactionsRoutes.get(
   '/',
   resourceValidator(listTransactionsSchema),
-  transactionsController.list.bind(transactionsController)
+  transactionsController.list
 );
 
 transactionsRoutes.post(
   '/',
   resourceValidator(createTransactionSchema),
-  transactionsController.create.bind(transactionsController)
+  validateCreateTransactionOwnership,
+  transactionsController.create
 );
 
 transactionsRoutes.patch(
   '/:id',
   resourceValidator(updateTransactionSchema),
-  transactionsController.update.bind(transactionsController)
+  validateUpdateTransactionOwnership,
+  transactionsController.update
 );
 
 transactionsRoutes.delete(
   '/:id',
   resourceValidator(deleteTransactionSchema),
-  transactionsController.remove.bind(transactionsController)
+  ensureOwnedTransactionAccess,
+  transactionsController.remove
 );
 
 export default transactionsRoutes;

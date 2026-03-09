@@ -1,6 +1,6 @@
 import prisma from '../../libs/prisma';
 
-import type { GetDashboardSummaryInput } from './dashboard.schema';
+import type { GetDashboardSummaryQuery } from './dashboard.schema';
 
 function getPeriodBounds(month?: number, year?: number) {
   const now = new Date();
@@ -23,7 +23,7 @@ function toNumber(value: unknown) {
 }
 
 class DashboardService {
-  async getSummary(userId: string, filters: GetDashboardSummaryInput) {
+  getSummary = async (userId: string, filters: GetDashboardSummaryQuery) => {
     const { selectedMonth, selectedYear, periodStart, periodEnd } =
       getPeriodBounds(filters.month, filters.year);
     const recentLimit = filters.recentLimit ?? 5;
@@ -174,7 +174,7 @@ class DashboardService {
       budgets: budgetsWithUsage,
       recentTransactions,
     };
-  }
+  };
 }
 
 const dashboardService = new DashboardService();

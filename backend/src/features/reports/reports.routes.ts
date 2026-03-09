@@ -12,7 +12,7 @@ reportsRoutes.use(requireAuth);
 reportsRoutes.get(
   '/monthly',
   resourceValidator(getMonthlyReportSchema),
-  reportsController.getMonthlyReport.bind(reportsController)
+  reportsController.getMonthlyReport
 );
 
 export default reportsRoutes;

@@ -1,6 +1,6 @@
 import prisma from '../../libs/prisma';
 
-import type { GetMonthlyReportInput } from './reports.schema';
+import type { GetMonthlyReportQuery } from './reports.schema';
 
 function getPeriodBounds(month?: number, year?: number) {
   const now = new Date();
@@ -23,7 +23,7 @@ function toNumber(value: unknown) {
 }
 
 class ReportsService {
-  async getMonthlyReport(userId: string, filters: GetMonthlyReportInput) {
+  getMonthlyReport = async (userId: string, filters: GetMonthlyReportQuery) => {
     const { selectedMonth, selectedYear, periodStart, periodEnd } =
       getPeriodBounds(filters.month, filters.year);
 
@@ -59,7 +59,9 @@ class ReportsService {
       }),
     ]);
 
-    const incomeTransactions = transactions.filter((item) => item.type === 'INCOME');
+    const incomeTransactions = transactions.filter(
+      (item) => item.type === 'INCOME'
+    );
     const expenseTransactions = transactions.filter(
       (item) => item.type === 'EXPENSE'
     );
@@ -250,7 +252,7 @@ class ReportsService {
         };
       }),
     };
-  }
+  };
 }
 
 const reportsService = new ReportsService();

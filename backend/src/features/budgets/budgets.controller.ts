@@ -2,18 +2,38 @@ import type { NextFunction, Request, Response } from 'express';
 
 import budgetsService from './budgets.service';
 import type {
-  CreateBudgetInput,
-  ListBudgetsInput,
-  UpdateBudgetInput,
+  CreateBudgetBody,
+  DeleteBudgetParams,
+  ListBudgetsQuery,
+  UpdateBudgetBody,
+  UpdateBudgetParams,
 } from './budgets.schema';
 
+type EmptyObject = Record<string, never>;
+type ListBudgetsRequest = Request<
+  EmptyObject,
+  unknown,
+  EmptyObject,
+  ListBudgetsQuery
+>;
+type CreateBudgetRequest = Request<
+  EmptyObject,
+  unknown,
+  CreateBudgetBody,
+  EmptyObject
+>;
+type UpdateBudgetRequest = Request<
+  UpdateBudgetParams,
+  unknown,
+  UpdateBudgetBody,
+  EmptyObject
+>;
+type DeleteBudgetRequest = Request<DeleteBudgetParams>;
+
 class BudgetsController {
-  async list(req: Request, res: Response, next: NextFunction) {
+  list = async (req: ListBudgetsRequest, res: Response, next: NextFunction) => {
     try {
-      const budgets = await budgetsService.list(
-        String(req.user?.id),
-        req.query as unknown as ListBudgetsInput
-      );
+      const budgets = await budgetsService.list(req.user!.id, req.query);
 
       return res.status(200).json({
         data: budgets,
@@ -22,14 +42,15 @@ class BudgetsController {
     } catch (error) {
       return next(error);
     }
-  }
+  };
 
-  async create(req: Request, res: Response, next: NextFunction) {
+  create = async (
+    req: CreateBudgetRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
-      const budget = await budgetsService.create(
-        String(req.user?.id),
-        req.body as CreateBudgetInput
-      );
+      const budget = await budgetsService.create(req.user!.id, req.body);
 
       return res.status(201).json({
         data: budget,
@@ -37,14 +58,18 @@ class BudgetsController {
     } catch (error) {
       return next(error);
     }
-  }
+  };
 
-  async update(req: Request, res: Response, next: NextFunction) {
+  update = async (
+    req: UpdateBudgetRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const budget = await budgetsService.update(
-        String(req.params.id),
-        String(req.user?.id),
-        req.body as UpdateBudgetInput
+        req.params.id,
+        req.user!.id,
+        req.body
       );
 
       return res.status(200).json({
@@ -53,14 +78,15 @@ class BudgetsController {
     } catch (error) {
       return next(error);
     }
-  }
+  };
 
-  async remove(req: Request, res: Response, next: NextFunction) {
+  remove = async (
+    req: DeleteBudgetRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
-      const budget = await budgetsService.remove(
-        String(req.params.id),
-        String(req.user?.id)
-      );
+      const budget = await budgetsService.remove(req.params.id, req.user!.id);
 
       return res.status(200).json({
         data: budget,
@@ -69,7 +95,7 @@ class BudgetsController {
     } catch (error) {
       return next(error);
     }
-  }
+  };
 }
 
 const budgetsController = new BudgetsController();

@@ -1,14 +1,26 @@
 import type { NextFunction, Request, Response } from 'express';
 
 import dashboardService from './dashboard.service';
-import type { GetDashboardSummaryInput } from './dashboard.schema';
+import type { GetDashboardSummaryQuery } from './dashboard.schema';
+
+type EmptyObject = Record<string, never>;
+type GetDashboardSummaryRequest = Request<
+  EmptyObject,
+  unknown,
+  EmptyObject,
+  GetDashboardSummaryQuery
+>;
 
 class DashboardController {
-  async getSummary(req: Request, res: Response, next: NextFunction) {
+  getSummary = async (
+    req: GetDashboardSummaryRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const summary = await dashboardService.getSummary(
-        String(req.user?.id),
-        req.query as unknown as GetDashboardSummaryInput
+        req.user!.id,
+        req.query
       );
 
       return res.status(200).json({
@@ -17,7 +29,7 @@ class DashboardController {
     } catch (error) {
       return next(error);
     }
-  }
+  };
 }
 
 const dashboardController = new DashboardController();

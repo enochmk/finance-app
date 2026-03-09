@@ -4,10 +4,10 @@ import jwt, { type Secret, type SignOptions } from 'jsonwebtoken';
 
 import prisma from '../../libs/prisma';
 import env from '../../env';
-import type { LoginInput, RegisterInput } from './auth.schema';
+import type { LoginBody, RegisterBody } from './auth.schema';
 
 class AuthService {
-  async register(data: RegisterInput) {
+  register = async (data: RegisterBody) => {
     const existingUser = await prisma.user.findUnique({
       where: { email: data.email.toLowerCase() },
       select: { id: true },
@@ -29,9 +29,9 @@ class AuthService {
     });
 
     return this.buildAuthResponse(user);
-  }
+  };
 
-  async login(data: LoginInput) {
+  login = async (data: LoginBody) => {
     const user = await prisma.user.findUnique({
       where: { email: data.email.toLowerCase() },
     });
@@ -50,14 +50,14 @@ class AuthService {
     }
 
     return this.buildAuthResponse(user);
-  }
+  };
 
-  private buildAuthResponse(user: {
+  private buildAuthResponse = (user: {
     id: string;
     email: string;
     name: string;
     currency: string;
-  }) {
+  }) => {
     const jwtSecret: Secret = env.JWT_SECRET;
     const signOptions: SignOptions = {
       expiresIn: env.JWT_EXPIRES_IN as SignOptions['expiresIn'],
@@ -81,7 +81,7 @@ class AuthService {
         currency: user.currency,
       },
     };
-  }
+  };
 }
 
 const authService = new AuthService();

@@ -9,4 +9,6 @@ export const getMonthlyReportSchema = z.object({
   }),
 });
 
-export type GetMonthlyReportInput = z.infer<typeof getMonthlyReportSchema>['query'];
+export type GetMonthlyReportQuery = z.infer<
+  typeof getMonthlyReportSchema
+>['query'];

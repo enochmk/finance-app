@@ -17,25 +17,25 @@ accountsRoutes.use(requireAuth);
 accountsRoutes.get(
   '/',
   resourceValidator(listAccountsSchema),
-  accountsController.list.bind(accountsController)
+  accountsController.list
 );
 
 accountsRoutes.post(
   '/',
   resourceValidator(createAccountSchema),
-  accountsController.create.bind(accountsController)
+  accountsController.create
 );
 
 accountsRoutes.patch(
   '/:id',
   resourceValidator(updateAccountSchema),
-  accountsController.update.bind(accountsController)
+  accountsController.update
 );
 
 accountsRoutes.delete(
   '/:id',
   resourceValidator(deleteAccountSchema),
-  accountsController.remove.bind(accountsController)
+  accountsController.remove
 );
 
 export default accountsRoutes;

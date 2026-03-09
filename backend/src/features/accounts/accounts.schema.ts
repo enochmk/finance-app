@@ -51,6 +51,8 @@ export const deleteAccountSchema = z.object({
   body: z.object({}).optional(),
 });
 
-export type ListAccountsInput = z.infer<typeof listAccountsSchema>['query'];
-export type CreateAccountInput = z.infer<typeof createAccountSchema>['body'];
-export type UpdateAccountInput = z.infer<typeof updateAccountSchema>['body'];
+export type ListAccountsQuery = z.infer<typeof listAccountsSchema>['query'];
+export type CreateAccountBody = z.infer<typeof createAccountSchema>['body'];
+export type UpdateAccountParams = z.infer<typeof updateAccountSchema>['params'];
+export type UpdateAccountBody = z.infer<typeof updateAccountSchema>['body'];
+export type DeleteAccountParams = z.infer<typeof deleteAccountSchema>['params'];

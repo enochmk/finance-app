@@ -110,12 +110,18 @@ export const deleteTransactionSchema = z.object({
   body: z.object({}).optional(),
 });
 
-export type ListTransactionsInput = z.infer<
+export type ListTransactionsQuery = z.infer<
   typeof listTransactionsSchema
 >['query'];
-export type CreateTransactionInput = z.infer<
+export type CreateTransactionBody = z.infer<
   typeof createTransactionSchema
 >['body'];
-export type UpdateTransactionInput = z.infer<
+export type UpdateTransactionParams = z.infer<
+  typeof updateTransactionSchema
+>['params'];
+export type UpdateTransactionBody = z.infer<
   typeof updateTransactionSchema
 >['body'];
+export type DeleteTransactionParams = z.infer<
+  typeof deleteTransactionSchema
+>['params'];

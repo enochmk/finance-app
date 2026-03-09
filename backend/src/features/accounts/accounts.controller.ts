@@ -2,18 +2,42 @@ import type { NextFunction, Request, Response } from 'express';
 
 import accountsService from './accounts.service';
 import type {
-  CreateAccountInput,
-  ListAccountsInput,
-  UpdateAccountInput,
+  CreateAccountBody,
+  DeleteAccountParams,
+  ListAccountsQuery,
+  UpdateAccountBody,
+  UpdateAccountParams,
 } from './accounts.schema';
 
+type EmptyObject = Record<string, never>;
+type ListAccountsRequest = Request<
+  EmptyObject,
+  unknown,
+  EmptyObject,
+  ListAccountsQuery
+>;
+type CreateAccountRequest = Request<
+  EmptyObject,
+  unknown,
+  CreateAccountBody,
+  EmptyObject
+>;
+type UpdateAccountRequest = Request<
+  UpdateAccountParams,
+  unknown,
+  UpdateAccountBody,
+  EmptyObject
+>;
+type DeleteAccountRequest = Request<DeleteAccountParams>;
+
 class AccountsController {
-  async list(req: Request, res: Response, next: NextFunction) {
+  list = async (
+    req: ListAccountsRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
-      const accounts = await accountsService.list(
-        String(req.user?.id),
-        req.query as unknown as ListAccountsInput
-      );
+      const accounts = await accountsService.list(req.user!.id, req.query);
 
       return res.status(200).json({
         data: accounts,
@@ -22,14 +46,15 @@ class AccountsController {
     } catch (error) {
       return next(error);
     }
-  }
+  };
 
-  async create(req: Request, res: Response, next: NextFunction) {
+  create = async (
+    req: CreateAccountRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
-      const account = await accountsService.create(
-        String(req.user?.id),
-        req.body as CreateAccountInput
-      );
+      const account = await accountsService.create(req.user!.id, req.body);
 
       return res.status(201).json({
         data: account,
@@ -37,14 +62,18 @@ class AccountsController {
     } catch (error) {
       return next(error);
     }
-  }
+  };
 
-  async update(req: Request, res: Response, next: NextFunction) {
+  update = async (
+    req: UpdateAccountRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const account = await accountsService.update(
-        String(req.params.id),
-        String(req.user?.id),
-        req.body as UpdateAccountInput
+        req.params.id,
+        req.user!.id,
+        req.body
       );
 
       return res.status(200).json({
@@ -53,14 +82,15 @@ class AccountsController {
     } catch (error) {
       return next(error);
     }
-  }
+  };
 
-  async remove(req: Request, res: Response, next: NextFunction) {
+  remove = async (
+    req: DeleteAccountRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
-      const account = await accountsService.remove(
-        String(req.params.id),
-        String(req.user?.id)
-      );
+      const account = await accountsService.remove(req.params.id, req.user!.id);
 
       return res.status(200).json({
         data: account,
@@ -69,7 +99,7 @@ class AccountsController {
     } catch (error) {
       return next(error);
     }
-  }
+  };
 }
 
 const accountsController = new AccountsController();

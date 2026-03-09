@@ -2,13 +2,13 @@ import createHttpError from 'http-errors';
 
 import prisma from '../../libs/prisma';
 import type {
-  CreateCategoryInput,
-  ListCategoriesInput,
-  UpdateCategoryInput,
+  CreateCategoryBody,
+  ListCategoriesQuery,
+  UpdateCategoryBody,
 } from './categories.schema';
 
 class CategoriesService {
-  async list(userId: string, filters: ListCategoriesInput) {
+  list = async (userId: string, filters: ListCategoriesQuery) => {
     return prisma.category.findMany({
       where: {
         userId,
@@ -17,9 +17,9 @@ class CategoriesService {
       },
       orderBy: [{ type: 'asc' }, { name: 'asc' }],
     });
-  }
+  };
 
-  async create(userId: string, data: CreateCategoryInput) {
+  create = async (userId: string, data: CreateCategoryBody) => {
     return prisma.category.create({
       data: {
         userId,
@@ -31,9 +31,9 @@ class CategoriesService {
         isArchived: data.isArchived ?? false,
       },
     });
-  }
+  };
 
-  async update(id: string, userId: string, data: UpdateCategoryInput) {
+  update = async (id: string, userId: string, data: UpdateCategoryBody) => {
     await this.ensureOwnedCategory(id, userId);
 
     return prisma.category.update({
@@ -47,9 +47,9 @@ class CategoriesService {
         isArchived: data.isArchived,
       },
     });
-  }
+  };
 
-  async remove(id: string, userId: string) {
+  remove = async (id: string, userId: string) => {
     const category = await this.ensureOwnedCategory(id, userId);
 
     if (category.isSystem) {
@@ -70,9 +70,9 @@ class CategoriesService {
     return prisma.category.delete({
       where: { id },
     });
-  }
+  };
 
-  private async ensureOwnedCategory(id: string, userId: string) {
+  private ensureOwnedCategory = async (id: string, userId: string) => {
     const category = await prisma.category.findFirst({
       where: { id, userId },
       select: { id: true, isSystem: true },
@@ -83,7 +83,7 @@ class CategoriesService {
     }
 
     return category;
-  }
+  };
 }
 
 const categoriesService = new CategoriesService();

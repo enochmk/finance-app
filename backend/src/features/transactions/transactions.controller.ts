@@ -2,17 +2,44 @@ import type { NextFunction, Request, Response } from 'express';
 
 import transactionsService from './transactions.service';
 import type {
-  CreateTransactionInput,
-  ListTransactionsInput,
-  UpdateTransactionInput,
+  CreateTransactionBody,
+  DeleteTransactionParams,
+  ListTransactionsQuery,
+  UpdateTransactionBody,
+  UpdateTransactionParams,
 } from './transactions.schema';
 
+type EmptyObject = Record<string, never>;
+type ListTransactionsRequest = Request<
+  EmptyObject,
+  unknown,
+  EmptyObject,
+  ListTransactionsQuery
+>;
+type CreateTransactionRequest = Request<
+  EmptyObject,
+  unknown,
+  CreateTransactionBody,
+  EmptyObject
+>;
+type UpdateTransactionRequest = Request<
+  UpdateTransactionParams,
+  unknown,
+  UpdateTransactionBody,
+  EmptyObject
+>;
+type DeleteTransactionRequest = Request<DeleteTransactionParams>;
+
 class TransactionsController {
-  async list(req: Request, res: Response, next: NextFunction) {
+  list = async (
+    req: ListTransactionsRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const transactions = await transactionsService.list(
-        String(req.user?.id),
-        req.query as unknown as ListTransactionsInput
+        req.user!.id,
+        req.query
       );
 
       return res.status(200).json({
@@ -22,13 +49,17 @@ class TransactionsController {
     } catch (error) {
       return next(error);
     }
-  }
+  };
 
-  async create(req: Request, res: Response, next: NextFunction) {
+  create = async (
+    req: CreateTransactionRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const transaction = await transactionsService.create(
-        String(req.user?.id),
-        req.body as CreateTransactionInput
+        req.user!.id,
+        req.body
       );
 
       return res.status(201).json({
@@ -37,14 +68,17 @@ class TransactionsController {
     } catch (error) {
       return next(error);
     }
-  }
+  };
 
-  async update(req: Request, res: Response, next: NextFunction) {
+  update = async (
+    req: UpdateTransactionRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const transaction = await transactionsService.update(
-        String(req.params.id),
-        String(req.user?.id),
-        req.body as UpdateTransactionInput
+        req.params.id,
+        req.body
       );
 
       return res.status(200).json({
@@ -53,14 +87,15 @@ class TransactionsController {
     } catch (error) {
       return next(error);
     }
-  }
+  };
 
-  async remove(req: Request, res: Response, next: NextFunction) {
+  remove = async (
+    req: DeleteTransactionRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
-      const transaction = await transactionsService.remove(
-        String(req.params.id),
-        String(req.user?.id)
-      );
+      const transaction = await transactionsService.remove(req.params.id);
 
       return res.status(200).json({
         data: transaction,
@@ -69,7 +104,7 @@ class TransactionsController {
     } catch (error) {
       return next(error);
     }
-  }
+  };
 }
 
 const transactionsController = new TransactionsController();

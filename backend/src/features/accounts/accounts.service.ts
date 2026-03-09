@@ -2,13 +2,13 @@ import createHttpError from 'http-errors';
 
 import prisma from '../../libs/prisma';
 import type {
-  CreateAccountInput,
-  ListAccountsInput,
-  UpdateAccountInput,
+  CreateAccountBody,
+  ListAccountsQuery,
+  UpdateAccountBody,
 } from './accounts.schema';
 
 class AccountsService {
-  async list(userId: string, filters: ListAccountsInput) {
+  list = async (userId: string, filters: ListAccountsQuery) => {
     return prisma.account.findMany({
       where: {
         userId,
@@ -17,9 +17,9 @@ class AccountsService {
       },
       orderBy: [{ isArchived: 'asc' }, { createdAt: 'desc' }],
     });
-  }
+  };
 
-  async create(userId: string, data: CreateAccountInput) {
+  create = async (userId: string, data: CreateAccountBody) => {
     return prisma.account.create({
       data: {
         userId,
@@ -33,9 +33,9 @@ class AccountsService {
         isArchived: data.isArchived ?? false,
       },
     });
-  }
+  };
 
-  async update(id: string, userId: string, data: UpdateAccountInput) {
+  update = async (id: string, userId: string, data: UpdateAccountBody) => {
     await this.ensureOwnedAccount(id, userId);
 
     return prisma.account.update({
@@ -51,9 +51,9 @@ class AccountsService {
         isArchived: data.isArchived,
       },
     });
-  }
+  };
 
-  async remove(id: string, userId: string) {
+  remove = async (id: string, userId: string) => {
     await this.ensureOwnedAccount(id, userId);
 
     const transactionCount = await prisma.transaction.count({
@@ -73,9 +73,9 @@ class AccountsService {
     return prisma.account.delete({
       where: { id },
     });
-  }
+  };
 
-  private async ensureOwnedAccount(id: string, userId: string) {
+  private ensureOwnedAccount = async (id: string, userId: string) => {
     const account = await prisma.account.findFirst({
       where: { id, userId },
       select: { id: true },
@@ -84,7 +84,7 @@ class AccountsService {
     if (!account) {
       throw createHttpError(404, 'Account not found');
     }
-  }
+  };
 }
 
 const accountsService = new AccountsService();

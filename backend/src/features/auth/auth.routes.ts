@@ -10,15 +10,11 @@ const authRoutes = Router();
 authRoutes.post(
   '/register',
   resourceValidator(registerSchema),
-  authController.register.bind(authController)
+  authController.register
 );
 
-authRoutes.post(
-  '/login',
-  resourceValidator(loginSchema),
-  authController.login.bind(authController)
-);
+authRoutes.post('/login', resourceValidator(loginSchema), authController.login);
 
-authRoutes.get('/me', requireAuth, authController.me.bind(authController));
+authRoutes.get('/me', requireAuth, authController.me);
 
 export default authRoutes;

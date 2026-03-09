@@ -17,25 +17,25 @@ categoriesRoutes.use(requireAuth);
 categoriesRoutes.get(
   '/',
   resourceValidator(listCategoriesSchema),
-  categoriesController.list.bind(categoriesController)
+  categoriesController.list
 );
 
 categoriesRoutes.post(
   '/',
   resourceValidator(createCategorySchema),
-  categoriesController.create.bind(categoriesController)
+  categoriesController.create
 );
 
 categoriesRoutes.patch(
   '/:id',
   resourceValidator(updateCategorySchema),
-  categoriesController.update.bind(categoriesController)
+  categoriesController.update
 );
 
 categoriesRoutes.delete(
   '/:id',
   resourceValidator(deleteCategorySchema),
-  categoriesController.remove.bind(categoriesController)
+  categoriesController.remove
 );
 
 export default categoriesRoutes;

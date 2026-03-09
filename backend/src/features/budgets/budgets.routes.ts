@@ -17,25 +17,25 @@ budgetsRoutes.use(requireAuth);
 budgetsRoutes.get(
   '/',
   resourceValidator(listBudgetsSchema),
-  budgetsController.list.bind(budgetsController)
+  budgetsController.list
 );
 
 budgetsRoutes.post(
   '/',
   resourceValidator(createBudgetSchema),
-  budgetsController.create.bind(budgetsController)
+  budgetsController.create
 );
 
 budgetsRoutes.patch(
   '/:id',
   resourceValidator(updateBudgetSchema),
-  budgetsController.update.bind(budgetsController)
+  budgetsController.update
 );
 
 budgetsRoutes.delete(
   '/:id',
   resourceValidator(deleteBudgetSchema),
-  budgetsController.remove.bind(budgetsController)
+  budgetsController.remove
 );
 
 export default budgetsRoutes;

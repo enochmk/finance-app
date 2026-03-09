@@ -12,7 +12,7 @@ dashboardRoutes.use(requireAuth);
 dashboardRoutes.get(
   '/summary',
   resourceValidator(getDashboardSummarySchema),
-  dashboardController.getSummary.bind(dashboardController)
+  dashboardController.getSummary
 );
 
 export default dashboardRoutes;

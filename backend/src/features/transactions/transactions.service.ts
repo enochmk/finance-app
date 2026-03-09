@@ -2,13 +2,21 @@ import createHttpError from 'http-errors';
 
 import prisma from '../../libs/prisma';
 import type {
-  CreateTransactionInput,
-  ListTransactionsInput,
-  UpdateTransactionInput,
+  CreateTransactionBody,
+  ListTransactionsQuery,
+  UpdateTransactionBody,
 } from './transactions.schema';
 
+export type TransactionOwnershipValidationData = {
+  userId: string;
+  accountId: string;
+  categoryId?: string;
+  type: CreateTransactionBody['type'];
+  transferAccountId?: string;
+};
+
 class TransactionsService {
-  async list(userId: string, filters: ListTransactionsInput) {
+  list = async (userId: string, filters: ListTransactionsQuery) => {
     return prisma.transaction.findMany({
       where: {
         userId,
@@ -31,11 +39,9 @@ class TransactionsService {
       orderBy: [{ transactionDate: 'desc' }, { createdAt: 'desc' }],
       take: filters.limit ?? 50,
     });
-  }
+  };
 
-  async create(userId: string, data: CreateTransactionInput) {
-    await this.validateOwnership({ ...data, userId });
-
+  create = async (userId: string, data: CreateTransactionBody) => {
     return prisma.transaction.create({
       data: {
         userId,
@@ -55,25 +61,9 @@ class TransactionsService {
         transferAccount: true,
       },
     });
-  }
+  };
 
-  async update(id: string, userId: string, data: UpdateTransactionInput) {
-    const existingTransaction = await this.ensureOwnedTransaction(id, userId);
-
-    await this.validateOwnership({
-      userId,
-      accountId: data.accountId ?? existingTransaction.accountId,
-      categoryId:
-        data.categoryId === undefined
-          ? (existingTransaction.categoryId ?? undefined)
-          : data.categoryId,
-      type: data.type ?? existingTransaction.type,
-      transferAccountId:
-        data.transferAccountId === undefined
-          ? (existingTransaction.transferAccountId ?? undefined)
-          : data.transferAccountId,
-    });
-
+  update = async (id: string, data: UpdateTransactionBody) => {
     return prisma.transaction.update({
       where: { id },
       data: {
@@ -95,23 +85,15 @@ class TransactionsService {
         transferAccount: true,
       },
     });
-  }
+  };
 
-  async remove(id: string, userId: string) {
-    await this.ensureOwnedTransaction(id, userId);
-
+  remove = async (id: string) => {
     return prisma.transaction.delete({
       where: { id },
     });
-  }
+  };
 
-  private async validateOwnership(data: {
-    userId: string;
-    accountId: string;
-    categoryId?: string;
-    type: string;
-    transferAccountId?: string;
-  }) {
+  validateOwnership = async (data: TransactionOwnershipValidationData) => {
     await this.ensureOwnedAccount(data.accountId, data.userId, 'account');
 
     if (data.categoryId) {
@@ -146,35 +128,31 @@ class TransactionsService {
         'transferAccountId can only be used with transfer transactions'
       );
     }
-  }
+  };
 
-  private async ensureOwnedAccount(
+  resolveUpdateOwnershipValidationData = async (
     id: string,
     userId: string,
-    label: 'account' | 'transfer account'
-  ) {
-    const account = await prisma.account.findFirst({
-      where: { id, userId },
-      select: { id: true },
-    });
+    data: UpdateTransactionBody
+  ): Promise<TransactionOwnershipValidationData> => {
+    const existingTransaction = await this.ensureOwnedTransaction(id, userId);
 
-    if (!account) {
-      throw createHttpError(404, `${label} not found`);
-    }
-  }
+    return {
+      userId,
+      accountId: data.accountId ?? existingTransaction.accountId,
+      categoryId:
+        data.categoryId === undefined
+          ? (existingTransaction.categoryId ?? undefined)
+          : data.categoryId,
+      type: data.type ?? existingTransaction.type,
+      transferAccountId:
+        data.transferAccountId === undefined
+          ? (existingTransaction.transferAccountId ?? undefined)
+          : data.transferAccountId,
+    };
+  };
 
-  private async ensureOwnedCategory(id: string, userId: string) {
-    const category = await prisma.category.findFirst({
-      where: { id, userId },
-      select: { id: true },
-    });
-
-    if (!category) {
-      throw createHttpError(404, 'Category not found');
-    }
-  }
-
-  private async ensureOwnedTransaction(id: string, userId: string) {
+  ensureOwnedTransaction = async (id: string, userId: string) => {
     const transaction = await prisma.transaction.findFirst({
       where: { id, userId },
       select: {
@@ -197,7 +175,33 @@ class TransactionsService {
     }
 
     return transaction;
-  }
+  };
+
+  private ensureOwnedAccount = async (
+    id: string,
+    userId: string,
+    label: 'account' | 'transfer account'
+  ) => {
+    const account = await prisma.account.findFirst({
+      where: { id, userId },
+      select: { id: true },
+    });
+
+    if (!account) {
+      throw createHttpError(404, `${label} not found`);
+    }
+  };
+
+  private ensureOwnedCategory = async (id: string, userId: string) => {
+    const category = await prisma.category.findFirst({
+      where: { id, userId },
+      select: { id: true },
+    });
+
+    if (!category) {
+      throw createHttpError(404, 'Category not found');
+    }
+  };
 }
 
 const transactionsService = new TransactionsService();

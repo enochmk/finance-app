@@ -2,18 +2,42 @@ import type { NextFunction, Request, Response } from 'express';
 
 import categoriesService from './categories.service';
 import type {
-  CreateCategoryInput,
-  ListCategoriesInput,
-  UpdateCategoryInput,
+  CreateCategoryBody,
+  DeleteCategoryParams,
+  ListCategoriesQuery,
+  UpdateCategoryBody,
+  UpdateCategoryParams,
 } from './categories.schema';
 
+type EmptyObject = Record<string, never>;
+type ListCategoriesRequest = Request<
+  EmptyObject,
+  unknown,
+  EmptyObject,
+  ListCategoriesQuery
+>;
+type CreateCategoryRequest = Request<
+  EmptyObject,
+  unknown,
+  CreateCategoryBody,
+  EmptyObject
+>;
+type UpdateCategoryRequest = Request<
+  UpdateCategoryParams,
+  unknown,
+  UpdateCategoryBody,
+  EmptyObject
+>;
+type DeleteCategoryRequest = Request<DeleteCategoryParams>;
+
 class CategoriesController {
-  async list(req: Request, res: Response, next: NextFunction) {
+  list = async (
+    req: ListCategoriesRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
-      const categories = await categoriesService.list(
-        String(req.user?.id),
-        req.query as unknown as ListCategoriesInput
-      );
+      const categories = await categoriesService.list(req.user!.id, req.query);
 
       return res.status(200).json({
         data: categories,
@@ -22,14 +46,15 @@ class CategoriesController {
     } catch (error) {
       return next(error);
     }
-  }
+  };
 
-  async create(req: Request, res: Response, next: NextFunction) {
+  create = async (
+    req: CreateCategoryRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
-      const category = await categoriesService.create(
-        String(req.user?.id),
-        req.body as CreateCategoryInput
-      );
+      const category = await categoriesService.create(req.user!.id, req.body);
 
       return res.status(201).json({
         data: category,
@@ -37,14 +62,18 @@ class CategoriesController {
     } catch (error) {
       return next(error);
     }
-  }
+  };
 
-  async update(req: Request, res: Response, next: NextFunction) {
+  update = async (
+    req: UpdateCategoryRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const category = await categoriesService.update(
-        String(req.params.id),
-        String(req.user?.id),
-        req.body as UpdateCategoryInput
+        req.params.id,
+        req.user!.id,
+        req.body
       );
 
       return res.status(200).json({
@@ -53,13 +82,17 @@ class CategoriesController {
     } catch (error) {
       return next(error);
     }
-  }
+  };
 
-  async remove(req: Request, res: Response, next: NextFunction) {
+  remove = async (
+    req: DeleteCategoryRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
       const category = await categoriesService.remove(
-        String(req.params.id),
-        String(req.user?.id)
+        req.params.id,
+        req.user!.id
       );
 
       return res.status(200).json({
@@ -69,7 +102,7 @@ class CategoriesController {
     } catch (error) {
       return next(error);
     }
-  }
+  };
 }
 
 const categoriesController = new CategoriesController();

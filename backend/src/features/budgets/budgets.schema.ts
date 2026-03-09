@@ -40,6 +40,8 @@ export const deleteBudgetSchema = z.object({
   body: z.object({}).optional(),
 });
 
-export type ListBudgetsInput = z.infer<typeof listBudgetsSchema>['query'];
-export type CreateBudgetInput = z.infer<typeof createBudgetSchema>['body'];
-export type UpdateBudgetInput = z.infer<typeof updateBudgetSchema>['body'];
+export type ListBudgetsQuery = z.infer<typeof listBudgetsSchema>['query'];
+export type CreateBudgetBody = z.infer<typeof createBudgetSchema>['body'];
+export type UpdateBudgetParams = z.infer<typeof updateBudgetSchema>['params'];
+export type UpdateBudgetBody = z.infer<typeof updateBudgetSchema>['body'];
+export type DeleteBudgetParams = z.infer<typeof deleteBudgetSchema>['params'];
