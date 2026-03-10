@@ -73,17 +73,9 @@ export function useFinanceWorkspaceData(enabled: boolean) {
       try {
         setIsLoading(true)
 
-        const [
-          accounts,
-          categories,
-          budgets,
-          transactions,
-        ] = await Promise.all([
-          getAccounts(),
-          getCategories(),
-          getBudgets(),
-          getTransactions(),
-        ])
+        const [accounts, categories, budgets, transactions] = await Promise.all(
+          [getAccounts(), getCategories(), getBudgets(), getTransactions()]
+        )
 
         if (!cancelled) {
           setData({

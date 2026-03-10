@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Pencil, Trash2 } from 'lucide-react'
-import { useMemo, useState, type FormEvent } from 'react'
+import { ArrowUpDown, Pencil, Search, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -76,6 +76,14 @@ const transactionSchema = z.object({
   transactionDate: z.string().min(1, 'Transaction date is required'),
 })
 
+type TransactionSortField =
+  | 'description'
+  | 'type'
+  | 'account'
+  | 'transactionDate'
+  | 'amount'
+type SortDirection = 'asc' | 'desc'
+
 function TransactionsPage() {
   const { isAuthenticated } = useSession()
   const { isLoading: isSessionLoading } = useProtectedRoute()
@@ -88,6 +96,13 @@ function TransactionsPage() {
     useState<Transaction | null>(null)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('ALL')
+  const [accountFilter, setAccountFilter] = useState('ALL')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const [sortField, setSortField] =
+    useState<TransactionSortField>('transactionDate')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+  const [pageSize, setPageSize] = useState(10)
   const [currentPage, setCurrentPage] = useState(1)
 
   const createForm = useForm<z.infer<typeof transactionSchema>>({
@@ -115,6 +130,19 @@ function TransactionsPage() {
     transactionDate: toDateTimeLocalValue(),
   })
 
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [
+    search,
+    typeFilter,
+    accountFilter,
+    dateFrom,
+    dateTo,
+    sortField,
+    sortDirection,
+    pageSize,
+  ])
+
   const watchedCreateType = createForm.watch('type')
 
   const availableAccounts = useMemo(
@@ -128,7 +156,8 @@ function TransactionsPage() {
     }
 
     return accounts.filter(
-      (account) => !account.isArchived || account.id === editingTransaction.account.id
+      (account) =>
+        !account.isArchived || account.id === editingTransaction.account.id
     )
   }, [accounts, availableAccounts, editingTransaction])
 
@@ -142,7 +171,8 @@ function TransactionsPage() {
     return accounts.filter(
       (account) =>
         account.id !== editValues.accountId &&
-        (!account.isArchived || account.id === editingTransaction.transferAccount?.id)
+        (!account.isArchived ||
+          account.id === editingTransaction.transferAccount?.id)
     )
   }, [accounts, availableAccounts, editValues.accountId, editingTransaction])
 
@@ -157,14 +187,59 @@ function TransactionsPage() {
       const matchesType =
         typeFilter === 'ALL' || transaction.type === typeFilter
 
-      return matchesSearch && matchesType
+      const matchesAccount =
+        accountFilter === 'ALL' || transaction.account.id === accountFilter
+
+      const transactionDate = new Date(transaction.transactionDate)
+      const matchesDateFrom = !dateFrom || transactionDate >= new Date(dateFrom)
+      const matchesDateTo =
+        !dateTo || transactionDate <= new Date(dateTo + 'T23:59:59')
+
+      return (
+        matchesSearch &&
+        matchesType &&
+        matchesAccount &&
+        matchesDateFrom &&
+        matchesDateTo
+      )
     })
-  }, [transactions, search, typeFilter])
+  }, [transactions, search, typeFilter, accountFilter, dateFrom, dateTo])
+
+  const sortedTransactions = useMemo(() => {
+    const items = [...filteredTransactions]
+
+    items.sort((left, right) => {
+      const multiplier = sortDirection === 'asc' ? 1 : -1
+
+      switch (sortField) {
+        case 'description':
+          return left.description.localeCompare(right.description) * multiplier
+        case 'type':
+          return left.type.localeCompare(right.type) * multiplier
+        case 'account':
+          return (
+            left.account.name.localeCompare(right.account.name) * multiplier
+          )
+        case 'transactionDate':
+          return (
+            (new Date(left.transactionDate).getTime() -
+              new Date(right.transactionDate).getTime()) *
+            multiplier
+          )
+        case 'amount':
+          return (Number(left.amount) - Number(right.amount)) * multiplier
+        default:
+          return 0
+      }
+    })
+
+    return items
+  }, [filteredTransactions, sortDirection, sortField])
 
   const paginatedTransactions = paginateItems(
-    filteredTransactions,
+    sortedTransactions,
     currentPage,
-    10
+    pageSize
   )
 
   async function handleCreateTransaction(
@@ -276,6 +351,16 @@ function TransactionsPage() {
     }
   }
 
+  function updateSort(field: TransactionSortField) {
+    if (sortField === field) {
+      setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
+      return
+    }
+
+    setSortField(field)
+    setSortDirection(field === 'transactionDate' ? 'desc' : 'asc')
+  }
+
   if (!isAuthenticated && !isSessionLoading) {
     return null
   }
@@ -283,8 +368,8 @@ function TransactionsPage() {
   return (
     <CrudPageShell
       badge="Finance workspace"
-        title="Transactions"
-        description="Capture credits, debits, and transfers with enough context to track where money moved and how it was entered."
+      title="Transactions"
+      description="Capture credits, debits, and transfers with enough context to track where money moved and how it was entered."
       navigation={<FinanceSectionNav />}
       actions={
         <Button onClick={() => setIsCreateOpen(true)}>Add transaction</Button>
@@ -304,11 +389,19 @@ function TransactionsPage() {
         <CrudTableCard
           title="Transactions"
           description="One-off credits, debits, and transfers."
-          emptyTitle="No matching transactions"
-          emptyDescription="Adjust your filters or add a transaction to start building activity history."
-          isEmpty={filteredTransactions.length === 0}
+          emptyTitle={
+            transactions.length === 0
+              ? 'No transactions yet'
+              : 'No transactions match your filters'
+          }
+          emptyDescription={
+            transactions.length === 0
+              ? 'Create your first transaction to start tracking financial activity.'
+              : 'Adjust the search, filters, or sorting to find the transactions you need.'
+          }
+          isEmpty={sortedTransactions.length === 0}
           toolbar={
-            <div className="grid gap-4 md:grid-cols-[1fr_220px]">
+            <div className="grid gap-4 xl:grid-cols-[1.2fr_180px_180px_180px_140px_140px_140px]">
               <div className="flex flex-col gap-2">
                 <label
                   htmlFor="transaction-search"
@@ -316,13 +409,18 @@ function TransactionsPage() {
                 >
                   Search transactions
                 </label>
-                <Input
-                  id="transaction-search"
-                  placeholder="Search by description, account, or category"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                />
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+                  <Input
+                    id="transaction-search"
+                    placeholder="Description, account, category"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    className="pl-9"
+                  />
+                </div>
               </div>
+
               <div className="flex flex-col gap-2">
                 <label
                   htmlFor="transaction-filter-type"
@@ -344,15 +442,116 @@ function TransactionsPage() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="transaction-filter-account"
+                  className="text-sm font-medium"
+                >
+                  Account
+                </label>
+                <Select value={accountFilter} onValueChange={setAccountFilter}>
+                  <SelectTrigger id="transaction-filter-account">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All accounts</SelectItem>
+                    {availableAccounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="transaction-date-from"
+                  className="text-sm font-medium"
+                >
+                  Date from
+                </label>
+                <Input
+                  id="transaction-date-from"
+                  type="date"
+                  value={dateFrom}
+                  onChange={(event) => setDateFrom(event.target.value)}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="transaction-date-to"
+                  className="text-sm font-medium"
+                >
+                  Date to
+                </label>
+                <Input
+                  id="transaction-date-to"
+                  type="date"
+                  value={dateTo}
+                  onChange={(event) => setDateTo(event.target.value)}
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="transaction-sort-field"
+                  className="text-sm font-medium"
+                >
+                  Sort by
+                </label>
+                <Select
+                  value={sortField}
+                  onValueChange={(value) =>
+                    updateSort(value as TransactionSortField)
+                  }
+                >
+                  <SelectTrigger id="transaction-sort-field">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="transactionDate">Date</SelectItem>
+                    <SelectItem value="description">Description</SelectItem>
+                    <SelectItem value="type">Type</SelectItem>
+                    <SelectItem value="account">Account</SelectItem>
+                    <SelectItem value="amount">Amount</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="transaction-page-size"
+                  className="text-sm font-medium"
+                >
+                  Show
+                </label>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(value) => setPageSize(Number(value))}
+                >
+                  <SelectTrigger id="transaction-page-size">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           }
           footer={
-            filteredTransactions.length > 0 ? (
+            sortedTransactions.length > 0 ? (
               <PaginationControls
                 currentPage={paginatedTransactions.currentPage}
                 totalPages={paginatedTransactions.totalPages}
                 totalItems={paginatedTransactions.totalItems}
-                pageSize={10}
+                pageSize={pageSize}
                 itemLabel="transactions"
                 onPageChange={setCurrentPage}
               />
@@ -362,12 +561,38 @@ function TransactionsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Description</TableHead>
-                <TableHead>Type</TableHead>
+                <SortableHead
+                  label="Description"
+                  onClick={() => updateSort('description')}
+                  isActive={sortField === 'description'}
+                  direction={sortDirection}
+                />
+                <SortableHead
+                  label="Type"
+                  onClick={() => updateSort('type')}
+                  isActive={sortField === 'type'}
+                  direction={sortDirection}
+                />
                 <TableHead>Source</TableHead>
-                <TableHead>Account</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
+                <SortableHead
+                  label="Account"
+                  onClick={() => updateSort('account')}
+                  isActive={sortField === 'account'}
+                  direction={sortDirection}
+                />
+                <SortableHead
+                  label="Date"
+                  onClick={() => updateSort('transactionDate')}
+                  isActive={sortField === 'transactionDate'}
+                  direction={sortDirection}
+                />
+                <SortableHead
+                  label="Amount"
+                  onClick={() => updateSort('amount')}
+                  isActive={sortField === 'amount'}
+                  direction={sortDirection}
+                  className="text-right"
+                />
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -387,8 +612,12 @@ function TransactionsPage() {
                       </p>
                     </div>
                   </TableCell>
-                  <TableCell>{getTransactionTypeLabel(transaction.type)}</TableCell>
-                  <TableCell>{getEntryModeLabel(transaction.entryMode)}</TableCell>
+                  <TableCell>
+                    {getTransactionTypeLabel(transaction.type)}
+                  </TableCell>
+                  <TableCell>
+                    {getEntryModeLabel(transaction.entryMode)}
+                  </TableCell>
                   <TableCell>{transaction.account.name}</TableCell>
                   <TableCell>
                     {formatDateTime(transaction.transactionDate)}
@@ -451,7 +680,7 @@ function TransactionsPage() {
                         <SelectTrigger>
                           <SelectValue placeholder="Select account" />
                         </SelectTrigger>
-                          <SelectContent>
+                        <SelectContent>
                           {availableAccounts.map((account) => (
                             <SelectItem key={account.id} value={account.id}>
                               {account.name}
@@ -509,19 +738,22 @@ function TransactionsPage() {
                           value={field.value || ''}
                           onValueChange={field.onChange}
                         >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {categories
-                                .filter((category) => !category.isArchived)
-                                .map((category) => (
-                                <SelectItem key={category.id} value={category.id}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {categories
+                              .filter((category) => !category.isArchived)
+                              .map((category) => (
+                                <SelectItem
+                                  key={category.id}
+                                  value={category.id}
+                                >
                                   {category.name}
                                 </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
+                              ))}
+                          </SelectContent>
+                        </Select>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -537,7 +769,10 @@ function TransactionsPage() {
                   <FormItem>
                     <FormLabel>Source</FormLabel>
                     <FormControl>
-                      <Select value={field.value} onValueChange={field.onChange}>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -698,12 +933,11 @@ function TransactionsPage() {
                   <SelectValue placeholder="Transfer account" />
                 </SelectTrigger>
                 <SelectContent>
-                  {editTransferAccountOptions
-                    .map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.name}
-                      </SelectItem>
-                    ))}
+                  {editTransferAccountOptions.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             ) : (
@@ -723,12 +957,13 @@ function TransactionsPage() {
                   {categories
                     .filter(
                       (category) =>
-                        !category.isArchived || category.id === editValues.categoryId
+                        !category.isArchived ||
+                        category.id === editValues.categoryId
                     )
                     .map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
                     ))}
                 </SelectContent>
               </Select>
@@ -810,5 +1045,35 @@ function TransactionsPage() {
         onConfirm={confirmDeleteTransaction}
       />
     </CrudPageShell>
+  )
+}
+
+function SortableHead({
+  label,
+  onClick,
+  isActive,
+  direction,
+  className,
+}: {
+  label: string
+  onClick: () => void
+  isActive: boolean
+  direction: SortDirection
+  className?: string
+}) {
+  return (
+    <TableHead className={className}>
+      <button
+        type="button"
+        onClick={onClick}
+        className="inline-flex items-center gap-1 text-left font-medium text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
+      >
+        {label}
+        <ArrowUpDown
+          className={isActive ? 'h-4 w-4 text-[var(--foreground)]' : 'h-4 w-4'}
+        />
+        {isActive ? <span className="sr-only">sorted {direction}</span> : null}
+      </button>
+    </TableHead>
   )
 }

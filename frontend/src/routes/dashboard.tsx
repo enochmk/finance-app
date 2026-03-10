@@ -1,10 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import {
-  Landmark,
-  TrendingDown,
-  TrendingUp,
-  Wallet,
-} from 'lucide-react'
+import { Landmark, TrendingDown, TrendingUp, Wallet } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import {
   Area,
@@ -122,7 +117,8 @@ function DashboardPage() {
         setIsLoading(true)
         setError(null)
 
-        const storedAccountId = selectedAccountId || getStoredDashboardAccountId()
+        const storedAccountId =
+          selectedAccountId || getStoredDashboardAccountId()
         const search = storedAccountId
           ? `?${new URLSearchParams({ accountId: storedAccountId }).toString()}`
           : ''
@@ -291,25 +287,37 @@ function DashboardPage() {
               {[
                 {
                   label: 'Balance',
-                  value: formatCurrency(data.overview.totalBalance, selectedCurrency),
+                  value: formatCurrency(
+                    data.overview.totalBalance,
+                    selectedCurrency
+                  ),
                   icon: Wallet,
                   hint: 'Selected account live balance',
                 },
                 {
                   label: 'Credits',
-                  value: formatCurrency(data.overview.totalIncome, selectedCurrency),
+                  value: formatCurrency(
+                    data.overview.totalIncome,
+                    selectedCurrency
+                  ),
                   icon: TrendingUp,
                   hint: 'Selected month',
                 },
                 {
                   label: 'Debits',
-                  value: formatCurrency(data.overview.totalExpenses, selectedCurrency),
+                  value: formatCurrency(
+                    data.overview.totalExpenses,
+                    selectedCurrency
+                  ),
                   icon: TrendingDown,
                   hint: 'Selected month',
                 },
                 {
                   label: 'Budgeted',
-                  value: formatCurrency(data.overview.totalBudgeted, selectedCurrency),
+                  value: formatCurrency(
+                    data.overview.totalBudgeted,
+                    selectedCurrency
+                  ),
                   icon: Landmark,
                   hint: 'Visible category plan',
                 },
@@ -445,10 +453,13 @@ function DashboardPage() {
                                 {budget.category.name}
                               </p>
                               <p className="text-xs text-[var(--muted-foreground)]">
-                                {formatCurrency(budget.spent, selectedCurrency)} spent
+                                {formatCurrency(budget.spent, selectedCurrency)}{' '}
+                                spent
                               </p>
                             </div>
-                            <Badge variant={percent >= 85 ? 'warning' : 'default'}>
+                            <Badge
+                              variant={percent >= 85 ? 'warning' : 'default'}
+                            >
                               {percent}%
                             </Badge>
                           </div>
@@ -502,8 +513,10 @@ function DashboardPage() {
                                 {transaction.description}
                               </TableCell>
                               <TableCell>
-                                {transaction.account.id === data.selectedAccount?.id
-                                  ? transaction.transferAccount?.name ?? 'This account'
+                                {transaction.account.id ===
+                                data.selectedAccount?.id
+                                  ? (transaction.transferAccount?.name ??
+                                    'This account')
                                   : transaction.account.name}
                               </TableCell>
                               <TableCell>
@@ -548,11 +561,17 @@ function DashboardPage() {
                       </CardHeader>
                       <CardContent className="space-y-2">
                         <p className="text-3xl font-semibold text-[var(--foreground)]">
-                          {formatCurrency(account.currentBalance, account.currency)}
+                          {formatCurrency(
+                            account.currentBalance,
+                            account.currency
+                          )}
                         </p>
                         <p className="text-sm text-[var(--muted-foreground)]">
                           Opening balance{' '}
-                          {formatCurrency(account.openingBalance, account.currency)}
+                          {formatCurrency(
+                            account.openingBalance,
+                            account.currency
+                          )}
                         </p>
                       </CardContent>
                     </Card>

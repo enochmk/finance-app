@@ -24,7 +24,8 @@ export const financeSectionLinks: WorkspaceLink[] = [
   {
     to: '/manage/accounts',
     label: 'Accounts',
-    description: 'Savings, wedding, bank, mobile money, and other money buckets.',
+    description:
+      'Savings, wedding, bank, mobile money, and other money buckets.',
     icon: Landmark,
   },
   {

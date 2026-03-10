@@ -8,7 +8,14 @@ import {
   ShieldBan,
   Trash2,
 } from 'lucide-react'
-import { useEffect, useMemo, useState, type Dispatch, type FormEvent, type SetStateAction } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type Dispatch,
+  type FormEvent,
+  type SetStateAction,
+} from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -71,7 +78,9 @@ export const Route = createFileRoute('/manage/accounts')({
   component: AccountsPage,
 })
 
-const accountTypeValues = ACCOUNT_TYPE_OPTIONS.map((option) => option.value) as [
+const accountTypeValues = ACCOUNT_TYPE_OPTIONS.map(
+  (option) => option.value
+) as [
   (typeof ACCOUNT_TYPE_OPTIONS)[number]['value'],
   ...(typeof ACCOUNT_TYPE_OPTIONS)[number]['value'][],
 ]
@@ -154,7 +163,9 @@ function AccountsPage() {
   const { accounts, error, isLoading, refreshAll } =
     useFinanceWorkspaceData(isAuthenticated)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [editingAccount, setEditingAccount] = useState<EditAccountState | null>(null)
+  const [editingAccount, setEditingAccount] = useState<EditAccountState | null>(
+    null
+  )
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [search, setSearch] = useState('')
@@ -289,7 +300,8 @@ function AccountsPage() {
     const result = accountSchema.safeParse(editingAccount.values)
 
     if (!result.success) {
-      const firstIssue = result.error.issues[0]?.message ?? 'Check the account details'
+      const firstIssue =
+        result.error.issues[0]?.message ?? 'Check the account details'
       toast.error('Unable to update account', {
         description: firstIssue,
       })
@@ -401,7 +413,9 @@ function AccountsPage() {
           title="Accounts"
           description="Track account health, search quickly, and control which accounts stay active in the workspace."
           emptyTitle={
-            accounts.length === 0 ? 'No accounts yet' : 'No accounts match your filters'
+            accounts.length === 0
+              ? 'No accounts yet'
+              : 'No accounts match your filters'
           }
           emptyDescription={
             accounts.length === 0
@@ -428,7 +442,10 @@ function AccountsPage() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label htmlFor="account-status-filter" className="text-sm font-medium">
+                <label
+                  htmlFor="account-status-filter"
+                  className="text-sm font-medium"
+                >
                   Status
                 </label>
                 <Select
@@ -449,7 +466,10 @@ function AccountsPage() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label htmlFor="account-type-filter" className="text-sm font-medium">
+                <label
+                  htmlFor="account-type-filter"
+                  className="text-sm font-medium"
+                >
                   Type
                 </label>
                 <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -468,12 +488,17 @@ function AccountsPage() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label htmlFor="account-sort-field" className="text-sm font-medium">
+                <label
+                  htmlFor="account-sort-field"
+                  className="text-sm font-medium"
+                >
                   Sort by
                 </label>
                 <Select
                   value={sortField}
-                  onValueChange={(value) => updateSort(value as AccountSortField)}
+                  onValueChange={(value) =>
+                    updateSort(value as AccountSortField)
+                  }
                 >
                   <SelectTrigger id="account-sort-field">
                     <SelectValue />
@@ -484,8 +509,12 @@ function AccountsPage() {
                     <SelectItem value="type">Type</SelectItem>
                     <SelectItem value="currency">Currency</SelectItem>
                     <SelectItem value="entryMode">Entry mode</SelectItem>
-                    <SelectItem value="openingBalance">Opening balance</SelectItem>
-                    <SelectItem value="currentBalance">Current balance</SelectItem>
+                    <SelectItem value="openingBalance">
+                      Opening balance
+                    </SelectItem>
+                    <SelectItem value="currentBalance">
+                      Current balance
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -563,14 +592,18 @@ function AccountsPage() {
                       <div className="flex items-center gap-3">
                         <span
                           className="inline-flex h-3.5 w-3.5 rounded-full border border-[var(--border)]"
-                          style={{ backgroundColor: account.color ?? '#176b6c' }}
+                          style={{
+                            backgroundColor: account.color ?? '#176b6c',
+                          }}
                         />
                         <div>
                           <p className="font-medium text-[var(--foreground)]">
                             {account.name}
                           </p>
                           <p className="text-xs text-[var(--muted-foreground)]">
-                            {account.institutionName || account.accountNumberMasked || 'No institution details'}
+                            {account.institutionName ||
+                              account.accountNumberMasked ||
+                              'No institution details'}
                           </p>
                         </div>
                       </div>
@@ -591,7 +624,9 @@ function AccountsPage() {
                     {formatCurrency(account.currentBalance, account.currency)}
                   </TableCell>
                   <TableCell>
-                    {account.updatedAt ? formatShortDate(account.updatedAt) : 'Just now'}
+                    {account.updatedAt
+                      ? formatShortDate(account.updatedAt)
+                      : 'Just now'}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end">
@@ -663,8 +698,8 @@ function AccountsPage() {
         {editingAccount ? (
           <form onSubmit={submitEditAccount} className="space-y-4">
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--secondary)]/40 px-4 py-3 text-sm text-[var(--muted-foreground)]">
-              Changing the opening balance also shifts the current balance by the
-              same amount, so existing transaction history stays intact.
+              Changing the opening balance also shifts the current balance by
+              the same amount, so existing transaction history stays intact.
             </div>
             <AccountEditFields
               values={editingAccount.values}
@@ -729,7 +764,9 @@ function AccountFormFields({
                 <Input
                   {...field}
                   maxLength={3}
-                  onChange={(event) => field.onChange(event.target.value.toUpperCase())}
+                  onChange={(event) =>
+                    field.onChange(event.target.value.toUpperCase())
+                  }
                 />
               </FormControl>
               <FormMessage />
@@ -833,7 +870,11 @@ function AccountFormFields({
             <FormItem>
               <FormLabel>Institution name</FormLabel>
               <FormControl>
-                <Input {...field} value={field.value ?? ''} placeholder="Optional" />
+                <Input
+                  {...field}
+                  value={field.value ?? ''}
+                  placeholder="Optional"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -902,7 +943,10 @@ function AccountEditFields({
           />
         </div>
         <div className="space-y-2">
-          <label htmlFor="edit-account-currency" className="text-sm font-medium">
+          <label
+            htmlFor="edit-account-currency"
+            className="text-sm font-medium"
+          >
             Currency
           </label>
           <Input
@@ -941,7 +985,10 @@ function AccountEditFields({
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="edit-account-entry-mode" className="text-sm font-medium">
+          <label
+            htmlFor="edit-account-entry-mode"
+            className="text-sm font-medium"
+          >
             Entry mode
           </label>
           <Select
@@ -993,13 +1040,18 @@ function AccountEditFields({
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
-          <label htmlFor="edit-account-institution" className="text-sm font-medium">
+          <label
+            htmlFor="edit-account-institution"
+            className="text-sm font-medium"
+          >
             Institution name
           </label>
           <Input
             id="edit-account-institution"
             value={values.institutionName ?? ''}
-            onChange={(event) => updateField('institutionName', event.target.value)}
+            onChange={(event) =>
+              updateField('institutionName', event.target.value)
+            }
             placeholder="Optional"
           />
         </div>
@@ -1025,7 +1077,9 @@ function AccountStatCard({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] px-5 py-4 shadow-sm">
       <p className="text-sm text-[var(--muted-foreground)]">{label}</p>
-      <p className="mt-2 text-3xl font-semibold text-[var(--foreground)]">{value}</p>
+      <p className="mt-2 text-3xl font-semibold text-[var(--foreground)]">
+        {value}
+      </p>
     </div>
   )
 }

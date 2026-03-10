@@ -1,6 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { EyeOff, Pencil, RefreshCcw, Trash2 } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import {
+  ArrowUpDown,
+  EyeOff,
+  Pencil,
+  RefreshCcw,
+  Search,
+  Trash2,
+} from 'lucide-react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -22,6 +29,7 @@ import {
   FormLabel,
   FormMessage,
 } from '#/components/ui/form'
+import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
 import { DialogFooter } from '#/components/ui/dialog'
 import { Input } from '#/components/ui/input'
@@ -61,6 +69,10 @@ const categorySchema = z.object({
   color: z.string().trim().min(1, 'Color is required'),
 })
 
+type CategoryStatusFilter = 'ALL' | 'ENABLED' | 'DISABLED'
+type CategorySortField = 'name' | 'type' | 'status'
+type SortDirection = 'asc' | 'desc'
+
 function CategoriesPage() {
   const { isAuthenticated } = useSession()
   const { isLoading: isSessionLoading } = useProtectedRoute()
@@ -72,6 +84,12 @@ function CategoriesPage() {
     null
   )
   const [currentPage, setCurrentPage] = useState(1)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<CategoryStatusFilter>('ALL')
+  const [typeFilter, setTypeFilter] = useState('ALL')
+  const [sortField, setSortField] = useState<CategorySortField>('name')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const [pageSize, setPageSize] = useState(5)
 
   const createForm = useForm<z.infer<typeof categorySchema>>({
     resolver: zodResolver(categorySchema),
@@ -88,7 +106,64 @@ function CategoriesPage() {
     color: '#176b6c',
   })
 
-  const paginatedCategories = paginateItems(categories, currentPage, 10)
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search, statusFilter, typeFilter, sortField, sortDirection, pageSize])
+
+  const filteredCategories = useMemo(() => {
+    return categories.filter((category) => {
+      const query = search.trim().toLowerCase()
+      const matchesSearch =
+        query.length === 0 ||
+        category.name.toLowerCase().includes(query) ||
+        category.type.toLowerCase().includes(query)
+
+      const matchesStatus =
+        statusFilter === 'ALL' ||
+        (statusFilter === 'ENABLED' && !category.isArchived) ||
+        (statusFilter === 'DISABLED' && category.isArchived)
+
+      const matchesType = typeFilter === 'ALL' || category.type === typeFilter
+
+      return matchesSearch && matchesStatus && matchesType
+    })
+  }, [categories, search, statusFilter, typeFilter])
+
+  const sortedCategories = useMemo(() => {
+    const items = [...filteredCategories]
+
+    items.sort((left, right) => {
+      const multiplier = sortDirection === 'asc' ? 1 : -1
+
+      switch (sortField) {
+        case 'name':
+          return left.name.localeCompare(right.name) * multiplier
+        case 'type':
+          return left.type.localeCompare(right.type) * multiplier
+        case 'status':
+        default:
+          return (
+            (left.isArchived ? 1 : 0) - (right.isArchived ? 1 : 0) * multiplier
+          )
+      }
+    })
+
+    return items
+  }, [filteredCategories, sortDirection, sortField])
+
+  const paginatedCategories = paginateItems(
+    sortedCategories,
+    currentPage,
+    pageSize
+  )
+
+  const categoryCounts = useMemo(() => {
+    return {
+      total: categories.length,
+      enabled: categories.filter((category) => !category.isArchived).length,
+      disabled: categories.filter((category) => category.isArchived).length,
+    }
+  }, [categories])
 
   async function handleCreateCategory(values: z.infer<typeof categorySchema>) {
     try {
@@ -182,6 +257,16 @@ function CategoriesPage() {
     }
   }
 
+  function updateSort(field: CategorySortField) {
+    if (sortField === field) {
+      setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
+      return
+    }
+
+    setSortField(field)
+    setSortDirection(field === 'name' ? 'asc' : 'desc')
+  }
+
   if (!isAuthenticated && !isSessionLoading) {
     return null
   }
@@ -201,6 +286,14 @@ function CategoriesPage() {
         </>
       }
     >
+      <div className="grid gap-4 md:grid-cols-3">
+        <CategoryStatCard
+          label="Total categories"
+          value={categoryCounts.total}
+        />
+        <CategoryStatCard label="Enabled" value={categoryCounts.enabled} />
+        <CategoryStatCard label="Disabled" value={categoryCounts.disabled} />
+      </div>
       {error ? (
         <CrudTableCard
           title="Categories"
@@ -215,16 +308,139 @@ function CategoriesPage() {
         <CrudTableCard
           title="Categories"
           description="Classification buckets for all finance activity, including disabled categories kept for history."
-          emptyTitle="No categories yet"
-          emptyDescription="Create your first category to organize income and expense activity."
-          isEmpty={categories.length === 0}
+          emptyTitle={
+            categories.length === 0
+              ? 'No categories yet'
+              : 'No categories match your filters'
+          }
+          emptyDescription={
+            categories.length === 0
+              ? 'Create your first category to organize income and expense activity.'
+              : 'Adjust the search, filters, or sorting to find the category you need.'
+          }
+          isEmpty={sortedCategories.length === 0}
+          toolbar={
+            <div className="grid gap-4 xl:grid-cols-[1.2fr_220px_220px_220px_140px]">
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="category-search"
+                  className="text-sm font-medium"
+                >
+                  Search categories
+                </label>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+                  <Input
+                    id="category-search"
+                    placeholder="Name or type"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="category-status-filter"
+                  className="text-sm font-medium"
+                >
+                  Status
+                </label>
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value) =>
+                    setStatusFilter(value as CategoryStatusFilter)
+                  }
+                >
+                  <SelectTrigger id="category-status-filter">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All statuses</SelectItem>
+                    <SelectItem value="ENABLED">Enabled only</SelectItem>
+                    <SelectItem value="DISABLED">Disabled only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="category-type-filter"
+                  className="text-sm font-medium"
+                >
+                  Type
+                </label>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger id="category-type-filter">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All types</SelectItem>
+                    {CATEGORY_TYPE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="category-sort-field"
+                  className="text-sm font-medium"
+                >
+                  Sort by
+                </label>
+                <Select
+                  value={sortField}
+                  onValueChange={(value) =>
+                    updateSort(value as CategorySortField)
+                  }
+                >
+                  <SelectTrigger id="category-sort-field">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="type">Type</SelectItem>
+                    <SelectItem value="status">Status</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="category-page-size"
+                  className="text-sm font-medium"
+                >
+                  Show
+                </label>
+                <Select
+                  value={String(pageSize)}
+                  onValueChange={(value) => setPageSize(Number(value))}
+                >
+                  <SelectTrigger id="category-page-size">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          }
           footer={
-            categories.length > 0 ? (
+            sortedCategories.length > 0 ? (
               <PaginationControls
                 currentPage={paginatedCategories.currentPage}
                 totalPages={paginatedCategories.totalPages}
                 totalItems={paginatedCategories.totalItems}
-                pageSize={10}
+                pageSize={pageSize}
                 itemLabel="categories"
                 onPageChange={setCurrentPage}
               />
@@ -234,10 +450,25 @@ function CategoriesPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Type</TableHead>
+                <SortableHead
+                  label="Name"
+                  onClick={() => updateSort('name')}
+                  isActive={sortField === 'name'}
+                  direction={sortDirection}
+                />
+                <SortableHead
+                  label="Type"
+                  onClick={() => updateSort('type')}
+                  isActive={sortField === 'type'}
+                  direction={sortDirection}
+                />
                 <TableHead>Color</TableHead>
-                <TableHead>Status</TableHead>
+                <SortableHead
+                  label="Status"
+                  onClick={() => updateSort('status')}
+                  isActive={sortField === 'status'}
+                  direction={sortDirection}
+                />
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -253,7 +484,11 @@ function CategoriesPage() {
                     />
                   </TableCell>
                   <TableCell>
-                    {category.isArchived ? 'Disabled' : 'Enabled'}
+                    <Badge
+                      variant={category.isArchived ? 'outline' : 'success'}
+                    >
+                      {category.isArchived ? 'Disabled' : 'Enabled'}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end">
@@ -446,5 +681,46 @@ function CategoriesPage() {
         onConfirm={confirmDeleteCategory}
       />
     </CrudPageShell>
+  )
+}
+
+function CategoryStatCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] px-5 py-4 shadow-sm">
+      <p className="text-sm text-[var(--muted-foreground)]">{label}</p>
+      <p className="mt-2 text-3xl font-semibold text-[var(--foreground)]">
+        {value}
+      </p>
+    </div>
+  )
+}
+
+function SortableHead({
+  label,
+  onClick,
+  isActive,
+  direction,
+  className,
+}: {
+  label: string
+  onClick: () => void
+  isActive: boolean
+  direction: SortDirection
+  className?: string
+}) {
+  return (
+    <TableHead className={className}>
+      <button
+        type="button"
+        onClick={onClick}
+        className="inline-flex items-center gap-1 text-left font-medium text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
+      >
+        {label}
+        <ArrowUpDown
+          className={isActive ? 'h-4 w-4 text-[var(--foreground)]' : 'h-4 w-4'}
+        />
+        {isActive ? <span className="sr-only">sorted {direction}</span> : null}
+      </button>
+    </TableHead>
   )
 }
