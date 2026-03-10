@@ -7,7 +7,10 @@ const logger = getLogger('RemoveFutureTransactions');
 
 async function run() {
   const now = new Date();
-  logger.info('Removing transactions with transaction date after current time', { now });
+  logger.info(
+    'Removing transactions with transaction date after current time',
+    { now }
+  );
 
   const result = await prisma.transaction.deleteMany({
     where: {
