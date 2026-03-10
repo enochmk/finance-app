@@ -536,7 +536,6 @@ function AccountsPage() {
                     <SelectItem value="name">Name</SelectItem>
                     <SelectItem value="type">Type</SelectItem>
                     <SelectItem value="currency">Currency</SelectItem>
-                    <SelectItem value="entryMode">Entry mode</SelectItem>
                     <SelectItem value="openingBalance">
                       Opening balance
                     </SelectItem>
@@ -1133,32 +1132,6 @@ function AccountEditFields({
             </SelectTrigger>
             <SelectContent>
               {ACCOUNT_TYPE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <label
-            htmlFor="edit-account-entry-mode"
-            className="text-sm font-medium"
-          >
-            Entry mode
-          </label>
-          <Select
-            value={values.entryMode}
-            onValueChange={(value) =>
-              updateField('entryMode', value as AccountFormValues['entryMode'])
-            }
-          >
-            <SelectTrigger id="edit-account-entry-mode">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ENTRY_MODE_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>

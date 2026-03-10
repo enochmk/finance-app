@@ -54,7 +54,6 @@ export type Transaction = {
   amount: string | number
   description: string
   notes?: string | null
-  entryMode?: 'MANUAL' | 'AUTOMATED'
   transactionDate: string
   account: Account
   category: Category | null
@@ -74,7 +73,6 @@ export type DashboardSummary = {
     type: string
     currency: string
     color?: string | null
-    entryMode?: 'MANUAL' | 'AUTOMATED'
     currentBalance: number
     openingBalance: number
   } | null
@@ -92,7 +90,6 @@ export type DashboardSummary = {
     type: string
     currency: string
     color?: string | null
-    entryMode?: 'MANUAL' | 'AUTOMATED'
     currentBalance: number
     openingBalance: number
   }>
@@ -295,7 +292,7 @@ export async function createAccount(payload: {
   type: string
   currency?: string
   color?: string
-  entryMode?: 'MANUAL' | 'AUTOMATED'
+  icon?: string
   openingBalance?: number
   currentBalance?: number
   institutionName?: string
@@ -314,7 +311,7 @@ export async function updateAccount(
     type?: string
     currency?: string
     color?: string
-    entryMode?: 'MANUAL' | 'AUTOMATED'
+    icon?: string
     openingBalance?: number
     currentBalance?: number
     institutionName?: string
@@ -430,7 +427,6 @@ export async function createTransaction(payload: {
   amount: number
   description: string
   notes?: string
-  entryMode?: 'MANUAL' | 'AUTOMATED'
   transactionDate: string
   externalReference?: string
 }) {
@@ -450,7 +446,6 @@ export async function updateTransaction(
     amount?: number
     description?: string
     notes?: string
-    entryMode?: 'MANUAL' | 'AUTOMATED'
     transactionDate?: string
     externalReference?: string
   }

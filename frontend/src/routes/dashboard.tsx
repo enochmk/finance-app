@@ -239,20 +239,6 @@ function DashboardPage() {
             <Card className="overflow-hidden">
               <CardContent className="flex flex-col gap-4 p-6 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <div className="mb-3 flex items-center gap-3">
-                    <span
-                      className="inline-flex h-4 w-4 rounded-full border border-[var(--border)]"
-                      style={{
-                        backgroundColor:
-                          data.selectedAccount.color ?? '#176b6c',
-                      }}
-                    />
-                    <Badge variant="secondary">
-                      {data.selectedAccount.entryMode === 'AUTOMATED'
-                        ? 'Automated account'
-                        : 'Manual account'}
-                    </Badge>
-                  </div>
                   <h2 className="text-3xl font-semibold text-[var(--foreground)]">
                     {data.selectedAccount.name}
                   </h2>

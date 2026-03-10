@@ -71,7 +71,6 @@ class TransactionsService {
           amount: data.amount,
           description: data.description,
           notes: data.notes,
-          entryMode: data.entryMode ?? 'MANUAL',
           transactionDate: new Date(data.transactionDate),
           transferAccountId: data.transferAccountId,
           externalReference: data.externalReference,
@@ -124,12 +123,18 @@ class TransactionsService {
     return prisma.$transaction(async (tx) => {
       const balanceAdjustments = new Map<string, number>();
 
-      const applyAdjustment = (accountId: string | undefined, delta: number) => {
+      const applyAdjustment = (
+        accountId: string | undefined,
+        delta: number
+      ) => {
         if (!accountId || delta === 0) {
           return;
         }
 
-        balanceAdjustments.set(accountId, (balanceAdjustments.get(accountId) ?? 0) + delta);
+        balanceAdjustments.set(
+          accountId,
+          (balanceAdjustments.get(accountId) ?? 0) + delta
+        );
       };
 
       applyAdjustment(
@@ -140,7 +145,10 @@ class TransactionsService {
         existingTransaction.transferAccountId ?? undefined,
         -getBalanceDelta(existingTransaction.type, previousAmount, 'transfer')
       );
-      applyAdjustment(nextAccountId, getBalanceDelta(nextType, nextAmount, 'primary'));
+      applyAdjustment(
+        nextAccountId,
+        getBalanceDelta(nextType, nextAmount, 'primary')
+      );
       applyAdjustment(
         nextTransferAccountId,
         getBalanceDelta(nextType, nextAmount, 'transfer')
@@ -168,7 +176,6 @@ class TransactionsService {
           amount: data.amount,
           description: data.description,
           notes: data.notes,
-          entryMode: data.entryMode,
           transactionDate: data.transactionDate
             ? new Date(data.transactionDate)
             : undefined,
@@ -197,7 +204,11 @@ class TransactionsService {
         where: { id: existingTransaction.accountId },
         data: {
           currentBalance: {
-            increment: -getBalanceDelta(existingTransaction.type, amount, 'primary'),
+            increment: -getBalanceDelta(
+              existingTransaction.type,
+              amount,
+              'primary'
+            ),
           },
         },
       });
@@ -207,7 +218,11 @@ class TransactionsService {
           where: { id: existingTransaction.transferAccountId },
           data: {
             currentBalance: {
-              increment: -getBalanceDelta(existingTransaction.type, amount, 'transfer'),
+              increment: -getBalanceDelta(
+                existingTransaction.type,
+                amount,
+                'transfer'
+              ),
             },
           },
         });
@@ -300,7 +315,6 @@ class TransactionsService {
         amount: true,
         description: true,
         notes: true,
-        entryMode: true,
         transactionDate: true,
         transferAccountId: true,
         externalReference: true,

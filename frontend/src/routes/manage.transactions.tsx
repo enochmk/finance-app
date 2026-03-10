@@ -63,7 +63,6 @@ import {
   type Transaction,
 } from '#/lib/api'
 import {
-  ENTRY_MODE_OPTIONS,
   TRANSACTION_TYPE_OPTIONS,
   formatCurrency,
   formatDateTime,
@@ -85,7 +84,6 @@ const transactionSchema = z.object({
   categoryId: z.string().optional(),
   transferAccountId: z.string().optional(),
   type: z.enum(['INCOME', 'EXPENSE', 'TRANSFER']),
-  entryMode: z.enum(['MANUAL', 'AUTOMATED']),
   amount: z.coerce
     .number()
     .positive('Transaction amount must be greater than zero'),
@@ -136,7 +134,6 @@ function TransactionsPage() {
       categoryId: '',
       transferAccountId: '',
       type: 'EXPENSE',
-      entryMode: 'MANUAL',
       amount: 0,
       description: '',
       transactionDate: toDateTimeLocalValue(),
@@ -148,7 +145,6 @@ function TransactionsPage() {
     categoryId: '',
     transferAccountId: '',
     type: 'EXPENSE',
-    entryMode: 'MANUAL' as 'MANUAL' | 'AUTOMATED',
     amount: '0',
     description: '',
     transactionDate: toDateTimeLocalValue(),
@@ -319,7 +315,6 @@ function TransactionsPage() {
             ? values.transferAccountId || undefined
             : undefined,
         type: values.type,
-        entryMode: values.entryMode,
         amount: values.amount,
         description: values.description,
         transactionDate: new Date(values.transactionDate).toISOString(),
@@ -330,7 +325,6 @@ function TransactionsPage() {
         categoryId: '',
         transferAccountId: '',
         type: 'EXPENSE',
-        entryMode: 'MANUAL',
         amount: 0,
         description: '',
         transactionDate: toDateTimeLocalValue(),
@@ -352,7 +346,6 @@ function TransactionsPage() {
       categoryId: transaction.category?.id ?? '',
       transferAccountId: transaction.transferAccount?.id ?? '',
       type: transaction.type,
-      entryMode: transaction.entryMode ?? 'MANUAL',
       amount: String(transaction.amount),
       description: transaction.description,
       transactionDate: toDateTimeLocalValue(transaction.transactionDate),
@@ -379,7 +372,6 @@ function TransactionsPage() {
             ? editValues.transferAccountId || undefined
             : undefined,
         type: editValues.type,
-        entryMode: editValues.entryMode,
         amount: Number(editValues.amount),
         description: editValues.description,
         transactionDate: new Date(editValues.transactionDate).toISOString(),
@@ -1072,26 +1064,6 @@ function TransactionsPage() {
       >
         <form onSubmit={submitEditTransaction} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <Select
-              value={editValues.entryMode}
-              onValueChange={(value) =>
-                setEditValues((current) => ({
-                  ...current,
-                  entryMode: value as 'MANUAL' | 'AUTOMATED',
-                }))
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Source" />
-              </SelectTrigger>
-              <SelectContent>
-                {ENTRY_MODE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             <Select
               value={editValues.accountId}
               onValueChange={(value) =>

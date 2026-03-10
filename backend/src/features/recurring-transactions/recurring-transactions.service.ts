@@ -35,7 +35,11 @@ function addMonths(date: Date, amount: number, dayOfMonth?: number) {
   const targetMonthIndex = current.getUTCMonth() + amount;
   const year = current.getUTCFullYear() + Math.floor(targetMonthIndex / 12);
   const monthIndex = ((targetMonthIndex % 12) + 12) % 12;
-  const day = clampDayOfMonth(year, monthIndex, dayOfMonth ?? current.getUTCDate());
+  const day = clampDayOfMonth(
+    year,
+    monthIndex,
+    dayOfMonth ?? current.getUTCDate()
+  );
 
   return new Date(
     Date.UTC(
@@ -94,7 +98,10 @@ function computeNextRunDate(recurringTransaction: {
     );
   }
 
-  if (recurringTransaction.endDate && nextRunAt > recurringTransaction.endDate) {
+  if (
+    recurringTransaction.endDate &&
+    nextRunAt > recurringTransaction.endDate
+  ) {
     return null;
   }
 
@@ -236,10 +243,10 @@ class RecurringTransactionsService {
             amount: recurringTransaction.amount,
             description: recurringTransaction.description,
             notes: recurringTransaction.notes,
-            entryMode: 'AUTOMATED',
             transactionDate: recurringTransaction.nextRunAt,
             externalReference:
-              recurringTransaction.externalReference ?? `recurring:${recurringTransaction.id}`,
+              recurringTransaction.externalReference ??
+              `recurring:${recurringTransaction.id}`,
           },
         });
 
@@ -249,17 +256,28 @@ class RecurringTransactionsService {
           where: { id: recurringTransaction.accountId },
           data: {
             currentBalance: {
-              increment: getBalanceDelta(recurringTransaction.type, amount, 'primary'),
+              increment: getBalanceDelta(
+                recurringTransaction.type,
+                amount,
+                'primary'
+              ),
             },
           },
         });
 
-        if (recurringTransaction.type === 'TRANSFER' && recurringTransaction.transferAccountId) {
+        if (
+          recurringTransaction.type === 'TRANSFER' &&
+          recurringTransaction.transferAccountId
+        ) {
           await tx.account.update({
             where: { id: recurringTransaction.transferAccountId },
             data: {
               currentBalance: {
-                increment: getBalanceDelta(recurringTransaction.type, amount, 'transfer'),
+                increment: getBalanceDelta(
+                  recurringTransaction.type,
+                  amount,
+                  'transfer'
+                ),
               },
             },
           });
@@ -346,10 +364,8 @@ class RecurringTransactionsService {
     userId: string,
     data: UpdateRecurringTransactionBody
   ): Promise<RecurringTransactionOwnershipData> => {
-    const existingRecurringTransaction = await this.ensureOwnedRecurringTransaction(
-      id,
-      userId
-    );
+    const existingRecurringTransaction =
+      await this.ensureOwnedRecurringTransaction(id, userId);
 
     return {
       userId,

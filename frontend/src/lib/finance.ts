@@ -18,11 +18,6 @@ export const TRANSACTION_TYPE_OPTIONS = [
   { value: 'TRANSFER', label: 'Transfer' },
 ] as const
 
-export const ENTRY_MODE_OPTIONS = [
-  { value: 'MANUAL', label: 'Manual' },
-  { value: 'AUTOMATED', label: 'Automated' },
-] as const
-
 export const RECURRING_FREQUENCY_OPTIONS = [
   { value: 'WEEKLY', label: 'Weekly' },
   { value: 'MONTHLY', label: 'Monthly' },
@@ -78,10 +73,6 @@ export function getTransactionAmountColor(type: string) {
   }
 
   return 'text-yellow-600'
-}
-
-export function getEntryModeLabel(value?: string | null) {
-  return value === 'AUTOMATED' ? 'Automated' : 'Manual'
 }
 
 export function formatDateTime(value: string | Date) {

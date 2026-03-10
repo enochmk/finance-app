@@ -40,11 +40,6 @@ enum RecurringTransactionStatus {
   COMPLETED
 }
 
-enum EntryMode {
-  MANUAL
-  AUTOMATED
-}
-
 model User {
   id                    String                 @id @default(uuid())
   email                 String                 @unique
@@ -114,7 +109,6 @@ model Transaction {
   amount            Decimal         @db.Decimal(14, 2)
   description       String
   notes             String?
-  entryMode         EntryMode       @default(MANUAL)
   transactionDate   DateTime
   transferAccountId String?
   externalReference String?
