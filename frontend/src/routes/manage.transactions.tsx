@@ -97,6 +97,7 @@ function TransactionsPage() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('ALL')
   const [accountFilter, setAccountFilter] = useState('ALL')
+  const [categoryFilter, setCategoryFilter] = useState('ALL')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [sortField, setSortField] =
@@ -136,6 +137,7 @@ function TransactionsPage() {
     search,
     typeFilter,
     accountFilter,
+    categoryFilter,
     dateFrom,
     dateTo,
     sortField,
@@ -190,6 +192,9 @@ function TransactionsPage() {
       const matchesAccount =
         accountFilter === 'ALL' || transaction.account.id === accountFilter
 
+      const matchesCategory =
+        categoryFilter === 'ALL' || transaction.category?.id === categoryFilter
+
       const transactionDate = new Date(transaction.transactionDate)
       const matchesDateFrom = !dateFrom || transactionDate >= new Date(dateFrom)
       const matchesDateTo =
@@ -199,11 +204,20 @@ function TransactionsPage() {
         matchesSearch &&
         matchesType &&
         matchesAccount &&
+        matchesCategory &&
         matchesDateFrom &&
         matchesDateTo
       )
     })
-  }, [transactions, search, typeFilter, accountFilter, dateFrom, dateTo])
+  }, [
+    transactions,
+    search,
+    typeFilter,
+    accountFilter,
+    categoryFilter,
+    dateFrom,
+    dateTo,
+  ])
 
   const sortedTransactions = useMemo(() => {
     const items = [...filteredTransactions]
@@ -401,7 +415,7 @@ function TransactionsPage() {
           }
           isEmpty={sortedTransactions.length === 0}
           toolbar={
-            <div className="grid gap-4 xl:grid-cols-[1.2fr_180px_180px_180px_140px_140px_140px]">
+            <div className="grid gap-4 xl:grid-cols-[1.2fr_180px_180px_180px_180px_140px_140px_140px]">
               <div className="flex flex-col gap-2">
                 <label
                   htmlFor="transaction-search"
@@ -459,6 +473,31 @@ function TransactionsPage() {
                     {availableAccounts.map((account) => (
                       <SelectItem key={account.id} value={account.id}>
                         {account.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="transaction-filter-category"
+                  className="text-sm font-medium"
+                >
+                  Category
+                </label>
+                <Select
+                  value={categoryFilter}
+                  onValueChange={setCategoryFilter}
+                >
+                  <SelectTrigger id="transaction-filter-category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All categories</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

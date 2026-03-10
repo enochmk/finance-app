@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "seed:dev": "ts-node-dev --transpile-only --exit-child src/scripts/dev-seed.ts",
+    "remove-future-transactions": "ts-node-dev --transpile-only --exit-child src/scripts/remove-future-transactions.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "prettier --write \"src/**/*.ts\""
   },
