@@ -5,6 +5,7 @@ import env from '../env';
 import {
   AccountType,
   CategoryType,
+  EntryMode,
   RecurrenceFrequency,
   RecurringTransactionStatus,
   TransactionType,
@@ -21,6 +22,40 @@ const toUtcDate = (
   minute = 0
 ) => new Date(Date.UTC(year, monthIndex, day, hour, minute, 0));
 
+type SeedTransaction = {
+  id: string;
+  accountName: string;
+  categoryName?: string;
+  transferAccountName?: string;
+  type: TransactionType;
+  entryMode: EntryMode;
+  amount: number;
+  description: string;
+  notes?: string;
+  externalReference?: string;
+  transactionDate: Date;
+};
+
+type SeedRecurringTransaction = {
+  id: string;
+  accountName: string;
+  categoryName?: string;
+  transferAccountName?: string;
+  type: TransactionType;
+  amount: number;
+  description: string;
+  notes?: string;
+  frequency: RecurrenceFrequency;
+  dayOfMonth?: number;
+  dayOfWeek?: number;
+  startDate: Date;
+  endDate?: Date;
+  nextRunAt: Date;
+  lastRunAt?: Date;
+  status: RecurringTransactionStatus;
+  externalReference?: string;
+};
+
 export async function bootstrapDevData() {
   if (env.NODE_ENV !== 'development' || !env.ENABLE_DEV_SEED) {
     return;
@@ -36,11 +71,13 @@ export async function bootstrapDevData() {
     update: {
       name: env.DEV_SEED_USER_NAME,
       passwordHash,
+      currency: 'GHS',
     },
     create: {
       email: env.DEV_SEED_USER_EMAIL,
       name: env.DEV_SEED_USER_NAME,
       passwordHash,
+      currency: 'GHS',
     },
   });
 
@@ -49,71 +86,72 @@ export async function bootstrapDevData() {
   const currentMonthIndex = now.getUTCMonth();
   const currentMonth = currentMonthIndex + 1;
 
-  const monthDate = (monthOffset: number, day: number, hour = 12, minute = 0) =>
-    toUtcDate(currentYear, currentMonthIndex + monthOffset, day, hour, minute);
+  const monthDate = (
+    monthOffset: number,
+    day: number,
+    hour = 12,
+    minute = 0
+  ) => toUtcDate(currentYear, currentMonthIndex + monthOffset, day, hour, minute);
 
-  const nextMonthYear = new Date(
-    Date.UTC(currentYear, currentMonthIndex + 1, 1)
-  ).getUTCFullYear();
-  const nextMonthIndex = new Date(
-    Date.UTC(currentYear, currentMonthIndex + 1, 1)
-  ).getUTCMonth();
+  const nextMonthDate = new Date(Date.UTC(currentYear, currentMonthIndex + 1, 1));
+  const nextMonthYear = nextMonthDate.getUTCFullYear();
+  const nextMonthIndex = nextMonthDate.getUTCMonth();
 
   const accounts = await Promise.all(
     [
       {
-        name: 'Main Checking',
+        name: 'Bank',
         type: AccountType.CHECKING,
-        openingBalance: 3840.65,
-        currentBalance: 3840.65,
-        institutionName: 'Northstar Bank',
-        accountNumberMasked: '1842',
+        currency: 'GHS',
+        color: '#176b6c',
+        entryMode: EntryMode.MANUAL,
+        openingBalance: 6200,
+        currentBalance: 6200,
       },
       {
-        name: 'Emergency Savings',
+        name: 'Savings',
         type: AccountType.SAVINGS,
-        openingBalance: 12000,
-        currentBalance: 12000,
-        institutionName: 'Northstar Bank',
-        accountNumberMasked: '9901',
+        currency: 'GHS',
+        color: '#1d4ed8',
+        entryMode: EntryMode.MANUAL,
+        openingBalance: 14500,
+        currentBalance: 14500,
       },
       {
-        name: 'Cash Wallet',
+        name: 'Wedding',
+        type: AccountType.SAVINGS,
+        currency: 'GHS',
+        color: '#be185d',
+        entryMode: EntryMode.MANUAL,
+        openingBalance: 3200,
+        currentBalance: 3200,
+      },
+      {
+        name: 'Subscription',
         type: AccountType.CASH,
-        openingBalance: 95,
-        currentBalance: 95,
+        currency: 'GHS',
+        color: '#7c3aed',
+        entryMode: EntryMode.AUTOMATED,
+        openingBalance: 600,
+        currentBalance: 600,
       },
       {
-        name: 'Rewards Credit Card',
-        type: AccountType.CREDIT_CARD,
-        openingBalance: -612.34,
-        currentBalance: -612.34,
-        institutionName: 'Summit Card',
-        accountNumberMasked: '4491',
+        name: 'Mobile Money',
+        type: AccountType.CASH,
+        currency: 'GHS',
+        color: '#f59e0b',
+        entryMode: EntryMode.MANUAL,
+        openingBalance: 850,
+        currentBalance: 850,
       },
       {
-        name: 'Brokerage Portfolio',
-        type: AccountType.INVESTMENT,
-        openingBalance: 8450.75,
-        currentBalance: 8450.75,
-        institutionName: 'Atlas Investments',
-        accountNumberMasked: '7714',
-      },
-      {
-        name: 'Auto Loan',
-        type: AccountType.LOAN,
-        openingBalance: -5400,
-        currentBalance: -5400,
-        institutionName: 'Civic Auto Finance',
-        accountNumberMasked: '2208',
-      },
-      {
-        name: 'Old Travel Card',
-        type: AccountType.CREDIT_CARD,
+        name: 'Old Travel Wallet',
+        type: AccountType.CASH,
+        currency: 'GHS',
+        color: '#64748b',
+        entryMode: EntryMode.MANUAL,
         openingBalance: 0,
         currentBalance: 0,
-        institutionName: 'Summit Card',
-        accountNumberMasked: '1190',
         isArchived: true,
       },
     ].map((account) =>
@@ -126,111 +164,88 @@ export async function bootstrapDevData() {
         },
         update: {
           type: account.type,
-          currency: 'USD',
+          currency: account.currency,
+          color: account.color,
+          entryMode: account.entryMode,
           openingBalance: account.openingBalance,
           currentBalance: account.currentBalance,
-          institutionName: account.institutionName,
-          accountNumberMasked: account.accountNumberMasked,
           isArchived: account.isArchived ?? false,
+          institutionName: null,
+          accountNumberMasked: null,
         },
         create: {
           userId: user.id,
           name: account.name,
           type: account.type,
-          currency: 'USD',
+          currency: account.currency,
+          color: account.color,
+          entryMode: account.entryMode,
           openingBalance: account.openingBalance,
           currentBalance: account.currentBalance,
-          institutionName: account.institutionName,
-          accountNumberMasked: account.accountNumberMasked,
           isArchived: account.isArchived ?? false,
         },
       })
     )
   );
 
-  const accountMap = new Map(
-    accounts.map((account) => [account.name, account])
-  );
+  const accountMap = new Map(accounts.map((account) => [account.name, account]));
 
   const categories = await Promise.all(
     [
       {
-        name: 'Salary',
+        name: 'Food & Drinks',
+        type: CategoryType.EXPENSE,
+        color: '#b45309',
+      },
+      {
+        name: 'Shopping',
+        type: CategoryType.EXPENSE,
+        color: '#176b6c',
+      },
+      {
+        name: 'Housing',
+        type: CategoryType.EXPENSE,
+        color: '#9a3412',
+      },
+      {
+        name: 'Transportation',
+        type: CategoryType.EXPENSE,
+        color: '#f59e0b',
+      },
+      {
+        name: 'Vehicle',
+        type: CategoryType.EXPENSE,
+        color: '#475569',
+      },
+      {
+        name: 'Life & Entertainment',
+        type: CategoryType.EXPENSE,
+        color: '#be185d',
+      },
+      {
+        name: 'Communications, PC',
+        type: CategoryType.EXPENSE,
+        color: '#0f766e',
+      },
+      {
+        name: 'Financial Expenses',
+        type: CategoryType.EXPENSE,
+        color: '#7c3aed',
+      },
+      {
+        name: 'Investments',
+        type: CategoryType.EXPENSE,
+        color: '#1d4ed8',
+      },
+      {
+        name: 'Income',
         type: CategoryType.INCOME,
-        color: '#1F4F99',
-        icon: 'briefcase',
+        color: '#15803d',
       },
       {
-        name: 'Freelance',
-        type: CategoryType.INCOME,
-        color: '#0F766E',
-        icon: 'sparkles',
-      },
-      {
-        name: 'Interest',
-        type: CategoryType.INCOME,
-        color: '#2563EB',
-        icon: 'landmark',
-      },
-      {
-        name: 'Rent',
+        name: 'Archived Legacy',
         type: CategoryType.EXPENSE,
-        color: '#9A3412',
-        icon: 'building',
-      },
-      {
-        name: 'Groceries',
-        type: CategoryType.EXPENSE,
-        color: '#2F855A',
-        icon: 'shopping-cart',
-      },
-      {
-        name: 'Transport',
-        type: CategoryType.EXPENSE,
-        color: '#F59E0B',
-        icon: 'car',
-      },
-      {
-        name: 'Dining',
-        type: CategoryType.EXPENSE,
-        color: '#C2410C',
-        icon: 'utensils',
-      },
-      {
-        name: 'Utilities',
-        type: CategoryType.EXPENSE,
-        color: '#0F766E',
-        icon: 'bolt',
-      },
-      {
-        name: 'Subscriptions',
-        type: CategoryType.EXPENSE,
-        color: '#7C3AED',
-        icon: 'tv',
-      },
-      {
-        name: 'Entertainment',
-        type: CategoryType.EXPENSE,
-        color: '#BE185D',
-        icon: 'music',
-      },
-      {
-        name: 'Healthcare',
-        type: CategoryType.EXPENSE,
-        color: '#DC2626',
-        icon: 'heart-pulse',
-      },
-      {
-        name: 'Travel',
-        type: CategoryType.EXPENSE,
-        color: '#0369A1',
-        icon: 'plane',
-      },
-      {
-        name: 'Office Supplies',
-        type: CategoryType.EXPENSE,
-        color: '#6B7280',
-        icon: 'package',
+        color: '#64748b',
         isArchived: true,
       },
     ].map((category) =>
@@ -244,7 +259,8 @@ export async function bootstrapDevData() {
         },
         update: {
           color: category.color,
-          icon: category.icon,
+          icon: null,
+          isSystem: category.name !== 'Archived Legacy',
           isArchived: category.isArchived ?? false,
         },
         create: {
@@ -252,7 +268,7 @@ export async function bootstrapDevData() {
           name: category.name,
           type: category.type,
           color: category.color,
-          icon: category.icon,
+          isSystem: category.name !== 'Archived Legacy',
           isArchived: category.isArchived ?? false,
         },
       })
@@ -266,49 +282,34 @@ export async function bootstrapDevData() {
   await Promise.all(
     [
       {
-        categoryName: 'Rent',
-        amount: 1450,
-        notes: 'Includes parking stall and renter insurance',
+        categoryName: 'Food & Drinks',
+        amount: 1200,
+        notes: 'Meals, market runs, and quick coffee stops',
       },
       {
-        categoryName: 'Groceries',
-        amount: 520,
-        notes: 'Targets pantry restocks and weekly produce runs',
+        categoryName: 'Shopping',
+        amount: 900,
+        notes: 'Household and personal purchases',
       },
       {
-        categoryName: 'Transport',
-        amount: 260,
-        notes: 'Fuel, transit reloads, and weekend parking',
+        categoryName: 'Housing',
+        amount: 2200,
+        notes: 'Rent and shared housing costs',
       },
       {
-        categoryName: 'Dining',
-        amount: 180,
-        notes: 'Mostly lunches and one Friday dinner out',
+        categoryName: 'Transportation',
+        amount: 450,
+        notes: 'Fuel, ride hailing, and trotro fares',
       },
       {
-        categoryName: 'Utilities',
+        categoryName: 'Communications, PC',
         amount: 240,
-        notes: 'Power, internet, and water',
+        notes: 'Data bundles, internet, and device services',
       },
       {
-        categoryName: 'Subscriptions',
-        amount: 78,
-        notes: 'Streaming, cloud storage, and fitness app',
-      },
-      {
-        categoryName: 'Entertainment',
-        amount: 120,
-        notes: 'Live events and weekend activities',
-      },
-      {
-        categoryName: 'Healthcare',
-        amount: 150,
-        notes: 'Prescriptions and primary care copays',
-      },
-      {
-        categoryName: 'Travel',
-        amount: 300,
-        notes: 'Builds a small monthly trip fund',
+        categoryName: 'Financial Expenses',
+        amount: 180,
+        notes: 'Bank charges and transfer fees',
       },
     ].map((budget) => {
       const category = categoryMap.get(budget.categoryName);
@@ -342,184 +343,151 @@ export async function bootstrapDevData() {
     })
   );
 
-  await Promise.all(
-    [
+  const seededTransactions: SeedTransaction[] = [
       {
-        id: `seed-salary-${currentYear}-${currentMonth}`,
-        accountName: 'Main Checking',
-        categoryName: 'Salary',
+        id: `seed-income-${currentYear}-${currentMonth}`,
+        accountName: 'Bank',
+        categoryName: 'Income',
         type: TransactionType.INCOME,
-        amount: 4200,
-        description: 'Monthly salary',
-        notes: 'Net pay after payroll deductions',
-        externalReference: `payroll-${currentYear}-${String(currentMonth).padStart(2, '0')}`,
+        entryMode: EntryMode.MANUAL,
+        amount: 4800,
+        description: 'Monthly salary deposit',
         transactionDate: monthDate(0, 1, 8),
       },
       {
-        id: `seed-rent-${currentYear}-${currentMonth}`,
-        accountName: 'Main Checking',
-        categoryName: 'Rent',
-        type: TransactionType.EXPENSE,
-        amount: 1450,
-        description: 'Monthly rent payment',
-        notes: 'Autopay to Parkview Towers',
-        transactionDate: monthDate(0, 2, 18, 15),
-      },
-      {
-        id: `seed-utilities-${currentYear}-${currentMonth}`,
-        accountName: 'Main Checking',
-        categoryName: 'Utilities',
-        type: TransactionType.EXPENSE,
-        amount: 184.63,
-        description: 'Utilities bundle',
-        notes: 'Internet and power paid together this cycle',
-        transactionDate: monthDate(0, 4, 7, 30),
-      },
-      {
-        id: `seed-groceries-${currentYear}-${currentMonth}`,
-        accountName: 'Rewards Credit Card',
-        categoryName: 'Groceries',
-        type: TransactionType.EXPENSE,
-        amount: 128.42,
-        description: 'Groceries at City Market',
-        notes: 'Weekly family grocery restock',
-        externalReference: 'cc-city-market-12842',
-        transactionDate: monthDate(0, 5, 19, 20),
-      },
-      {
-        id: `seed-dining-${currentYear}-${currentMonth}`,
-        accountName: 'Rewards Credit Card',
-        categoryName: 'Dining',
-        type: TransactionType.EXPENSE,
-        amount: 46.8,
-        description: 'Dinner at Ember Kitchen',
-        transactionDate: monthDate(0, 6, 20, 10),
-      },
-      {
-        id: `seed-savings-transfer-${currentYear}-${currentMonth}`,
-        accountName: 'Main Checking',
-        transferAccountName: 'Emergency Savings',
-        type: TransactionType.TRANSFER,
-        amount: 350,
-        description: 'Automatic savings contribution',
-        notes: 'Monthly emergency fund top-up',
-        transactionDate: monthDate(0, 8, 9),
-      },
-      {
-        id: `seed-freelance-${currentYear}-${currentMonth}`,
-        accountName: 'Main Checking',
-        categoryName: 'Freelance',
+        id: `seed-mobile-income-${currentYear}-${currentMonth}`,
+        accountName: 'Mobile Money',
+        categoryName: 'Income',
         type: TransactionType.INCOME,
-        amount: 640,
-        description: 'Freelance landing page project',
-        externalReference: 'invoice-nimbus-204',
-        transactionDate: monthDate(0, 10, 14, 45),
+        entryMode: EntryMode.MANUAL,
+        amount: 420,
+        description: 'Side gig payment',
+        transactionDate: monthDate(0, 3, 18, 45),
       },
       {
-        id: `seed-investment-transfer-${currentYear}-${currentMonth}`,
-        accountName: 'Main Checking',
-        transferAccountName: 'Brokerage Portfolio',
+        id: `seed-housing-${currentYear}-${currentMonth}`,
+        accountName: 'Bank',
+        categoryName: 'Housing',
+        type: TransactionType.EXPENSE,
+        entryMode: EntryMode.AUTOMATED,
+        amount: 2200,
+        description: 'Rent payment',
+        transactionDate: monthDate(0, 2, 9, 10),
+      },
+      {
+        id: `seed-food-${currentYear}-${currentMonth}`,
+        accountName: 'Mobile Money',
+        categoryName: 'Food & Drinks',
+        type: TransactionType.EXPENSE,
+        entryMode: EntryMode.MANUAL,
+        amount: 94.5,
+        description: 'Lunch and groceries',
+        transactionDate: monthDate(0, 5, 13, 15),
+      },
+      {
+        id: `seed-shopping-${currentYear}-${currentMonth}`,
+        accountName: 'Bank',
+        categoryName: 'Shopping',
+        type: TransactionType.EXPENSE,
+        entryMode: EntryMode.MANUAL,
+        amount: 260,
+        description: 'Home essentials',
+        transactionDate: monthDate(0, 7, 16, 25),
+      },
+      {
+        id: `seed-data-${currentYear}-${currentMonth}`,
+        accountName: 'Subscription',
+        categoryName: 'Communications, PC',
+        type: TransactionType.EXPENSE,
+        entryMode: EntryMode.AUTOMATED,
+        amount: 85,
+        description: 'Internet renewal',
+        transactionDate: monthDate(0, 8, 6, 5),
+      },
+      {
+        id: `seed-streaming-${currentYear}-${currentMonth}`,
+        accountName: 'Subscription',
+        categoryName: 'Life & Entertainment',
+        type: TransactionType.EXPENSE,
+        entryMode: EntryMode.AUTOMATED,
+        amount: 39,
+        description: 'Streaming subscription',
+        transactionDate: monthDate(0, 10, 6, 15),
+      },
+      {
+        id: `seed-save-${currentYear}-${currentMonth}`,
+        accountName: 'Bank',
+        transferAccountName: 'Savings',
         type: TransactionType.TRANSFER,
-        amount: 275,
-        description: 'Brokerage contribution',
-        notes: 'Recurring taxable investment transfer',
-        transactionDate: monthDate(0, 11, 8, 20),
+        entryMode: EntryMode.MANUAL,
+        amount: 600,
+        description: 'Monthly savings transfer',
+        transactionDate: monthDate(0, 9, 8, 30),
+      },
+      {
+        id: `seed-wedding-${currentYear}-${currentMonth}`,
+        accountName: 'Bank',
+        transferAccountName: 'Wedding',
+        type: TransactionType.TRANSFER,
+        entryMode: EntryMode.MANUAL,
+        amount: 450,
+        description: 'Wedding fund contribution',
+        transactionDate: monthDate(0, 12, 10, 20),
+      },
+      {
+        id: `seed-momo-topup-${currentYear}-${currentMonth}`,
+        accountName: 'Bank',
+        transferAccountName: 'Mobile Money',
+        type: TransactionType.TRANSFER,
+        entryMode: EntryMode.MANUAL,
+        amount: 300,
+        description: 'Mobile money top-up',
+        transactionDate: monthDate(0, 14, 11, 0),
       },
       {
         id: `seed-transport-${currentYear}-${currentMonth}`,
-        accountName: 'Rewards Credit Card',
-        categoryName: 'Transport',
+        accountName: 'Mobile Money',
+        categoryName: 'Transportation',
         type: TransactionType.EXPENSE,
-        amount: 42.5,
-        description: 'Fuel and parking',
-        transactionDate: monthDate(0, 13, 7, 50),
+        entryMode: EntryMode.MANUAL,
+        amount: 58,
+        description: 'Ride hailing and fuel',
+        transactionDate: monthDate(0, 15, 17, 40),
       },
       {
-        id: `seed-subscriptions-${currentYear}-${currentMonth}`,
-        accountName: 'Rewards Credit Card',
-        categoryName: 'Subscriptions',
+        id: `seed-fees-${currentYear}-${currentMonth}`,
+        accountName: 'Bank',
+        categoryName: 'Financial Expenses',
         type: TransactionType.EXPENSE,
-        amount: 24.99,
-        description: 'Streaming bundle renewal',
-        externalReference: 'stream-bundle-monthly',
-        transactionDate: monthDate(0, 15, 6),
+        entryMode: EntryMode.AUTOMATED,
+        amount: 22,
+        description: 'Bank charges',
+        transactionDate: monthDate(0, 16, 7, 0),
       },
       {
-        id: `seed-healthcare-${currentYear}-${currentMonth}`,
-        accountName: 'Main Checking',
-        categoryName: 'Healthcare',
+        id: `seed-investment-${currentYear}-${currentMonth}`,
+        accountName: 'Bank',
+        categoryName: 'Investments',
         type: TransactionType.EXPENSE,
-        amount: 85,
-        description: 'Primary care copay',
-        notes: 'Routine checkup visit',
-        transactionDate: monthDate(0, 17, 11, 10),
+        entryMode: EntryMode.MANUAL,
+        amount: 175,
+        description: 'Mutual fund contribution',
+        transactionDate: monthDate(0, 18, 14, 15),
       },
       {
-        id: `seed-cash-transfer-${currentYear}-${currentMonth}`,
-        accountName: 'Main Checking',
-        transferAccountName: 'Cash Wallet',
-        type: TransactionType.TRANSFER,
-        amount: 120,
-        description: 'ATM cash withdrawal',
-        transactionDate: monthDate(0, 18, 10),
-      },
-      {
-        id: `seed-entertainment-${currentYear}-${currentMonth}`,
-        accountName: 'Cash Wallet',
-        categoryName: 'Entertainment',
+        id: `seed-prev-food-${currentYear}-${currentMonth}`,
+        accountName: 'Mobile Money',
+        categoryName: 'Food & Drinks',
         type: TransactionType.EXPENSE,
-        amount: 32,
-        description: 'Indie cinema tickets',
-        transactionDate: monthDate(0, 19, 21, 15),
+        entryMode: EntryMode.MANUAL,
+        amount: 67,
+        description: 'Weekend takeaway',
+        transactionDate: monthDate(-1, 27, 18, 20),
       },
-      {
-        id: `seed-interest-${currentYear}-${currentMonth}`,
-        accountName: 'Emergency Savings',
-        categoryName: 'Interest',
-        type: TransactionType.INCOME,
-        amount: 18.14,
-        description: 'Monthly savings interest',
-        transactionDate: monthDate(0, 20, 7),
-      },
-      {
-        id: `seed-travel-${currentYear}-${currentMonth}`,
-        accountName: 'Rewards Credit Card',
-        categoryName: 'Travel',
-        type: TransactionType.EXPENSE,
-        amount: 211.35,
-        description: 'Regional train tickets',
-        notes: 'Booked spring weekend trip',
-        transactionDate: monthDate(0, 22, 16, 25),
-      },
-      {
-        id: `seed-prev-groceries-${currentYear}-${currentMonth}`,
-        accountName: 'Rewards Credit Card',
-        categoryName: 'Groceries',
-        type: TransactionType.EXPENSE,
-        amount: 96.2,
-        description: 'Late-month grocery restock',
-        transactionDate: monthDate(-1, 26, 18, 40),
-      },
-      {
-        id: `seed-prev-dining-${currentYear}-${currentMonth}`,
-        accountName: 'Cash Wallet',
-        categoryName: 'Dining',
-        type: TransactionType.EXPENSE,
-        amount: 14.5,
-        description: 'Coffee and pastries',
-        transactionDate: monthDate(-1, 27, 9, 5),
-      },
-      {
-        id: `seed-prev-auto-loan-${currentYear}-${currentMonth}`,
-        accountName: 'Main Checking',
-        transferAccountName: 'Auto Loan',
-        type: TransactionType.TRANSFER,
-        amount: 320,
-        description: 'Auto loan payment',
-        notes: 'Principal and interest transfer',
-        transactionDate: monthDate(-1, 28, 17, 25),
-      },
-    ].map((transaction) => {
+    ];
+
+  await Promise.all(
+    seededTransactions.map((transaction) => {
       const account = accountMap.get(transaction.accountName);
       const transferAccount = transaction.transferAccountName
         ? accountMap.get(transaction.transferAccountName)
@@ -552,6 +520,7 @@ export async function bootstrapDevData() {
           amount: transaction.amount,
           description: transaction.description,
           notes: transaction.notes,
+          entryMode: transaction.entryMode,
           externalReference: transaction.externalReference,
           transactionDate: transaction.transactionDate,
         },
@@ -565,6 +534,7 @@ export async function bootstrapDevData() {
           amount: transaction.amount,
           description: transaction.description,
           notes: transaction.notes,
+          entryMode: transaction.entryMode,
           externalReference: transaction.externalReference,
           transactionDate: transaction.transactionDate,
         },
@@ -572,101 +542,64 @@ export async function bootstrapDevData() {
     })
   );
 
-  await Promise.all(
-    [
+  const seededRecurringTransactions: SeedRecurringTransaction[] = [
       {
         id: 'seed-recurring-salary',
-        accountName: 'Main Checking',
-        categoryName: 'Salary',
+        accountName: 'Bank',
+        categoryName: 'Income',
         type: TransactionType.INCOME,
-        amount: 4200,
+        amount: 4800,
         description: 'Salary recurring deposit',
         frequency: RecurrenceFrequency.MONTHLY,
         dayOfMonth: 1,
         startDate: monthDate(-2, 1, 8),
         nextRunAt: toUtcDate(nextMonthYear, nextMonthIndex, 1, 8),
         status: RecurringTransactionStatus.ACTIVE,
-        externalReference: 'recurring-payroll-main',
+        externalReference: 'recurring-salary-bank',
       },
       {
-        id: 'seed-recurring-rent',
-        accountName: 'Main Checking',
-        categoryName: 'Rent',
+        id: 'seed-recurring-subscription',
+        accountName: 'Subscription',
+        categoryName: 'Life & Entertainment',
         type: TransactionType.EXPENSE,
-        amount: 1450,
-        description: 'Recurring rent payment',
+        amount: 39,
+        description: 'Streaming subscription renewal',
         frequency: RecurrenceFrequency.MONTHLY,
-        dayOfMonth: 2,
-        startDate: monthDate(-2, 2, 18),
-        nextRunAt: toUtcDate(nextMonthYear, nextMonthIndex, 2, 18),
+        dayOfMonth: 10,
+        startDate: monthDate(-4, 10, 6),
+        nextRunAt: toUtcDate(nextMonthYear, nextMonthIndex, 10, 6),
         status: RecurringTransactionStatus.ACTIVE,
       },
       {
-        id: 'seed-recurring-groceries',
-        accountName: 'Rewards Credit Card',
-        categoryName: 'Groceries',
-        type: TransactionType.EXPENSE,
-        amount: 92,
-        description: 'Weekly grocery refill',
-        frequency: RecurrenceFrequency.WEEKLY,
-        dayOfWeek: 6,
-        startDate: monthDate(-1, 6, 9),
-        nextRunAt: new Date(
-          Date.UTC(
-            currentYear,
-            currentMonthIndex,
-            now.getUTCDate() + 3,
-            9,
-            0,
-            0
-          )
-        ),
-        status: RecurringTransactionStatus.ACTIVE,
-      },
-      {
-        id: 'seed-recurring-brokerage-transfer',
-        accountName: 'Main Checking',
-        transferAccountName: 'Brokerage Portfolio',
+        id: 'seed-recurring-savings',
+        accountName: 'Bank',
+        transferAccountName: 'Savings',
         type: TransactionType.TRANSFER,
-        amount: 275,
-        description: 'Monthly brokerage transfer',
-        notes: 'Long-term investing contribution',
+        amount: 600,
+        description: 'Automatic savings contribution',
         frequency: RecurrenceFrequency.MONTHLY,
-        dayOfMonth: 11,
-        startDate: monthDate(-3, 11, 8, 20),
-        nextRunAt: toUtcDate(nextMonthYear, nextMonthIndex, 11, 8, 20),
+        dayOfMonth: 9,
+        startDate: monthDate(-3, 9, 8, 30),
+        nextRunAt: toUtcDate(nextMonthYear, nextMonthIndex, 9, 8, 30),
         status: RecurringTransactionStatus.ACTIVE,
       },
       {
-        id: 'seed-recurring-streaming',
-        accountName: 'Rewards Credit Card',
-        categoryName: 'Subscriptions',
-        type: TransactionType.EXPENSE,
-        amount: 24.99,
-        description: 'Streaming bundle renewal',
+        id: 'seed-recurring-wedding',
+        accountName: 'Bank',
+        transferAccountName: 'Wedding',
+        type: TransactionType.TRANSFER,
+        amount: 450,
+        description: 'Wedding fund top-up',
         frequency: RecurrenceFrequency.MONTHLY,
-        dayOfMonth: 15,
-        startDate: monthDate(-4, 15, 6),
-        nextRunAt: toUtcDate(nextMonthYear, nextMonthIndex, 15, 6),
+        dayOfMonth: 12,
+        startDate: monthDate(-3, 12, 10, 20),
+        nextRunAt: toUtcDate(nextMonthYear, nextMonthIndex, 12, 10, 20),
         status: RecurringTransactionStatus.PAUSED,
-        notes: 'Paused while comparing annual plans',
       },
-      {
-        id: 'seed-recurring-festival-fund',
-        accountName: 'Main Checking',
-        categoryName: 'Entertainment',
-        type: TransactionType.EXPENSE,
-        amount: 60,
-        description: 'Festival savings envelope',
-        frequency: RecurrenceFrequency.MONTHLY,
-        dayOfMonth: 25,
-        startDate: monthDate(-6, 25, 12),
-        endDate: monthDate(-1, 25, 12),
-        nextRunAt: monthDate(-1, 25, 12),
-        lastRunAt: monthDate(-1, 25, 12),
-        status: RecurringTransactionStatus.COMPLETED,
-      },
-    ].map((recurringTransaction) => {
+    ];
+
+  await Promise.all(
+    seededRecurringTransactions.map((recurringTransaction) => {
       const account = accountMap.get(recurringTransaction.accountName);
       const transferAccount = recurringTransaction.transferAccountName
         ? accountMap.get(recurringTransaction.transferAccountName)

@@ -247,24 +247,25 @@ Status: In Progress
 
 ## Phase 7: Account-Scoped Dashboard
 
-Status: Next
+Status: Completed
 
-- [ ] Change dashboard queries to focus on a selected account instead of all active accounts combined
-- [ ] Add account selector state in the frontend dashboard
-- [ ] Persist the selected account in a lightweight way
-- [ ] Format dashboard amounts using the selected account currency
-- [ ] Show recent transactions for the selected account only
-- [ ] Show category activity and trends for the selected account only
-- [ ] Update empty states for accounts with no activity yet
+- [x] Change dashboard queries to focus on a selected account instead of all active accounts combined
+- [x] Add account selector state in the frontend dashboard
+- [x] Persist the selected account in a lightweight way
+- [x] Format dashboard amounts using the selected account currency
+- [x] Show recent transactions for the selected account only
+- [x] Show category activity and trends for the selected account only
+- [x] Update empty states for accounts with no activity yet
 
 ## Phase 8: MVP Navigation And Simplification
 
-Status: Next
+Status: Completed
 
-- [ ] Hide `Reports` from sidebar and workspace navigation
-- [ ] Remove report-oriented calls-to-action from dashboard and landing pages
-- [ ] Keep report code hidden but available in the codebase for later use
-- [ ] Review whether budgets and recurring flows should stay visible during the earliest MVP pass
+- [x] Hide `Reports` from sidebar and workspace navigation
+- [x] Remove report-oriented calls-to-action from dashboard and landing pages
+- [x] Keep report code hidden but available in the codebase for later use
+- [x] Review whether budgets and recurring flows should stay visible during the earliest MVP pass
+- [x] Trim budgets and recurring from the visible MVP navigation while keeping the code available in the codebase
 
 ## Phase 9: Quality, Consistency, And Product Polish
 
@@ -283,12 +284,23 @@ Status: In Progress
 
 Status: Deferred
 
-- [ ] Decide whether budgets remain in MVP or move fully to later scope
-- [ ] Decide whether recurring transactions remain in MVP or move fully to later scope
+- [x] Decide whether budgets remain in MVP or move fully to later scope
+- [x] Decide whether recurring transactions remain in MVP or move fully to later scope
+- [ ] Reintroduce budgets into visible navigation when the MVP expands beyond the core account/category/transaction flow
+- [ ] Reintroduce recurring transactions into visible navigation when automation becomes part of the active MVP
 - [ ] Reintroduce reports when account-scoped reporting requirements are clear
 - [ ] Add settings page when ready
 - [ ] Add export workflows when needed
 - [ ] Add deeper auth/session hardening if the project grows beyond personal use
+
+## Seed Data Alignment
+
+Status: Completed
+
+- [x] Update development seed accounts to match personal finance bucket examples such as `Bank`, `Savings`, `Wedding`, `Subscription`, and `Mobile Money`
+- [x] Align seeded categories with the current MVP starter category list
+- [x] Refresh seeded transactions to reflect the account-first MVP and `GHS` defaults
+- [x] Keep recurring seed data available in the codebase for later use even though it is no longer part of the visible MVP flow
 
 ## Phase 11: Testing And Hardening
 

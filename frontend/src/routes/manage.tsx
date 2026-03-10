@@ -27,9 +27,7 @@ function ManageOverviewPage() {
   const {
     accounts,
     categories,
-    budgets,
     transactions,
-    recurringTransactions,
     error,
   } = useFinanceWorkspaceData(isAuthenticated)
 
@@ -41,7 +39,7 @@ function ManageOverviewPage() {
     <CrudPageShell
       badge="Finance workspace"
       title="Management overview"
-      description="Jump into dedicated finance sections instead of working from one oversized admin surface."
+      description="Jump into the core MVP sections for accounts, categories, and transactions."
       navigation={<FinanceSectionNav />}
       actions={
         <Button asChild>
@@ -61,13 +59,11 @@ function ManageOverviewPage() {
         </Card>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-3">
         {[
           { label: 'Accounts', value: accounts.length },
           { label: 'Categories', value: categories.length },
-          { label: 'Budgets', value: budgets.length },
           { label: 'Transactions', value: transactions.length },
-          { label: 'Recurring', value: recurringTransactions.length },
         ].map((item) => (
           <Card key={item.label}>
             <CardHeader className="pb-3">

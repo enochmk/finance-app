@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import {
   ArrowRight,
-  BarChart3,
   LayoutDashboard,
   ShieldCheck,
   Wallet,
@@ -101,10 +100,10 @@ function App() {
                   'Seed-user login drives authenticated views while the app is still in local build mode.',
               },
               {
-                icon: BarChart3,
-                title: 'Reporting layer',
+                icon: LayoutDashboard,
+                title: 'Account-first insights',
                 description:
-                  'Daily cash flow, category ranking, and account movement are ready for iteration.',
+                  'Dashboard views now stay tied to a selected account instead of blending every balance together.',
               },
             ].map((item) => {
               const Icon = item.icon
@@ -140,7 +139,7 @@ function App() {
             {[
               'Seed the backend with npm --prefix backend run seed:dev',
               'Run the API at http://127.0.0.1:4000 and the frontend at http://127.0.0.1:3000',
-              'Use /sign-in, /manage, /manage/transactions, /dashboard, and /reports for the full finance flow',
+              'Use /sign-in, /manage, /manage/transactions, and /dashboard for the current MVP flow',
             ].map((item, index) => (
               <div
                 key={index}
@@ -162,7 +161,6 @@ function App() {
           <CardContent className="space-y-3">
             {[
               { icon: LayoutDashboard, label: 'Dashboard' },
-              { icon: BarChart3, label: 'Reports' },
               { icon: Wallet, label: 'Finance sections' },
             ].map((item) => {
               const Icon = item.icon

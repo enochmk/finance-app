@@ -2,7 +2,6 @@ import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import {
   ChevronLeft,
   ChevronsUpDown,
-  BarChart3,
   CreditCard,
   LayoutDashboard,
   LogOut,
@@ -31,7 +30,6 @@ import { useSidebarState } from '#/components/sidebar-state'
 
 const navigationItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/reports', label: 'Reports', icon: BarChart3 },
 ] as const
 
 function SidebarContent({ mobile = false }: { mobile?: boolean }) {
@@ -132,11 +130,11 @@ function SidebarContent({ mobile = false }: { mobile?: boolean }) {
           <div className="rounded-2xl border border-[var(--sidebar-border)] bg-[rgba(255,255,255,0.04)] p-4">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--sidebar-foreground)]">
               <CreditCard className="h-4 w-4" />
-              Admin layout
+              MVP workspace
             </div>
             <p className="text-sm leading-6 text-[var(--sidebar-muted-foreground)]">
-              Dedicated finance sections now split accounts, categories,
-              budgets, transactions, and recurring items.
+              Focused around accounts, categories, transactions, and the
+              selected-account dashboard.
             </p>
           </div>
         )}

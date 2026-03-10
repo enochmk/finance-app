@@ -86,6 +86,16 @@ export type DashboardSummary = {
     start: string
     end: string
   }
+  selectedAccount: {
+    id: string
+    name: string
+    type: string
+    currency: string
+    color?: string | null
+    entryMode?: 'MANUAL' | 'AUTOMATED'
+    currentBalance: number
+    openingBalance: number
+  } | null
   overview: {
     totalBalance: number
     totalIncome: number
@@ -99,6 +109,8 @@ export type DashboardSummary = {
     name: string
     type: string
     currency: string
+    color?: string | null
+    entryMode?: 'MANUAL' | 'AUTOMATED'
     currentBalance: number
     openingBalance: number
   }>
@@ -131,6 +143,11 @@ export type DashboardSummary = {
       name: string
       currency: string
     }
+    transferAccount: {
+      id: string
+      name: string
+      currency: string
+    } | null
     category: {
       id: string
       name: string
@@ -148,6 +165,11 @@ export type DashboardSummary = {
       name: string
       currency: string
     }
+    transferAccount: {
+      id: string
+      name: string
+      currency: string
+    } | null
     category: {
       id: string
       name: string
