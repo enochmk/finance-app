@@ -1,10 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import {
-  ArrowRight,
-  LayoutDashboard,
-  ShieldCheck,
-  Wallet,
-} from 'lucide-react'
+import { ArrowRight, LayoutDashboard, ShieldCheck, Wallet } from 'lucide-react'
 
 import { useSession } from '#/components/session-provider'
 import { Badge } from '#/components/ui/badge'
