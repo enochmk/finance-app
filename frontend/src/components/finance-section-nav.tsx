@@ -20,8 +20,8 @@ export function FinanceSectionNav() {
             className={cn(
               'rounded-full border px-4 py-2 text-sm font-medium no-underline transition-colors',
               active
-                ? 'border-transparent bg-[var(--primary)] text-[var(--primary-foreground)]'
-                : 'border-[var(--border)] bg-[var(--card)] text-[var(--foreground)] hover:bg-[var(--accent)]'
+                ? 'border-transparent bg-primary text-primary-foreground'
+                : 'border-border bg-card text-foreground hover:bg-accent'
             )}
           >
             {item.label}

@@ -3,12 +3,14 @@
 Repository guidance for coding agents working in `finance-web-app`.
 
 This repo has two separate Node/TypeScript apps:
+
 - `backend/`: Express API, Prisma, PostgreSQL, Zod, Winston logging.
 - `frontend/`: TanStack Start + React 19 + Vite + Tailwind CSS v4 + Vitest.
 
 ## Rule Files Checked
 
 These rule locations were checked and are currently absent:
+
 - `.cursor/rules/`
 - `.cursorrules`
 - `.github/copilot-instructions.md`
@@ -90,11 +92,19 @@ If any of them are added later, treat them as additional instructions and merge 
 - Keep JSX props one per line when lines get long.
 - Favor readable Tailwind utility groupings over overly compressed class strings.
 
+### Frontend Color Tokens
+
+The project uses a single-source color palette defined in `frontend/src/styles.css`:
+
+- Raw values live **only** in the `:root` / `[data-theme="dark"]` blocks — update colors there and nowhere else.
+- An `@theme inline` block maps every CSS variable to a Tailwind semantic token, e.g. `--color-primary: var(--primary)`.
+- **Always use semantic Tailwind utilities** (`bg-primary`, `text-primary-foreground`, `border-border`, `bg-card`, `text-foreground`, `hover:bg-accent`, etc.) instead of arbitrary `bg-[var(--primary)]` forms.
+- Never hardcode raw hex or rgba colors directly in JSX; update `:root` / dark-mode blocks in `styles.css` instead.
+
 ### Backend
 
 - Backend now uses Prettier: 2-space indentation, single quotes, semicolons enabled.
 - Run `npm --prefix backend run format` to ensure consistent formatting.
-
 
 ## Imports
 
