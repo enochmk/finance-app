@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import {
   ArrowUpDown,
+  Eye,
   Pencil,
   Search,
   Trash2,
@@ -432,6 +433,7 @@ function TransactionsPage() {
       title="Transactions"
       description="Capture credits, debits, and transfers with enough context to track where money moved and how it was entered."
       navigation={<FinanceSectionNav />}
+      icon={DollarSign}
       actions={
         <Button onClick={() => setIsCreateOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
@@ -658,6 +660,7 @@ function TransactionsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">#</TableHead>
                 <SortableHead
                   label="Description"
                   onClick={() => updateSort('description')}
@@ -693,12 +696,15 @@ function TransactionsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedTransactions.pageItems.map((transaction) => (
+              {paginatedTransactions.pageItems.map((transaction, index) => (
                 <TableRow
                   key={transaction.id}
                   className="cursor-pointer hover:bg-[var(--accent)]"
                   onClick={() => setViewingTransaction(transaction)}
                 >
+                  <TableCell className="font-mono text-sm text-[var(--muted-foreground)]">
+                    {(currentPage - 1) * pageSize + index + 1}
+                  </TableCell>
                   <TableCell>
                     <div>
                       <p className="font-medium text-[var(--foreground)]">
@@ -777,6 +783,7 @@ function TransactionsPage() {
         onOpenChange={setIsCreateOpen}
         title="Create transaction"
         description="Record a one-off credit, debit, or transfer."
+        icon={Plus}
         className="transition-colors"
         style={
           selectedAccount?.color
@@ -1061,6 +1068,7 @@ function TransactionsPage() {
         onOpenChange={(open) => !open && setEditingTransaction(null)}
         title="Edit transaction"
         description="Correct the transaction details or reclassify the activity."
+        icon={Pencil}
       >
         <form onSubmit={submitEditTransaction} className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
@@ -1223,6 +1231,7 @@ function TransactionsPage() {
         onOpenChange={(open) => !open && setViewingTransaction(null)}
         title="Transaction details"
         description="View the complete transaction information."
+        icon={Eye}
       >
         {viewingTransaction && (
           <div className="space-y-4">

@@ -29,7 +29,12 @@ export function RowActionsMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label={ariaLabel}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={ariaLabel}
+          onClick={(e) => e.stopPropagation()}
+        >
           <MoreHorizontal data-icon="inline-end" />
         </Button>
       </DropdownMenuTrigger>

@@ -1,7 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 import {
   ArrowUpDown,
+  Building2,
   CheckCircle2,
+  Eye,
   Pencil,
   Plus,
   Search,
@@ -167,6 +169,7 @@ function AccountsPage() {
     null
   )
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null)
+  const [viewingAccount, setViewingAccount] = useState<Account | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<AccountStatusFilter>('ALL')
@@ -385,6 +388,7 @@ function AccountsPage() {
       title="Accounts"
       description="Create, edit, disable, and retire money buckets without losing control of dashboard visibility or transaction safety."
       navigation={<FinanceSectionNav />}
+      icon={Building2}
       actions={
         <Button onClick={() => setIsCreateOpen(true)}>
           <Plus className="h-4 w-4" />
@@ -536,6 +540,7 @@ function AccountsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">#</TableHead>
                 <SortableHead
                   label="Account"
                   onClick={() => updateSort('name')}
@@ -585,8 +590,15 @@ function AccountsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedAccounts.pageItems.map((account) => (
-                <TableRow key={account.id}>
+              {paginatedAccounts.pageItems.map((account, index) => (
+                <TableRow
+                  key={account.id}
+                  className="cursor-pointer hover:bg-[var(--accent)]"
+                  onClick={() => setViewingAccount(account)}
+                >
+                  <TableCell className="font-mono text-sm text-[var(--muted-foreground)]">
+                    {(currentPage - 1) * 8 + index + 1}
+                  </TableCell>
                   <TableCell>
                     <div>
                       <div className="flex items-center gap-3">
@@ -633,6 +645,11 @@ function AccountsPage() {
                       <RowActionsMenu
                         actions={[
                           {
+                            label: 'View',
+                            onSelect: () => setViewingAccount(account),
+                            icon: Eye,
+                          },
+                          {
                             label: 'Edit',
                             onSelect: () => openEditAccount(account),
                             icon: Pencil,
@@ -666,6 +683,7 @@ function AccountsPage() {
         onOpenChange={setIsCreateOpen}
         title="Create account"
         description="Add a money bucket with the details needed for balances, transactions, and dashboard filtering."
+        icon={Plus}
       >
         <Form {...createForm}>
           <form
@@ -694,6 +712,7 @@ function AccountsPage() {
         onOpenChange={(open) => !open && setEditingAccount(null)}
         title="Edit account"
         description="Update how this account appears, how it is tracked, and the details used around the workspace."
+        icon={Pencil}
       >
         {editingAccount ? (
           <form onSubmit={submitEditAccount} className="space-y-4">
@@ -718,6 +737,112 @@ function AccountsPage() {
             </DialogFooter>
           </form>
         ) : null}
+      </CrudDialogShell>
+
+      <CrudDialogShell
+        open={Boolean(viewingAccount)}
+        onOpenChange={(open) => !open && setViewingAccount(null)}
+        title="Account details"
+        description="View the complete account information."
+        icon={Eye}
+      >
+        {viewingAccount && (
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="text-sm font-medium">Name</label>
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  {viewingAccount.name}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Type</label>
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  {viewingAccount.type.replaceAll('_', ' ')}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Currency</label>
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  {viewingAccount.currency}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Entry Mode</label>
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  {getEntryModeLabel(viewingAccount.entryMode)}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Opening Balance</label>
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  {formatCurrency(
+                    viewingAccount.openingBalance,
+                    viewingAccount.currency
+                  )}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Current Balance</label>
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  {formatCurrency(
+                    viewingAccount.currentBalance,
+                    viewingAccount.currency
+                  )}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Status</label>
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  {viewingAccount.isArchived ? 'Disabled' : 'Enabled'}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Color</label>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="inline-flex h-4 w-4 rounded-full border border-[var(--border)]"
+                    style={{
+                      backgroundColor: viewingAccount.color ?? '#176b6c',
+                    }}
+                  />
+                  <p className="text-sm text-[var(--muted-foreground)]">
+                    {viewingAccount.color ?? '#176b6c'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            {(viewingAccount.institutionName ||
+              viewingAccount.accountNumberMasked) && (
+              <div>
+                <label className="text-sm font-medium">
+                  Institution Details
+                </label>
+                <div className="space-y-1">
+                  {viewingAccount.institutionName && (
+                    <p className="text-sm text-[var(--muted-foreground)]">
+                      Institution: {viewingAccount.institutionName}
+                    </p>
+                  )}
+                  {viewingAccount.accountNumberMasked && (
+                    <p className="text-sm text-[var(--muted-foreground)]">
+                      Account: {viewingAccount.accountNumberMasked}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setViewingAccount(null)}
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
       </CrudDialogShell>
 
       <ConfirmActionDialog

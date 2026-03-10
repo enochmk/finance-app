@@ -1,10 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
 import {
   ArrowUpDown,
+  Eye,
   EyeOff,
   Pencil,
+  Plus,
   RefreshCcw,
   Search,
+  Tag,
   Trash2,
 } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
@@ -83,6 +86,7 @@ function CategoriesPage() {
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(
     null
   )
+  const [viewingCategory, setViewingCategory] = useState<Category | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<CategoryStatusFilter>('ALL')
@@ -277,6 +281,7 @@ function CategoriesPage() {
       title="Categories"
       description="Keep transaction entry clean with categories you can extend, disable, and reuse over time."
       navigation={<FinanceSectionNav />}
+      icon={Tag}
       actions={
         <>
           <Button variant="outline" onClick={handleSeedCategories}>
@@ -450,6 +455,7 @@ function CategoriesPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">#</TableHead>
                 <SortableHead
                   label="Name"
                   onClick={() => updateSort('name')}
@@ -473,8 +479,15 @@ function CategoriesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedCategories.pageItems.map((category) => (
-                <TableRow key={category.id}>
+              {paginatedCategories.pageItems.map((category, index) => (
+                <TableRow
+                  key={category.id}
+                  className="cursor-pointer hover:bg-[var(--accent)]"
+                  onClick={() => setViewingCategory(category)}
+                >
+                  <TableCell className="font-mono text-sm text-[var(--muted-foreground)]">
+                    {(currentPage - 1) * pageSize + index + 1}
+                  </TableCell>
                   <TableCell className="font-medium">{category.name}</TableCell>
                   <TableCell>{category.type}</TableCell>
                   <TableCell>
@@ -494,6 +507,11 @@ function CategoriesPage() {
                     <div className="flex justify-end">
                       <RowActionsMenu
                         actions={[
+                          {
+                            label: 'View',
+                            onSelect: () => setViewingCategory(category),
+                            icon: Eye,
+                          },
                           {
                             label: 'Edit',
                             onSelect: () => openEditCategory(category),
@@ -526,6 +544,7 @@ function CategoriesPage() {
         onOpenChange={setIsCreateOpen}
         title="Create category"
         description="Add a new income or expense bucket for classifying transactions."
+        icon={Plus}
       >
         <Form {...createForm}>
           <form
@@ -601,6 +620,7 @@ function CategoriesPage() {
         onOpenChange={(open) => !open && setEditingCategory(null)}
         title="Edit category"
         description="Update the category name, type, or color treatment, or use disable to hide it from entry forms."
+        icon={Pencil}
       >
         <form onSubmit={submitEditCategory} className="space-y-4">
           <div className="space-y-2">
@@ -670,6 +690,62 @@ function CategoriesPage() {
             <Button type="submit">Save changes</Button>
           </DialogFooter>
         </form>
+      </CrudDialogShell>
+
+      <CrudDialogShell
+        open={Boolean(viewingCategory)}
+        onOpenChange={(open) => !open && setViewingCategory(null)}
+        title="Category details"
+        description="View the complete category information."
+        icon={Eye}
+      >
+        {viewingCategory && (
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="text-sm font-medium">Name</label>
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  {viewingCategory.name}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Type</label>
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  {viewingCategory.type}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Status</label>
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  {viewingCategory.isArchived ? 'Disabled' : 'Enabled'}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Color</label>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="inline-flex h-4 w-4 rounded-full border border-[var(--border)]"
+                    style={{
+                      backgroundColor: viewingCategory.color ?? '#176b6c',
+                    }}
+                  />
+                  <p className="text-sm text-[var(--muted-foreground)]">
+                    {viewingCategory.color ?? '#176b6c'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setViewingCategory(null)}
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
       </CrudDialogShell>
 
       <ConfirmActionDialog

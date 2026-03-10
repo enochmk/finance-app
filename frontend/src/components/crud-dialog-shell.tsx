@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { LucideIcon } from 'lucide-react'
 
 import {
   Dialog,
@@ -16,6 +17,7 @@ type CrudDialogShellProps = {
   children: ReactNode
   className?: string
   style?: React.CSSProperties
+  icon?: LucideIcon
 }
 
 export function CrudDialogShell({
@@ -26,12 +28,16 @@ export function CrudDialogShell({
   children,
   className,
   style,
+  icon: Icon,
 }: CrudDialogShellProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={className} style={style}>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {Icon && <Icon className="h-5 w-5" />}
+            {title}
+          </DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         {children}
