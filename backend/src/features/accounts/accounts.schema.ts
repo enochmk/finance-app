@@ -9,14 +9,12 @@ const accountTypeSchema = z.enum([
   'LOAN',
 ]);
 
-const entryModeSchema = z.enum(['MANUAL', 'AUTOMATED']);
-
 const accountBodySchema = z.object({
   name: z.string().trim().min(1).max(120),
   type: accountTypeSchema,
   currency: z.string().trim().length(3).toUpperCase().optional(),
   color: z.string().trim().max(32).optional(),
-  entryMode: entryModeSchema.optional(),
+  icon: z.string().trim().max(32).optional(),
   openingBalance: z.number().finite().optional(),
   currentBalance: z.number().finite().optional(),
   institutionName: z.string().trim().max(120).optional(),

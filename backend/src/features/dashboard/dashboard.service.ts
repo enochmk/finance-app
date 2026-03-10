@@ -70,92 +70,97 @@ class DashboardService {
       throw createHttpError(404, 'Selected account not found');
     }
 
-    const [budgets, recentTransactions, transactionGroups, spendingByCategory, upcomingRecurringTransactions] =
-      await Promise.all([
-        prisma.budget.findMany({
-          where: {
-            userId,
-            month: selectedMonth,
-            year: selectedYear,
+    const [
+      budgets,
+      recentTransactions,
+      transactionGroups,
+      spendingByCategory,
+      upcomingRecurringTransactions,
+    ] = await Promise.all([
+      prisma.budget.findMany({
+        where: {
+          userId,
+          month: selectedMonth,
+          year: selectedYear,
+        },
+        include: {
+          category: true,
+        },
+        orderBy: [{ createdAt: 'desc' }],
+      }),
+      prisma.transaction.findMany({
+        where: {
+          userId,
+          OR: [
+            { accountId: selectedAccount.id },
+            { transferAccountId: selectedAccount.id },
+          ],
+          transactionDate: {
+            gte: periodStart,
+            lt: periodEnd,
           },
-          include: {
-            category: true,
+        },
+        include: {
+          account: true,
+          category: true,
+          transferAccount: true,
+        },
+        orderBy: [{ transactionDate: 'desc' }, { createdAt: 'desc' }],
+        take: recentLimit,
+      }),
+      prisma.transaction.groupBy({
+        by: ['type'],
+        where: {
+          userId,
+          OR: [
+            { accountId: selectedAccount.id },
+            { transferAccountId: selectedAccount.id },
+          ],
+          transactionDate: {
+            gte: periodStart,
+            lt: periodEnd,
           },
-          orderBy: [{ createdAt: 'desc' }],
-        }),
-        prisma.transaction.findMany({
-          where: {
-            userId,
-            OR: [
-              { accountId: selectedAccount.id },
-              { transferAccountId: selectedAccount.id },
-            ],
-            transactionDate: {
-              gte: periodStart,
-              lt: periodEnd,
-            },
+        },
+        _sum: {
+          amount: true,
+        },
+      }),
+      prisma.transaction.groupBy({
+        by: ['categoryId'],
+        where: {
+          userId,
+          accountId: selectedAccount.id,
+          type: 'EXPENSE',
+          categoryId: {
+            not: null,
           },
-          include: {
-            account: true,
-            category: true,
-            transferAccount: true,
+          transactionDate: {
+            gte: periodStart,
+            lt: periodEnd,
           },
-          orderBy: [{ transactionDate: 'desc' }, { createdAt: 'desc' }],
-          take: recentLimit,
-        }),
-        prisma.transaction.groupBy({
-          by: ['type'],
-          where: {
-            userId,
-            OR: [
-              { accountId: selectedAccount.id },
-              { transferAccountId: selectedAccount.id },
-            ],
-            transactionDate: {
-              gte: periodStart,
-              lt: periodEnd,
-            },
-          },
-          _sum: {
-            amount: true,
-          },
-        }),
-        prisma.transaction.groupBy({
-          by: ['categoryId'],
-          where: {
-            userId,
-            accountId: selectedAccount.id,
-            type: 'EXPENSE',
-            categoryId: {
-              not: null,
-            },
-            transactionDate: {
-              gte: periodStart,
-              lt: periodEnd,
-            },
-          },
-          _sum: {
-            amount: true,
-          },
-        }),
-        prisma.recurringTransaction.findMany({
-          where: {
-            userId,
-            status: 'ACTIVE',
-            OR: [
-              { accountId: selectedAccount.id },
-              { transferAccountId: selectedAccount.id },
-            ],
-          },
-          include: {
-            account: true,
-            category: true,
-            transferAccount: true,
-          },
-          orderBy: [{ nextRunAt: 'asc' }],
-          take: 5,
-        }),
-      ]);
+        },
+        _sum: {
+          amount: true,
+        },
+      }),
+      prisma.recurringTransaction.findMany({
+        where: {
+          userId,
+          status: 'ACTIVE',
+          OR: [
+            { accountId: selectedAccount.id },
+            { transferAccountId: selectedAccount.id },
+          ],
+        },
+        include: {
+          account: true,
+          category: true,
+          transferAccount: true,
+        },
+        orderBy: [{ nextRunAt: 'asc' }],
+        take: 5,
+      }),
+    ]);
 
     const totalsByType = transactionGroups.reduce(
       (acc, group) => {
@@ -218,7 +223,7 @@ class DashboardService {
         type: selectedAccount.type,
         currency: selectedAccount.currency,
         color: selectedAccount.color,
-        entryMode: selectedAccount.entryMode,
+        icon: selectedAccount.icon,
         currentBalance: toNumber(selectedAccount.currentBalance),
         openingBalance: toNumber(selectedAccount.openingBalance),
       },
@@ -236,7 +241,7 @@ class DashboardService {
         type: account.type,
         currency: account.currency,
         color: account.color,
-        entryMode: account.entryMode,
+        icon: account.icon,
         currentBalance: toNumber(account.currentBalance),
         openingBalance: toNumber(account.openingBalance),
       })),

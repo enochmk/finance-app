@@ -70,6 +70,7 @@ const categorySchema = z.object({
   name: z.string().trim().min(1, 'Category name is required').max(80),
   type: z.enum(['INCOME', 'EXPENSE']),
   color: z.string().trim().min(1, 'Color is required'),
+  icon: z.string().trim().max(10).optional(),
 })
 
 type CategoryStatusFilter = 'ALL' | 'ENABLED' | 'DISABLED'
@@ -101,6 +102,7 @@ function CategoriesPage() {
       name: '',
       type: 'EXPENSE',
       color: '#176b6c',
+      icon: '',
     },
   })
 
@@ -108,6 +110,7 @@ function CategoriesPage() {
     name: '',
     type: 'EXPENSE',
     color: '#176b6c',
+    icon: '',
   })
 
   useEffect(() => {
@@ -172,7 +175,12 @@ function CategoriesPage() {
   async function handleCreateCategory(values: z.infer<typeof categorySchema>) {
     try {
       await createCategory(values)
-      createForm.reset({ name: '', type: 'EXPENSE', color: '#176b6c' })
+      createForm.reset({
+        name: '',
+        type: 'EXPENSE',
+        color: '#176b6c',
+        icon: '',
+      })
       setIsCreateOpen(false)
       await refreshAll()
       toast.success('Category created')
@@ -189,6 +197,7 @@ function CategoriesPage() {
       name: category.name,
       type: category.type,
       color: category.color ?? '#176b6c',
+      icon: category.icon ?? '',
     })
     setEditingCategory(category)
   }
@@ -468,6 +477,7 @@ function CategoriesPage() {
                   isActive={sortField === 'type'}
                   direction={sortDirection}
                 />
+                <TableHead>Icon</TableHead>
                 <TableHead>Color</TableHead>
                 <SortableHead
                   label="Status"
@@ -490,6 +500,13 @@ function CategoriesPage() {
                   </TableCell>
                   <TableCell className="font-medium">{category.name}</TableCell>
                   <TableCell>{category.type}</TableCell>
+                  <TableCell>
+                    {category.icon ? (
+                      <span className="text-lg">{category.icon}</span>
+                    ) : (
+                      <span className="text-[var(--muted-foreground)]">-</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <span
                       className="inline-flex h-5 w-5 rounded-full border border-[var(--border)]"
@@ -601,6 +618,19 @@ function CategoriesPage() {
                 </FormItem>
               )}
             />
+            <FormField
+              control={createForm.control}
+              name="icon"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Icon (emoji)</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="🍽️" maxLength={10} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <DialogFooter>
               <Button
                 type="button"
@@ -679,6 +709,23 @@ function CategoriesPage() {
               }
             />
           </div>
+          <div className="space-y-2">
+            <label htmlFor="edit-category-icon" className="text-sm font-medium">
+              Icon (emoji)
+            </label>
+            <Input
+              id="edit-category-icon"
+              value={editValues.icon}
+              onChange={(event) =>
+                setEditValues((current) => ({
+                  ...current,
+                  icon: event.target.value,
+                }))
+              }
+              placeholder="🍽️"
+              maxLength={10}
+            />
+          </div>
           <DialogFooter>
             <Button
               type="button"
@@ -731,6 +778,15 @@ function CategoriesPage() {
                   />
                   <p className="text-sm text-[var(--muted-foreground)]">
                     {viewingCategory.color ?? '#176b6c'}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Icon</label>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{viewingCategory.icon || '—'}</span>
+                  <p className="text-sm text-[var(--muted-foreground)]">
+                    {viewingCategory.icon ? 'Emoji' : 'No icon'}
                   </p>
                 </div>
               </div>

@@ -3,12 +3,17 @@ import {
   ArrowUpDown,
   Building2,
   CheckCircle2,
+  CreditCard,
   Eye,
+  Heart,
   Pencil,
+  PiggyBank,
   Plus,
   Search,
   ShieldBan,
+  Smartphone,
   Trash2,
+  Wallet,
 } from 'lucide-react'
 import {
   useEffect,
@@ -69,12 +74,38 @@ import {
 } from '#/lib/api'
 import {
   ACCOUNT_TYPE_OPTIONS,
-  ENTRY_MODE_OPTIONS,
   formatCurrency,
   formatShortDate,
-  getEntryModeLabel,
   paginateItems,
 } from '#/lib/finance'
+
+function getAccountIcon(iconName?: string | null) {
+  switch (iconName) {
+    case 'Building2':
+      return Building2
+    case 'PiggyBank':
+      return PiggyBank
+    case 'Heart':
+      return Heart
+    case 'CreditCard':
+      return CreditCard
+    case 'Smartphone':
+      return Smartphone
+    case 'Wallet':
+      return Wallet
+    default:
+      return Building2
+  }
+}
+
+const ACCOUNT_ICON_OPTIONS = [
+  { value: 'Building2', label: 'Building' },
+  { value: 'PiggyBank', label: 'Piggy Bank' },
+  { value: 'Heart', label: 'Heart' },
+  { value: 'CreditCard', label: 'Credit Card' },
+  { value: 'Smartphone', label: 'Smartphone' },
+  { value: 'Wallet', label: 'Wallet' },
+] as const
 
 export const Route = createFileRoute('/manage/accounts')({
   component: AccountsPage,
@@ -96,7 +127,7 @@ const accountSchema = z.object({
     .length(3, 'Use a 3-letter currency')
     .transform((value) => value.toUpperCase()),
   color: z.string().trim().min(1, 'Color is required').max(32),
-  entryMode: z.enum(['MANUAL', 'AUTOMATED']),
+  icon: z.string().trim().max(32).optional(),
   openingBalance: z.coerce.number().finite(),
   institutionName: z.string().trim().max(120).optional(),
   accountNumberMasked: z.string().trim().max(32).optional(),
@@ -108,7 +139,6 @@ type AccountSortField =
   | 'name'
   | 'type'
   | 'currency'
-  | 'entryMode'
   | 'openingBalance'
   | 'currentBalance'
   | 'updatedAt'
@@ -125,7 +155,7 @@ function getDefaultAccountValues(): AccountFormValues {
     type: 'CHECKING',
     currency: 'GHS',
     color: '#176b6c',
-    entryMode: 'MANUAL',
+    icon: '',
     openingBalance: 0,
     institutionName: '',
     accountNumberMasked: '',
@@ -138,7 +168,7 @@ function getAccountFormValues(account: Account): AccountFormValues {
     type: account.type as AccountFormValues['type'],
     currency: account.currency,
     color: account.color ?? '#176b6c',
-    entryMode: account.entryMode ?? 'MANUAL',
+    icon: account.icon ?? '',
     openingBalance: Number(account.openingBalance),
     institutionName: account.institutionName ?? '',
     accountNumberMasked: account.accountNumberMasked ?? '',
@@ -219,12 +249,6 @@ function AccountsPage() {
           return compareValues(left.type, right.type, sortDirection)
         case 'currency':
           return compareValues(left.currency, right.currency, sortDirection)
-        case 'entryMode':
-          return compareValues(
-            left.entryMode ?? 'MANUAL',
-            right.entryMode ?? 'MANUAL',
-            sortDirection
-          )
         case 'openingBalance':
           return compareValues(
             Number(left.openingBalance),
@@ -267,7 +291,7 @@ function AccountsPage() {
         type: values.type,
         currency: values.currency,
         color: values.color,
-        entryMode: values.entryMode,
+        icon: values.icon || undefined,
         openingBalance: values.openingBalance,
         currentBalance: values.openingBalance,
         institutionName: values.institutionName || undefined,
@@ -317,7 +341,7 @@ function AccountsPage() {
         type: result.data.type,
         currency: result.data.currency,
         color: result.data.color,
-        entryMode: result.data.entryMode,
+        icon: result.data.icon || undefined,
         openingBalance: result.data.openingBalance,
         institutionName: result.data.institutionName || undefined,
         accountNumberMasked: result.data.accountNumberMasked || undefined,
@@ -547,6 +571,7 @@ function AccountsPage() {
                   isActive={sortField === 'name'}
                   direction={sortDirection}
                 />
+                <TableHead>Icon</TableHead>
                 <TableHead>Status</TableHead>
                 <SortableHead
                   label="Type"
@@ -558,12 +583,6 @@ function AccountsPage() {
                   label="Currency"
                   onClick={() => updateSort('currency')}
                   isActive={sortField === 'currency'}
-                  direction={sortDirection}
-                />
-                <SortableHead
-                  label="Source"
-                  onClick={() => updateSort('entryMode')}
-                  isActive={sortField === 'entryMode'}
                   direction={sortDirection}
                 />
                 <SortableHead
@@ -622,13 +641,18 @@ function AccountsPage() {
                     </div>
                   </TableCell>
                   <TableCell>
+                    {(() => {
+                      const IconComponent = getAccountIcon(account.icon)
+                      return <IconComponent className="h-4 w-4" />
+                    })()}
+                  </TableCell>
+                  <TableCell>
                     <Badge variant={account.isArchived ? 'outline' : 'success'}>
                       {account.isArchived ? 'Disabled' : 'Enabled'}
                     </Badge>
                   </TableCell>
                   <TableCell>{account.type.replaceAll('_', ' ')}</TableCell>
                   <TableCell>{account.currency}</TableCell>
-                  <TableCell>{getEntryModeLabel(account.entryMode)}</TableCell>
                   <TableCell className="text-right">
                     {formatCurrency(account.openingBalance, account.currency)}
                   </TableCell>
@@ -768,10 +792,18 @@ function AccountsPage() {
                 </p>
               </div>
               <div>
-                <label className="text-sm font-medium">Entry Mode</label>
-                <p className="text-sm text-[var(--muted-foreground)]">
-                  {getEntryModeLabel(viewingAccount.entryMode)}
-                </p>
+                <label className="text-sm font-medium">Icon</label>
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const IconComponent = getAccountIcon(viewingAccount.icon)
+                    return <IconComponent className="h-4 w-4" />
+                  })()}
+                  <p className="text-sm text-[var(--muted-foreground)]">
+                    {ACCOUNT_ICON_OPTIONS.find(
+                      (option) => option.value === viewingAccount.icon
+                    )?.label || 'Building'}
+                  </p>
+                </div>
               </div>
               <div>
                 <label className="text-sm font-medium">Opening Balance</label>
@@ -942,17 +974,17 @@ function AccountFormFields({
 
         <FormField
           control={form.control}
-          name="entryMode"
+          name="icon"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Entry mode</FormLabel>
+              <FormLabel>Icon</FormLabel>
               <FormControl>
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {ENTRY_MODE_OPTIONS.map((option) => (
+                    {ACCOUNT_ICON_OPTIONS.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
                       </SelectItem>

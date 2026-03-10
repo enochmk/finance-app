@@ -43,7 +43,7 @@ class AccountsService {
         type: data.type,
         currency: data.currency ?? 'GHS',
         color: data.color ?? '#176b6c',
-        entryMode: data.entryMode ?? 'MANUAL',
+        icon: data.icon,
         openingBalance: data.openingBalance ?? 0,
         currentBalance: data.currentBalance ?? data.openingBalance ?? 0,
         institutionName: data.institutionName,
@@ -70,7 +70,7 @@ class AccountsService {
         type: data.type,
         currency: data.currency,
         color: data.color,
-        entryMode: data.entryMode,
+        icon: data.icon,
         openingBalance: data.openingBalance,
         currentBalance:
           data.currentBalance ??
@@ -139,7 +139,8 @@ class AccountsService {
           if (primaryBalance !== undefined) {
             balanceByAccountId.set(
               transaction.accountId,
-              primaryBalance + getBalanceDelta(transaction.type, amount, 'primary')
+              primaryBalance +
+                getBalanceDelta(transaction.type, amount, 'primary')
             );
           }
 
@@ -154,7 +155,8 @@ class AccountsService {
           if (transferBalance !== undefined) {
             balanceByAccountId.set(
               transaction.transferAccountId,
-              transferBalance + getBalanceDelta(transaction.type, amount, 'transfer')
+              transferBalance +
+                getBalanceDelta(transaction.type, amount, 'transfer')
             );
           }
         }
@@ -164,7 +166,8 @@ class AccountsService {
             where: { id: account.id },
             data: {
               currentBalance:
-                balanceByAccountId.get(account.id) ?? Number(account.openingBalance),
+                balanceByAccountId.get(account.id) ??
+                Number(account.openingBalance),
             },
           });
         }

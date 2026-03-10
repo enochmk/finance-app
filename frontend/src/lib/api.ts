@@ -19,7 +19,7 @@ export type Account = {
   type: string
   currency: string
   color?: string | null
-  entryMode?: 'MANUAL' | 'AUTOMATED'
+  icon?: string | null
   openingBalance: string | number
   currentBalance: string | number
   institutionName?: string | null
