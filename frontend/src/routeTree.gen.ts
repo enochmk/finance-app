@@ -15,6 +15,7 @@ import { Route as ManageRouteImport } from './routes/manage'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ManageIndexRouteImport } from './routes/manage.index'
 import { Route as ManageTransactionsRouteImport } from './routes/manage.transactions'
 import { Route as ManageCategoriesRouteImport } from './routes/manage.categories'
 import { Route as ManageAccountsRouteImport } from './routes/manage.accounts'
@@ -49,6 +50,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ManageIndexRoute = ManageIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ManageRoute,
+} as any)
 const ManageTransactionsRoute = ManageTransactionsRouteImport.update({
   id: '/transactions',
   path: '/transactions',
@@ -75,17 +81,18 @@ export interface FileRoutesByFullPath {
   '/manage/accounts': typeof ManageAccountsRoute
   '/manage/categories': typeof ManageCategoriesRoute
   '/manage/transactions': typeof ManageTransactionsRoute
+  '/manage/': typeof ManageIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/dashboard': typeof DashboardRoute
-  '/manage': typeof ManageRouteWithChildren
   '/reports': typeof ReportsRoute
   '/sign-in': typeof SignInRoute
   '/manage/accounts': typeof ManageAccountsRoute
   '/manage/categories': typeof ManageCategoriesRoute
   '/manage/transactions': typeof ManageTransactionsRoute
+  '/manage': typeof ManageIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +105,7 @@ export interface FileRoutesById {
   '/manage/accounts': typeof ManageAccountsRoute
   '/manage/categories': typeof ManageCategoriesRoute
   '/manage/transactions': typeof ManageTransactionsRoute
+  '/manage/': typeof ManageIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,17 +119,18 @@ export interface FileRouteTypes {
     | '/manage/accounts'
     | '/manage/categories'
     | '/manage/transactions'
+    | '/manage/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
     | '/dashboard'
-    | '/manage'
     | '/reports'
     | '/sign-in'
     | '/manage/accounts'
     | '/manage/categories'
     | '/manage/transactions'
+    | '/manage'
   id:
     | '__root__'
     | '/'
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/manage/accounts'
     | '/manage/categories'
     | '/manage/transactions'
+    | '/manage/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -188,6 +198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/manage/': {
+      id: '/manage/'
+      path: '/'
+      fullPath: '/manage/'
+      preLoaderRoute: typeof ManageIndexRouteImport
+      parentRoute: typeof ManageRoute
+    }
     '/manage/transactions': {
       id: '/manage/transactions'
       path: '/transactions'
@@ -216,12 +233,14 @@ interface ManageRouteChildren {
   ManageAccountsRoute: typeof ManageAccountsRoute
   ManageCategoriesRoute: typeof ManageCategoriesRoute
   ManageTransactionsRoute: typeof ManageTransactionsRoute
+  ManageIndexRoute: typeof ManageIndexRoute
 }
 
 const ManageRouteChildren: ManageRouteChildren = {
   ManageAccountsRoute: ManageAccountsRoute,
   ManageCategoriesRoute: ManageCategoriesRoute,
   ManageTransactionsRoute: ManageTransactionsRoute,
+  ManageIndexRoute: ManageIndexRoute,
 }
 
 const ManageRouteWithChildren =
