@@ -16,7 +16,6 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ManageTransactionsRouteImport } from './routes/manage.transactions'
-import { Route as ManageRecurringRouteImport } from './routes/manage.recurring'
 import { Route as ManageCategoriesRouteImport } from './routes/manage.categories'
 import { Route as ManageBudgetsRouteImport } from './routes/manage.budgets'
 import { Route as ManageAccountsRouteImport } from './routes/manage.accounts'
@@ -56,11 +55,6 @@ const ManageTransactionsRoute = ManageTransactionsRouteImport.update({
   path: '/transactions',
   getParentRoute: () => ManageRoute,
 } as any)
-const ManageRecurringRoute = ManageRecurringRouteImport.update({
-  id: '/recurring',
-  path: '/recurring',
-  getParentRoute: () => ManageRoute,
-} as any)
 const ManageCategoriesRoute = ManageCategoriesRouteImport.update({
   id: '/categories',
   path: '/categories',
@@ -87,7 +81,6 @@ export interface FileRoutesByFullPath {
   '/manage/accounts': typeof ManageAccountsRoute
   '/manage/budgets': typeof ManageBudgetsRoute
   '/manage/categories': typeof ManageCategoriesRoute
-  '/manage/recurring': typeof ManageRecurringRoute
   '/manage/transactions': typeof ManageTransactionsRoute
 }
 export interface FileRoutesByTo {
@@ -100,7 +93,6 @@ export interface FileRoutesByTo {
   '/manage/accounts': typeof ManageAccountsRoute
   '/manage/budgets': typeof ManageBudgetsRoute
   '/manage/categories': typeof ManageCategoriesRoute
-  '/manage/recurring': typeof ManageRecurringRoute
   '/manage/transactions': typeof ManageTransactionsRoute
 }
 export interface FileRoutesById {
@@ -114,7 +106,6 @@ export interface FileRoutesById {
   '/manage/accounts': typeof ManageAccountsRoute
   '/manage/budgets': typeof ManageBudgetsRoute
   '/manage/categories': typeof ManageCategoriesRoute
-  '/manage/recurring': typeof ManageRecurringRoute
   '/manage/transactions': typeof ManageTransactionsRoute
 }
 export interface FileRouteTypes {
@@ -129,7 +120,6 @@ export interface FileRouteTypes {
     | '/manage/accounts'
     | '/manage/budgets'
     | '/manage/categories'
-    | '/manage/recurring'
     | '/manage/transactions'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -142,7 +132,6 @@ export interface FileRouteTypes {
     | '/manage/accounts'
     | '/manage/budgets'
     | '/manage/categories'
-    | '/manage/recurring'
     | '/manage/transactions'
   id:
     | '__root__'
@@ -155,7 +144,6 @@ export interface FileRouteTypes {
     | '/manage/accounts'
     | '/manage/budgets'
     | '/manage/categories'
-    | '/manage/recurring'
     | '/manage/transactions'
   fileRoutesById: FileRoutesById
 }
@@ -219,13 +207,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ManageTransactionsRouteImport
       parentRoute: typeof ManageRoute
     }
-    '/manage/recurring': {
-      id: '/manage/recurring'
-      path: '/recurring'
-      fullPath: '/manage/recurring'
-      preLoaderRoute: typeof ManageRecurringRouteImport
-      parentRoute: typeof ManageRoute
-    }
     '/manage/categories': {
       id: '/manage/categories'
       path: '/categories'
@@ -254,7 +235,6 @@ interface ManageRouteChildren {
   ManageAccountsRoute: typeof ManageAccountsRoute
   ManageBudgetsRoute: typeof ManageBudgetsRoute
   ManageCategoriesRoute: typeof ManageCategoriesRoute
-  ManageRecurringRoute: typeof ManageRecurringRoute
   ManageTransactionsRoute: typeof ManageTransactionsRoute
 }
 
@@ -262,7 +242,6 @@ const ManageRouteChildren: ManageRouteChildren = {
   ManageAccountsRoute: ManageAccountsRoute,
   ManageBudgetsRoute: ManageBudgetsRoute,
   ManageCategoriesRoute: ManageCategoriesRoute,
-  ManageRecurringRoute: ManageRecurringRoute,
   ManageTransactionsRoute: ManageTransactionsRoute,
 }
 

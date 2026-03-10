@@ -461,60 +461,6 @@ function DashboardPage() {
               </Card>
             </div>
 
-            <Card>
-              <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <CardTitle>Recurring schedule</CardTitle>
-                  <CardDescription>
-                    Upcoming automated items that will affect this account.
-                  </CardDescription>
-                </div>
-                <Button variant="outline" asChild>
-                  <Link to="/manage/recurring">Manage recurring items</Link>
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {data.recurringTransactions.length === 0 ? (
-                  <Alert>
-                    <AlertTitle>No recurring schedules yet</AlertTitle>
-                    <AlertDescription>
-                      Create recurring transactions to preview future automated
-                      cash flow for this account.
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Frequency</TableHead>
-                        <TableHead>Direction</TableHead>
-                        <TableHead className="text-right">Next run</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data.recurringTransactions.map((transaction) => (
-                        <TableRow key={transaction.id}>
-                          <TableCell className="font-medium">
-                            {transaction.description}
-                          </TableCell>
-                          <TableCell>{transaction.frequency}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {getTransactionTypeLabel(transaction.type)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {new Date(transaction.nextRunAt).toLocaleString()}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-
             <Tabs defaultValue="activity" className="space-y-4">
               <TabsList>
                 <TabsTrigger value="activity">Activity</TabsTrigger>

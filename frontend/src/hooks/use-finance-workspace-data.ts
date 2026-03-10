@@ -4,12 +4,10 @@ import {
   getAccounts,
   getBudgets,
   getCategories,
-  getRecurringTransactions,
   getTransactions,
   type Account,
   type Budget,
   type Category,
-  type RecurringTransaction,
   type Transaction,
 } from '#/lib/api'
 
@@ -18,7 +16,6 @@ type FinanceWorkspaceData = {
   categories: Category[]
   budgets: Budget[]
   transactions: Transaction[]
-  recurringTransactions: RecurringTransaction[]
 }
 
 const EMPTY_DATA: FinanceWorkspaceData = {
@@ -26,7 +23,6 @@ const EMPTY_DATA: FinanceWorkspaceData = {
   categories: [],
   budgets: [],
   transactions: [],
-  recurringTransactions: [],
 }
 
 function sortCategoriesForWorkspace(categories: Category[]) {
@@ -49,21 +45,18 @@ export function useFinanceWorkspaceData(enabled: boolean) {
   const [error, setError] = useState<string | null>(null)
 
   const refreshAll = useCallback(async () => {
-    const [accounts, categories, budgets, transactions, recurringTransactions] =
-      await Promise.all([
-        getAccounts(),
-        getCategories(),
-        getBudgets(),
-        getTransactions(),
-        getRecurringTransactions(),
-      ])
+    const [accounts, categories, budgets, transactions] = await Promise.all([
+      getAccounts(),
+      getCategories(),
+      getBudgets(),
+      getTransactions(),
+    ])
 
     setData({
       accounts,
       categories: sortCategoriesForWorkspace(categories),
       budgets,
       transactions,
-      recurringTransactions,
     })
     setError(null)
   }, [])
@@ -85,13 +78,11 @@ export function useFinanceWorkspaceData(enabled: boolean) {
           categories,
           budgets,
           transactions,
-          recurringTransactions,
         ] = await Promise.all([
           getAccounts(),
           getCategories(),
           getBudgets(),
           getTransactions(),
-          getRecurringTransactions(),
         ])
 
         if (!cancelled) {
@@ -100,7 +91,6 @@ export function useFinanceWorkspaceData(enabled: boolean) {
             categories: sortCategoriesForWorkspace(categories),
             budgets,
             transactions,
-            recurringTransactions,
           })
           setError(null)
         }

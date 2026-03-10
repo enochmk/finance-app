@@ -59,26 +59,6 @@ export type Transaction = {
   transferAccount?: Account | null
 }
 
-export type RecurringTransaction = {
-  id: string
-  type: string
-  amount: string | number
-  description: string
-  notes?: string | null
-  frequency: string
-  intervalCount: number
-  dayOfMonth?: number | null
-  dayOfWeek?: number | null
-  startDate: string
-  endDate?: string | null
-  nextRunAt: string
-  lastRunAt?: string | null
-  status: string
-  account: Account
-  category: Category | null
-  transferAccount?: Account | null
-}
-
 export type DashboardSummary = {
   period: {
     month: number
@@ -129,30 +109,6 @@ export type DashboardSummary = {
       color: string | null
       icon: string | null
     }
-  }>
-  recurringTransactions: Array<{
-    id: string
-    description: string
-    type: string
-    amount: number
-    frequency: string
-    nextRunAt: string
-    status: string
-    account: {
-      id: string
-      name: string
-      currency: string
-    }
-    transferAccount: {
-      id: string
-      name: string
-      currency: string
-    } | null
-    category: {
-      id: string
-      name: string
-      type: string
-    } | null
   }>
   recentTransactions: Array<{
     id: string
@@ -495,78 +451,6 @@ export async function deleteTransaction(id: string) {
   return request<Transaction>(`/transactions/${id}`, {
     method: 'DELETE',
   })
-}
-
-export async function getRecurringTransactions() {
-  return request<RecurringTransaction[]>('/recurring-transactions')
-}
-
-export async function createRecurringTransaction(payload: {
-  accountId: string
-  categoryId?: string
-  transferAccountId?: string
-  type: string
-  amount: number
-  description: string
-  notes?: string
-  frequency: string
-  intervalCount?: number
-  dayOfMonth?: number
-  dayOfWeek?: number
-  startDate: string
-  endDate?: string
-  status?: string
-  externalReference?: string
-}) {
-  return request<RecurringTransaction>('/recurring-transactions', {
-    method: 'POST',
-    body: payload,
-  })
-}
-
-export async function updateRecurringTransaction(
-  id: string,
-  payload: {
-    accountId?: string
-    categoryId?: string
-    transferAccountId?: string
-    type?: string
-    amount?: number
-    description?: string
-    notes?: string
-    frequency?: string
-    intervalCount?: number
-    dayOfMonth?: number
-    dayOfWeek?: number
-    startDate?: string
-    endDate?: string
-    status?: string
-    externalReference?: string
-  }
-) {
-  return request<RecurringTransaction>(`/recurring-transactions/${id}`, {
-    method: 'PATCH',
-    body: payload,
-  })
-}
-
-export async function deleteRecurringTransaction(id: string) {
-  return request<RecurringTransaction>(`/recurring-transactions/${id}`, {
-    method: 'DELETE',
-  })
-}
-
-export async function runRecurringTransactions(payload?: { upTo?: string }) {
-  const search = payload?.upTo
-    ? `?${new URLSearchParams({ upTo: payload.upTo }).toString()}`
-    : ''
-
-  return request<{ processedCount: number; createdTransactionIds: string[] }>(
-    `/recurring-transactions/run-due${search}`,
-    {
-      method: 'POST',
-    }
-  )
 }
 
 export async function loginWithSeedUser() {
