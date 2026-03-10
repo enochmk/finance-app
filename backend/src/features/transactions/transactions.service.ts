@@ -13,6 +13,7 @@ export type TransactionOwnershipValidationData = {
   categoryId?: string;
   type: CreateTransactionBody['type'];
   transferAccountId?: string;
+  allowArchivedAccountIds?: string[];
 };
 
 function getBalanceDelta(
@@ -219,7 +220,12 @@ class TransactionsService {
   };
 
   validateOwnership = async (data: TransactionOwnershipValidationData) => {
-    await this.ensureOwnedAccount(data.accountId, data.userId, 'account');
+    await this.ensureOwnedAccount(
+      data.accountId,
+      data.userId,
+      'account',
+      data.allowArchivedAccountIds?.includes(data.accountId) ?? false
+    );
 
     if (data.categoryId) {
       await this.ensureOwnedCategory(data.categoryId, data.userId);
@@ -236,7 +242,8 @@ class TransactionsService {
       await this.ensureOwnedAccount(
         data.transferAccountId,
         data.userId,
-        'transfer account'
+        'transfer account',
+        data.allowArchivedAccountIds?.includes(data.transferAccountId) ?? false
       );
 
       if (data.transferAccountId === data.accountId) {
@@ -274,6 +281,10 @@ class TransactionsService {
         data.transferAccountId === undefined
           ? (existingTransaction.transferAccountId ?? undefined)
           : data.transferAccountId,
+      allowArchivedAccountIds: [
+        existingTransaction.accountId,
+        existingTransaction.transferAccountId,
+      ].filter((value): value is string => Boolean(value)),
     };
   };
 
@@ -306,15 +317,20 @@ class TransactionsService {
   private ensureOwnedAccount = async (
     id: string,
     userId: string,
-    label: 'account' | 'transfer account'
+    label: 'account' | 'transfer account',
+    allowArchived = false
   ) => {
     const account = await prisma.account.findFirst({
       where: { id, userId },
-      select: { id: true },
+      select: { id: true, isArchived: true },
     });
 
     if (!account) {
       throw createHttpError(404, `${label} not found`);
+    }
+
+    if (account.isArchived && !allowArchived) {
+      throw createHttpError(409, `${label} is disabled`);
     }
   };
 

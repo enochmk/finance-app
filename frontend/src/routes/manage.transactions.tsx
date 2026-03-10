@@ -117,6 +117,35 @@ function TransactionsPage() {
 
   const watchedCreateType = createForm.watch('type')
 
+  const availableAccounts = useMemo(
+    () => accounts.filter((account) => !account.isArchived),
+    [accounts]
+  )
+
+  const editAccountOptions = useMemo(() => {
+    if (!editingTransaction) {
+      return availableAccounts
+    }
+
+    return accounts.filter(
+      (account) => !account.isArchived || account.id === editingTransaction.account.id
+    )
+  }, [accounts, availableAccounts, editingTransaction])
+
+  const editTransferAccountOptions = useMemo(() => {
+    if (!editingTransaction) {
+      return availableAccounts.filter(
+        (account) => account.id !== editValues.accountId
+      )
+    }
+
+    return accounts.filter(
+      (account) =>
+        account.id !== editValues.accountId &&
+        (!account.isArchived || account.id === editingTransaction.transferAccount?.id)
+    )
+  }, [accounts, availableAccounts, editValues.accountId, editingTransaction])
+
   const filteredTransactions = useMemo(() => {
     return transactions.filter((transaction) => {
       const query = search.toLowerCase()
@@ -422,8 +451,8 @@ function TransactionsPage() {
                         <SelectTrigger>
                           <SelectValue placeholder="Select account" />
                         </SelectTrigger>
-                        <SelectContent>
-                          {accounts.map((account) => (
+                          <SelectContent>
+                          {availableAccounts.map((account) => (
                             <SelectItem key={account.id} value={account.id}>
                               {account.name}
                             </SelectItem>
@@ -451,7 +480,7 @@ function TransactionsPage() {
                             <SelectValue placeholder="Select destination account" />
                           </SelectTrigger>
                           <SelectContent>
-                            {accounts
+                            {availableAccounts
                               .filter(
                                 (account) =>
                                   account.id !== createForm.watch('accountId')
@@ -648,7 +677,7 @@ function TransactionsPage() {
                 <SelectValue placeholder="Account" />
               </SelectTrigger>
               <SelectContent>
-                {accounts.map((account) => (
+                {editAccountOptions.map((account) => (
                   <SelectItem key={account.id} value={account.id}>
                     {account.name}
                   </SelectItem>
@@ -669,8 +698,7 @@ function TransactionsPage() {
                   <SelectValue placeholder="Transfer account" />
                 </SelectTrigger>
                 <SelectContent>
-                  {accounts
-                    .filter((account) => account.id !== editValues.accountId)
+                  {editTransferAccountOptions
                     .map((account) => (
                       <SelectItem key={account.id} value={account.id}>
                         {account.name}

@@ -25,6 +25,8 @@ export type Account = {
   institutionName?: string | null
   accountNumberMasked?: string | null
   isArchived: boolean
+  createdAt?: string
+  updatedAt?: string
 }
 
 export type Category = {
@@ -242,7 +244,19 @@ async function request<T>(
   })
 
   if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`)
+    let message = `Request failed with status ${response.status}`
+
+    const contentType = response.headers.get('content-type')
+
+    if (contentType?.includes('application/json')) {
+      const errorBody = (await response.json()) as { message?: string }
+
+      if (errorBody.message) {
+        message = errorBody.message
+      }
+    }
+
+    throw new Error(message)
   }
 
   const json = (await response.json()) as { data: T }

@@ -1,6 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Pencil, Trash2 } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
+import {
+  ArrowUpDown,
+  CheckCircle2,
+  Pencil,
+  Plus,
+  Search,
+  ShieldBan,
+  Trash2,
+} from 'lucide-react'
+import { useEffect, useMemo, useState, type Dispatch, type FormEvent, type SetStateAction } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -23,6 +31,7 @@ import {
   FormLabel,
   FormMessage,
 } from '#/components/ui/form'
+import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
 import { DialogFooter } from '#/components/ui/dialog'
 import { Input } from '#/components/ui/input'
@@ -53,6 +62,7 @@ import {
   ACCOUNT_TYPE_OPTIONS,
   ENTRY_MODE_OPTIONS,
   formatCurrency,
+  formatShortDate,
   getEntryModeLabel,
   paginateItems,
 } from '#/lib/finance'
@@ -61,56 +71,180 @@ export const Route = createFileRoute('/manage/accounts')({
   component: AccountsPage,
 })
 
+const accountTypeValues = ACCOUNT_TYPE_OPTIONS.map((option) => option.value) as [
+  (typeof ACCOUNT_TYPE_OPTIONS)[number]['value'],
+  ...(typeof ACCOUNT_TYPE_OPTIONS)[number]['value'][],
+]
+
 const accountSchema = z.object({
   name: z.string().trim().min(1, 'Account name is required').max(120),
-type: z.enum([
-    'CASH',
-    'CHECKING',
-    'SAVINGS',
-    'CREDIT_CARD',
-    'INVESTMENT',
-    'LOAN',
-  ]),
-  currency: z.string().trim().length(3, 'Use a 3-letter currency'),
-  color: z.string().trim().min(1, 'Color is required'),
+  type: z.enum(accountTypeValues),
+  currency: z
+    .string()
+    .trim()
+    .length(3, 'Use a 3-letter currency')
+    .transform((value) => value.toUpperCase()),
+  color: z.string().trim().min(1, 'Color is required').max(32),
   entryMode: z.enum(['MANUAL', 'AUTOMATED']),
   openingBalance: z.coerce.number().finite(),
+  institutionName: z.string().trim().max(120).optional(),
+  accountNumberMasked: z.string().trim().max(32).optional(),
 })
 
-function AccountsPage() {
-  const { isAuthenticated } = useSession()
-  const { isLoading: isSessionLoading } = useProtectedRoute()
-  const { accounts, error, refreshAll } =
-    useFinanceWorkspaceData(isAuthenticated)
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [editingAccount, setEditingAccount] = useState<Account | null>(null)
-  const [deletingAccount, setDeletingAccount] = useState<Account | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
+type AccountFormValues = z.infer<typeof accountSchema>
+type AccountStatusFilter = 'ALL' | 'ENABLED' | 'DISABLED'
+type AccountSortField =
+  | 'name'
+  | 'type'
+  | 'currency'
+  | 'entryMode'
+  | 'openingBalance'
+  | 'currentBalance'
+  | 'updatedAt'
+type SortDirection = 'asc' | 'desc'
 
-  type AccountFormValues = z.infer<typeof accountSchema>
+type EditAccountState = {
+  account: Account
+  values: AccountFormValues
+}
 
-  const createForm = useForm<z.infer<typeof accountSchema>>({
-    resolver: zodResolver(accountSchema),
-    defaultValues: {
-      name: '',
-      type: 'CHECKING',
-      currency: 'GHS',
-      color: '#176b6c',
-      entryMode: 'MANUAL',
-      openingBalance: 0,
-    },
-  })
-
-  const [editValues, setEditValues] = useState({
+function getDefaultAccountValues(): AccountFormValues {
+  return {
     name: '',
     type: 'CHECKING',
     currency: 'GHS',
     color: '#176b6c',
-    entryMode: 'MANUAL' as 'MANUAL' | 'AUTOMATED',
-    currentBalance: '0',
+    entryMode: 'MANUAL',
+    openingBalance: 0,
+    institutionName: '',
+    accountNumberMasked: '',
+  }
+}
+
+function getAccountFormValues(account: Account): AccountFormValues {
+  return {
+    name: account.name,
+    type: account.type as AccountFormValues['type'],
+    currency: account.currency,
+    color: account.color ?? '#176b6c',
+    entryMode: account.entryMode ?? 'MANUAL',
+    openingBalance: Number(account.openingBalance),
+    institutionName: account.institutionName ?? '',
+    accountNumberMasked: account.accountNumberMasked ?? '',
+  }
+}
+
+function compareValues(
+  left: string | number,
+  right: string | number,
+  direction: SortDirection
+) {
+  const multiplier = direction === 'asc' ? 1 : -1
+
+  if (typeof left === 'number' && typeof right === 'number') {
+    return (left - right) * multiplier
+  }
+
+  return String(left).localeCompare(String(right)) * multiplier
+}
+
+function AccountsPage() {
+  const { isAuthenticated } = useSession()
+  const { isLoading: isSessionLoading } = useProtectedRoute()
+  const { accounts, error, isLoading, refreshAll } =
+    useFinanceWorkspaceData(isAuthenticated)
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [editingAccount, setEditingAccount] = useState<EditAccountState | null>(null)
+  const [deletingAccount, setDeletingAccount] = useState<Account | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<AccountStatusFilter>('ALL')
+  const [typeFilter, setTypeFilter] = useState('ALL')
+  const [sortField, setSortField] = useState<AccountSortField>('updatedAt')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
+
+  const createForm = useForm<AccountFormValues>({
+    resolver: zodResolver(accountSchema),
+    defaultValues: getDefaultAccountValues(),
   })
 
-  const paginatedAccounts = paginateItems(accounts, currentPage, 8)
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search, statusFilter, typeFilter, sortField, sortDirection])
+
+  const filteredAccounts = useMemo(() => {
+    return accounts.filter((account) => {
+      const query = search.trim().toLowerCase()
+      const matchesSearch =
+        query.length === 0 ||
+        account.name.toLowerCase().includes(query) ||
+        account.currency.toLowerCase().includes(query) ||
+        account.type.replaceAll('_', ' ').toLowerCase().includes(query) ||
+        (account.institutionName ?? '').toLowerCase().includes(query) ||
+        (account.accountNumberMasked ?? '').toLowerCase().includes(query)
+
+      const matchesStatus =
+        statusFilter === 'ALL' ||
+        (statusFilter === 'ENABLED' && !account.isArchived) ||
+        (statusFilter === 'DISABLED' && account.isArchived)
+
+      const matchesType = typeFilter === 'ALL' || account.type === typeFilter
+
+      return matchesSearch && matchesStatus && matchesType
+    })
+  }, [accounts, search, statusFilter, typeFilter])
+
+  const sortedAccounts = useMemo(() => {
+    const items = [...filteredAccounts]
+
+    items.sort((left, right) => {
+      switch (sortField) {
+        case 'name':
+          return compareValues(left.name, right.name, sortDirection)
+        case 'type':
+          return compareValues(left.type, right.type, sortDirection)
+        case 'currency':
+          return compareValues(left.currency, right.currency, sortDirection)
+        case 'entryMode':
+          return compareValues(
+            left.entryMode ?? 'MANUAL',
+            right.entryMode ?? 'MANUAL',
+            sortDirection
+          )
+        case 'openingBalance':
+          return compareValues(
+            Number(left.openingBalance),
+            Number(right.openingBalance),
+            sortDirection
+          )
+        case 'currentBalance':
+          return compareValues(
+            Number(left.currentBalance),
+            Number(right.currentBalance),
+            sortDirection
+          )
+        case 'updatedAt':
+        default:
+          return compareValues(
+            new Date(left.updatedAt ?? 0).getTime(),
+            new Date(right.updatedAt ?? 0).getTime(),
+            sortDirection
+          )
+      }
+    })
+
+    return items
+  }, [filteredAccounts, sortDirection, sortField])
+
+  const paginatedAccounts = paginateItems(sortedAccounts, currentPage, 8)
+
+  const accountCounts = useMemo(() => {
+    return {
+      total: accounts.length,
+      enabled: accounts.filter((account) => !account.isArchived).length,
+      disabled: accounts.filter((account) => account.isArchived).length,
+    }
+  }, [accounts])
 
   async function handleCreateAccount(values: AccountFormValues) {
     try {
@@ -122,16 +256,11 @@ function AccountsPage() {
         entryMode: values.entryMode,
         openingBalance: values.openingBalance,
         currentBalance: values.openingBalance,
+        institutionName: values.institutionName || undefined,
+        accountNumberMasked: values.accountNumberMasked || undefined,
       })
 
-      createForm.reset({
-        name: '',
-        type: 'CHECKING',
-        currency: 'GHS',
-        color: '#176b6c',
-        entryMode: 'MANUAL',
-        openingBalance: 0,
-      })
+      createForm.reset(getDefaultAccountValues())
       setIsCreateOpen(false)
       await refreshAll()
       toast.success('Account created')
@@ -144,15 +273,10 @@ function AccountsPage() {
   }
 
   function openEditAccount(account: Account) {
-    setEditValues({
-      name: account.name,
-      type: account.type,
-      currency: account.currency,
-      color: account.color ?? '#176b6c',
-      entryMode: account.entryMode ?? 'MANUAL',
-      currentBalance: String(account.currentBalance),
+    setEditingAccount({
+      account,
+      values: getAccountFormValues(account),
     })
-    setEditingAccount(account)
   }
 
   async function submitEditAccount(event: FormEvent<HTMLFormElement>) {
@@ -162,15 +286,28 @@ function AccountsPage() {
       return
     }
 
-    try {
-      await updateAccount(editingAccount.id, {
-        name: editValues.name,
-        type: editValues.type,
-        currency: editValues.currency,
-        color: editValues.color,
-        entryMode: editValues.entryMode,
-        currentBalance: Number(editValues.currentBalance),
+    const result = accountSchema.safeParse(editingAccount.values)
+
+    if (!result.success) {
+      const firstIssue = result.error.issues[0]?.message ?? 'Check the account details'
+      toast.error('Unable to update account', {
+        description: firstIssue,
       })
+      return
+    }
+
+    try {
+      await updateAccount(editingAccount.account.id, {
+        name: result.data.name,
+        type: result.data.type,
+        currency: result.data.currency,
+        color: result.data.color,
+        entryMode: result.data.entryMode,
+        openingBalance: result.data.openingBalance,
+        institutionName: result.data.institutionName || undefined,
+        accountNumberMasked: result.data.accountNumberMasked || undefined,
+      })
+
       await refreshAll()
       setEditingAccount(null)
       toast.success('Account updated')
@@ -178,6 +315,22 @@ function AccountsPage() {
       toast.error('Unable to update account', {
         description:
           updateError instanceof Error ? updateError.message : 'Request failed',
+      })
+    }
+  }
+
+  async function toggleAccountStatus(account: Account) {
+    try {
+      await updateAccount(account.id, {
+        isArchived: !account.isArchived,
+      })
+
+      await refreshAll()
+      toast.success(account.isArchived ? 'Account enabled' : 'Account disabled')
+    } catch (toggleError) {
+      toast.error('Unable to update account status', {
+        description:
+          toggleError instanceof Error ? toggleError.message : 'Request failed',
       })
     }
   }
@@ -200,6 +353,16 @@ function AccountsPage() {
     }
   }
 
+  function updateSort(field: AccountSortField) {
+    if (sortField === field) {
+      setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
+      return
+    }
+
+    setSortField(field)
+    setSortDirection(field === 'name' ? 'asc' : 'desc')
+  }
+
   if (!isAuthenticated && !isSessionLoading) {
     return null
   }
@@ -208,16 +371,25 @@ function AccountsPage() {
     <CrudPageShell
       badge="Finance workspace"
       title="Accounts"
-      description="Manage the finance buckets that power your balances, transactions, and account dashboard."
+      description="Create, edit, disable, and retire money buckets without losing control of dashboard visibility or transaction safety."
       navigation={<FinanceSectionNav />}
       actions={
-        <Button onClick={() => setIsCreateOpen(true)}>Add account</Button>
+        <Button onClick={() => setIsCreateOpen(true)}>
+          <Plus className="h-4 w-4" />
+          Add account
+        </Button>
       }
     >
+      <div className="grid gap-4 md:grid-cols-3">
+        <AccountStatCard label="Total accounts" value={accountCounts.total} />
+        <AccountStatCard label="Enabled" value={accountCounts.enabled} />
+        <AccountStatCard label="Disabled" value={accountCounts.disabled} />
+      </div>
+
       {error ? (
         <CrudTableCard
           title="Accounts"
-          description="Personal finance buckets such as savings, mobile money, wedding, and bank accounts."
+          description="Manage the accounts that power balances, dashboard views, and transaction sources."
           emptyTitle="Accounts unavailable"
           emptyDescription={error}
           isEmpty
@@ -227,12 +399,100 @@ function AccountsPage() {
       ) : (
         <CrudTableCard
           title="Accounts"
-          description="Personal finance buckets such as savings, mobile money, wedding, and bank accounts."
-          emptyTitle="No accounts yet"
-          emptyDescription="Create an account to start tracking balances across your workspace."
-          isEmpty={accounts.length === 0}
+          description="Track account health, search quickly, and control which accounts stay active in the workspace."
+          emptyTitle={
+            accounts.length === 0 ? 'No accounts yet' : 'No accounts match your filters'
+          }
+          emptyDescription={
+            accounts.length === 0
+              ? 'Create the first account to start tracking balances and transactions.'
+              : 'Adjust the search, filters, or sorting to find the account you need.'
+          }
+          isEmpty={sortedAccounts.length === 0}
+          toolbar={
+            <div className="grid gap-4 xl:grid-cols-[1.2fr_220px_220px_220px]">
+              <div className="flex flex-col gap-2">
+                <label htmlFor="account-search" className="text-sm font-medium">
+                  Search accounts
+                </label>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+                  <Input
+                    id="account-search"
+                    placeholder="Name, type, currency, institution"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label htmlFor="account-status-filter" className="text-sm font-medium">
+                  Status
+                </label>
+                <Select
+                  value={statusFilter}
+                  onValueChange={(value) =>
+                    setStatusFilter(value as AccountStatusFilter)
+                  }
+                >
+                  <SelectTrigger id="account-status-filter">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All statuses</SelectItem>
+                    <SelectItem value="ENABLED">Enabled only</SelectItem>
+                    <SelectItem value="DISABLED">Disabled only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label htmlFor="account-type-filter" className="text-sm font-medium">
+                  Type
+                </label>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger id="account-type-filter">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All types</SelectItem>
+                    {ACCOUNT_TYPE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label htmlFor="account-sort-field" className="text-sm font-medium">
+                  Sort by
+                </label>
+                <Select
+                  value={sortField}
+                  onValueChange={(value) => updateSort(value as AccountSortField)}
+                >
+                  <SelectTrigger id="account-sort-field">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="updatedAt">Last updated</SelectItem>
+                    <SelectItem value="name">Name</SelectItem>
+                    <SelectItem value="type">Type</SelectItem>
+                    <SelectItem value="currency">Currency</SelectItem>
+                    <SelectItem value="entryMode">Entry mode</SelectItem>
+                    <SelectItem value="openingBalance">Opening balance</SelectItem>
+                    <SelectItem value="currentBalance">Current balance</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          }
           footer={
-            accounts.length > 0 ? (
+            sortedAccounts.length > 0 ? (
               <PaginationControls
                 currentPage={paginatedAccounts.currentPage}
                 totalPages={paginatedAccounts.totalPages}
@@ -246,35 +506,92 @@ function AccountsPage() {
         >
           <Table>
             <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Purpose</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead className="text-right">Balance</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
+              <TableRow>
+                <SortableHead
+                  label="Account"
+                  onClick={() => updateSort('name')}
+                  isActive={sortField === 'name'}
+                  direction={sortDirection}
+                />
+                <TableHead>Status</TableHead>
+                <SortableHead
+                  label="Type"
+                  onClick={() => updateSort('type')}
+                  isActive={sortField === 'type'}
+                  direction={sortDirection}
+                />
+                <SortableHead
+                  label="Currency"
+                  onClick={() => updateSort('currency')}
+                  isActive={sortField === 'currency'}
+                  direction={sortDirection}
+                />
+                <SortableHead
+                  label="Source"
+                  onClick={() => updateSort('entryMode')}
+                  isActive={sortField === 'entryMode'}
+                  direction={sortDirection}
+                />
+                <SortableHead
+                  label="Opening"
+                  onClick={() => updateSort('openingBalance')}
+                  isActive={sortField === 'openingBalance'}
+                  direction={sortDirection}
+                  className="text-right"
+                />
+                <SortableHead
+                  label="Balance"
+                  onClick={() => updateSort('currentBalance')}
+                  isActive={sortField === 'currentBalance'}
+                  direction={sortDirection}
+                  className="text-right"
+                />
+                <SortableHead
+                  label="Updated"
+                  onClick={() => updateSort('updatedAt')}
+                  isActive={sortField === 'updatedAt'}
+                  direction={sortDirection}
+                />
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedAccounts.pageItems.map((account) => (
                 <TableRow key={account.id}>
                   <TableCell>
                     <div>
-                      <p className="font-medium text-[var(--foreground)]">
-                        {account.name}
-                      </p>
-                      <div className="mt-2 flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+                      <div className="flex items-center gap-3">
                         <span
-                          className="inline-flex h-3 w-3 rounded-full border border-[var(--border)]"
+                          className="inline-flex h-3.5 w-3.5 rounded-full border border-[var(--border)]"
                           style={{ backgroundColor: account.color ?? '#176b6c' }}
                         />
-                        <span>{account.isArchived ? 'Closed' : 'Open'}</span>
+                        <div>
+                          <p className="font-medium text-[var(--foreground)]">
+                            {account.name}
+                          </p>
+                          <p className="text-xs text-[var(--muted-foreground)]">
+                            {account.institutionName || account.accountNumberMasked || 'No institution details'}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </TableCell>
+                  <TableCell>
+                    <Badge variant={account.isArchived ? 'outline' : 'success'}>
+                      {account.isArchived ? 'Disabled' : 'Enabled'}
+                    </Badge>
+                  </TableCell>
                   <TableCell>{account.type.replaceAll('_', ' ')}</TableCell>
+                  <TableCell>{account.currency}</TableCell>
                   <TableCell>{getEntryModeLabel(account.entryMode)}</TableCell>
                   <TableCell className="text-right">
+                    {formatCurrency(account.openingBalance, account.currency)}
+                  </TableCell>
+                  <TableCell className="text-right">
                     {formatCurrency(account.currentBalance, account.currency)}
+                  </TableCell>
+                  <TableCell>
+                    {account.updatedAt ? formatShortDate(account.updatedAt) : 'Just now'}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end">
@@ -286,27 +603,11 @@ function AccountsPage() {
                             icon: Pencil,
                           },
                           {
-                            label: account.isArchived ? 'Reopen' : 'Close',
-                            onSelect: async () => {
-                              try {
-                                await updateAccount(account.id, {
-                                  isArchived: !account.isArchived,
-                                })
-                                await refreshAll()
-                                toast.success(
-                                  account.isArchived
-                                    ? 'Account reopened'
-                                    : 'Account closed'
-                                )
-                              } catch (toggleError) {
-                                toast.error('Unable to update account status', {
-                                  description:
-                                    toggleError instanceof Error
-                                      ? toggleError.message
-                                      : 'Request failed',
-                                })
-                              }
+                            label: account.isArchived ? 'Enable' : 'Disable',
+                            onSelect: () => {
+                              void toggleAccountStatus(account)
                             },
+                            icon: account.isArchived ? CheckCircle2 : ShieldBan,
                           },
                           {
                             label: 'Delete',
@@ -329,122 +630,14 @@ function AccountsPage() {
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
         title="Create account"
-        description="Add a finance bucket such as savings, wedding, subscription, bank, or mobile money."
+        description="Add a money bucket with the details needed for balances, transactions, and dashboard filtering."
       >
         <Form {...createForm}>
           <form
             onSubmit={createForm.handleSubmit(handleCreateAccount)}
             className="space-y-4"
           >
-            <FormField
-              control={createForm.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Account name</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid gap-4 md:grid-cols-2">
-              <FormField
-                control={createForm.control}
-                name="currency"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Currency</FormLabel>
-                    <FormControl>
-                      <Input {...field} maxLength={3} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={createForm.control}
-                name="color"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Color</FormLabel>
-                    <FormControl>
-                      <Input type="color" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <FormField
-              control={createForm.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Type</FormLabel>
-                  <FormControl>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ACCOUNT_TYPE_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={createForm.control}
-              name="entryMode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Entry mode</FormLabel>
-                  <FormControl>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ENTRY_MODE_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={createForm.control}
-              name="openingBalance"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Opening balance</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      value={String(field.value ?? 0)}
-                      onChange={(event) => field.onChange(event.target.value)}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    This value also initializes the current balance.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <AccountFormFields form={createForm} />
             <DialogFooter>
               <Button
                 type="button"
@@ -453,7 +646,9 @@ function AccountsPage() {
               >
                 Cancel
               </Button>
-              <Button type="submit">Create account</Button>
+              <Button type="submit" disabled={isLoading}>
+                Create account
+              </Button>
             </DialogFooter>
           </form>
         </Form>
@@ -463,145 +658,404 @@ function AccountsPage() {
         open={Boolean(editingAccount)}
         onOpenChange={(open) => !open && setEditingAccount(null)}
         title="Edit account"
-        description="Update the account name, purpose, color, source mode, or balance."
+        description="Update how this account appears, how it is tracked, and the details used around the workspace."
       >
-        <form onSubmit={submitEditAccount} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="edit-account-name" className="text-sm font-medium">
-              Name
-            </label>
-            <Input
-              id="edit-account-name"
-              value={editValues.name}
-              onChange={(event) =>
-                setEditValues((current) => ({
-                  ...current,
-                  name: event.target.value,
-                }))
-              }
-              />
-          </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <label htmlFor="edit-account-currency" className="text-sm font-medium">
-                Currency
-              </label>
-              <Input
-                id="edit-account-currency"
-                maxLength={3}
-                value={editValues.currency}
-                onChange={(event) =>
-                  setEditValues((current) => ({
-                    ...current,
-                    currency: event.target.value.toUpperCase(),
-                  }))
-                }
-              />
+        {editingAccount ? (
+          <form onSubmit={submitEditAccount} className="space-y-4">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--secondary)]/40 px-4 py-3 text-sm text-[var(--muted-foreground)]">
+              Changing the opening balance also shifts the current balance by the
+              same amount, so existing transaction history stays intact.
             </div>
-            <div className="space-y-2">
-              <label htmlFor="edit-account-color" className="text-sm font-medium">
-                Color
-              </label>
-              <Input
-                id="edit-account-color"
-                type="color"
-                value={editValues.color}
-                onChange={(event) =>
-                  setEditValues((current) => ({
-                    ...current,
-                    color: event.target.value,
-                  }))
-                }
-              />
-            </div>
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="edit-account-type" className="text-sm font-medium">
-              Purpose
-            </label>
-            <Select
-              value={editValues.type}
-              onValueChange={(value) =>
-                setEditValues((current) => ({ ...current, type: value }))
-              }
-            >
-              <SelectTrigger id="edit-account-type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ACCOUNT_TYPE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="edit-account-entry-mode" className="text-sm font-medium">
-              Entry mode
-            </label>
-            <Select
-              value={editValues.entryMode}
-              onValueChange={(value) =>
-                setEditValues((current) => ({
-                  ...current,
-                  entryMode: value as 'MANUAL' | 'AUTOMATED',
-                }))
-              }
-            >
-              <SelectTrigger id="edit-account-entry-mode">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ENTRY_MODE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <label
-              htmlFor="edit-account-balance"
-              className="text-sm font-medium"
-            >
-              Current balance
-            </label>
-            <Input
-              id="edit-account-balance"
-              type="number"
-              value={editValues.currentBalance}
-              onChange={(event) =>
-                setEditValues((current) => ({
-                  ...current,
-                  currentBalance: event.target.value,
-                }))
-              }
+            <AccountEditFields
+              values={editingAccount.values}
+              setEditingAccount={setEditingAccount}
             />
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setEditingAccount(null)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit">Save changes</Button>
-          </DialogFooter>
-        </form>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditingAccount(null)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">Save changes</Button>
+            </DialogFooter>
+          </form>
+        ) : null}
       </CrudDialogShell>
 
       <ConfirmActionDialog
         open={Boolean(deletingAccount)}
         onOpenChange={(open) => !open && setDeletingAccount(null)}
         title="Delete account"
-        description="This permanently removes the selected account from the workspace. Closed accounts should usually be kept unless you are certain you want to delete it."
+        description="This permanently deletes the account and erases every transaction tied to it. Surviving account balances will be recalculated after the purge."
         confirmLabel="Delete account"
         onConfirm={confirmDeleteAccount}
       />
     </CrudPageShell>
+  )
+}
+
+function AccountFormFields({
+  form,
+}: {
+  form: ReturnType<typeof useForm<AccountFormValues>>
+}) {
+  return (
+    <>
+      <FormField
+        control={form.control}
+        name="name"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Account name</FormLabel>
+            <FormControl>
+              <Input {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <FormField
+          control={form.control}
+          name="currency"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Currency</FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  maxLength={3}
+                  onChange={(event) => field.onChange(event.target.value.toUpperCase())}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="color"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Color</FormLabel>
+              <FormControl>
+                <Input type="color" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <FormField
+          control={form.control}
+          name="type"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Type</FormLabel>
+              <FormControl>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ACCOUNT_TYPE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="entryMode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Entry mode</FormLabel>
+              <FormControl>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ENTRY_MODE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <FormField
+        control={form.control}
+        name="openingBalance"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Opening balance</FormLabel>
+            <FormControl>
+              <Input
+                type="number"
+                value={String(field.value ?? 0)}
+                onChange={(event) => field.onChange(event.target.value)}
+              />
+            </FormControl>
+            <FormDescription>
+              New accounts start with this same opening and current balance.
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <FormField
+          control={form.control}
+          name="institutionName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Institution name</FormLabel>
+              <FormControl>
+                <Input {...field} value={field.value ?? ''} placeholder="Optional" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="accountNumberMasked"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Account reference</FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  value={field.value ?? ''}
+                  placeholder="Optional masked number"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+    </>
+  )
+}
+
+function AccountEditFields({
+  values,
+  setEditingAccount,
+}: {
+  values: AccountFormValues
+  setEditingAccount: Dispatch<SetStateAction<EditAccountState | null>>
+}) {
+  function updateField<Key extends keyof AccountFormValues>(
+    field: Key,
+    value: AccountFormValues[Key]
+  ) {
+    setEditingAccount((current) => {
+      if (!current) {
+        return current
+      }
+
+      return {
+        ...current,
+        values: {
+          ...current.values,
+          [field]: value,
+        },
+      }
+    })
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <label htmlFor="edit-account-name" className="text-sm font-medium">
+            Account name
+          </label>
+          <Input
+            id="edit-account-name"
+            value={values.name}
+            onChange={(event) => updateField('name', event.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <label htmlFor="edit-account-currency" className="text-sm font-medium">
+            Currency
+          </label>
+          <Input
+            id="edit-account-currency"
+            maxLength={3}
+            value={values.currency}
+            onChange={(event) =>
+              updateField('currency', event.target.value.toUpperCase())
+            }
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <label htmlFor="edit-account-type" className="text-sm font-medium">
+            Type
+          </label>
+          <Select
+            value={values.type}
+            onValueChange={(value) =>
+              updateField('type', value as AccountFormValues['type'])
+            }
+          >
+            <SelectTrigger id="edit-account-type">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ACCOUNT_TYPE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="edit-account-entry-mode" className="text-sm font-medium">
+            Entry mode
+          </label>
+          <Select
+            value={values.entryMode}
+            onValueChange={(value) =>
+              updateField('entryMode', value as AccountFormValues['entryMode'])
+            }
+          >
+            <SelectTrigger id="edit-account-entry-mode">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ENTRY_MODE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <label htmlFor="edit-account-color" className="text-sm font-medium">
+            Color
+          </label>
+          <Input
+            id="edit-account-color"
+            type="color"
+            value={values.color}
+            onChange={(event) => updateField('color', event.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <label htmlFor="edit-account-opening" className="text-sm font-medium">
+            Opening balance
+          </label>
+          <Input
+            id="edit-account-opening"
+            type="number"
+            value={String(values.openingBalance)}
+            onChange={(event) =>
+              updateField('openingBalance', Number(event.target.value))
+            }
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <label htmlFor="edit-account-institution" className="text-sm font-medium">
+            Institution name
+          </label>
+          <Input
+            id="edit-account-institution"
+            value={values.institutionName ?? ''}
+            onChange={(event) => updateField('institutionName', event.target.value)}
+            placeholder="Optional"
+          />
+        </div>
+        <div className="space-y-2">
+          <label htmlFor="edit-account-number" className="text-sm font-medium">
+            Account reference
+          </label>
+          <Input
+            id="edit-account-number"
+            value={values.accountNumberMasked ?? ''}
+            onChange={(event) =>
+              updateField('accountNumberMasked', event.target.value)
+            }
+            placeholder="Optional masked number"
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AccountStatCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] px-5 py-4 shadow-sm">
+      <p className="text-sm text-[var(--muted-foreground)]">{label}</p>
+      <p className="mt-2 text-3xl font-semibold text-[var(--foreground)]">{value}</p>
+    </div>
+  )
+}
+
+function SortableHead({
+  label,
+  onClick,
+  isActive,
+  direction,
+  className,
+}: {
+  label: string
+  onClick: () => void
+  isActive: boolean
+  direction: SortDirection
+  className?: string
+}) {
+  return (
+    <TableHead className={className}>
+      <button
+        type="button"
+        onClick={onClick}
+        className="inline-flex items-center gap-1 text-left font-medium text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
+      >
+        {label}
+        <ArrowUpDown
+          className={isActive ? 'h-4 w-4 text-[var(--foreground)]' : 'h-4 w-4'}
+        />
+        {isActive ? <span className="sr-only">sorted {direction}</span> : null}
+      </button>
+    </TableHead>
   )
 }
