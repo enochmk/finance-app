@@ -15,6 +15,7 @@ type CrudDialogShellProps = {
   description: string
   children: ReactNode
   className?: string
+  style?: React.CSSProperties
 }
 
 export function CrudDialogShell({
@@ -24,10 +25,11 @@ export function CrudDialogShell({
   description,
   children,
   className,
+  style,
 }: CrudDialogShellProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={className}>
+      <DialogContent className={className} style={style}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>

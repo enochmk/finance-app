@@ -1,5 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { ArrowUpDown, Pencil, Search, Trash2 } from 'lucide-react'
+import {
+  ArrowUpDown,
+  Pencil,
+  Search,
+  Trash2,
+  Plus,
+  DollarSign,
+  Calendar,
+  FileText,
+  Building2,
+  ArrowRightLeft,
+  TrendingUp,
+  TrendingDown,
+} from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -53,7 +66,10 @@ import {
   TRANSACTION_TYPE_OPTIONS,
   formatCurrency,
   formatDateTime,
-  getEntryModeLabel,
+  formatRelativeDate,
+  getDateRangeForFilter,
+  getTransactionAmountColor,
+  getTransactionTypeColor,
   getTransactionTypeLabel,
   paginateItems,
   toDateTimeLocalValue,
@@ -94,12 +110,18 @@ function TransactionsPage() {
     useState<Transaction | null>(null)
   const [deletingTransaction, setDeletingTransaction] =
     useState<Transaction | null>(null)
+  const [viewingTransaction, setViewingTransaction] =
+    useState<Transaction | null>(null)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('ALL')
   const [accountFilter, setAccountFilter] = useState('ALL')
   const [categoryFilter, setCategoryFilter] = useState('ALL')
+  const [dateFilter, setDateFilter] = useState('ALL')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [isCustomDateModalOpen, setIsCustomDateModalOpen] = useState(false)
+  const [tempDateFrom, setTempDateFrom] = useState('')
+  const [tempDateTo, setTempDateTo] = useState('')
   const [sortField, setSortField] =
     useState<TransactionSortField>('transactionDate')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
@@ -138,6 +160,7 @@ function TransactionsPage() {
     typeFilter,
     accountFilter,
     categoryFilter,
+    dateFilter,
     dateFrom,
     dateTo,
     sortField,
@@ -150,6 +173,12 @@ function TransactionsPage() {
   const availableAccounts = useMemo(
     () => accounts.filter((account) => !account.isArchived),
     [accounts]
+  )
+
+  const watchedAccountId = createForm.watch('accountId')
+
+  const selectedAccount = availableAccounts.find(
+    (account) => account.id === watchedAccountId
   )
 
   const editAccountOptions = useMemo(() => {
@@ -196,17 +225,32 @@ function TransactionsPage() {
         categoryFilter === 'ALL' || transaction.category?.id === categoryFilter
 
       const transactionDate = new Date(transaction.transactionDate)
-      const matchesDateFrom = !dateFrom || transactionDate >= new Date(dateFrom)
-      const matchesDateTo =
-        !dateTo || transactionDate <= new Date(dateTo + 'T23:59:59')
+      let matchesDate = true
+
+      if (dateFilter !== 'ALL') {
+        if (dateFilter === 'custom') {
+          const matchesDateFrom =
+            !dateFrom || transactionDate >= new Date(dateFrom)
+          const matchesDateTo =
+            !dateTo || transactionDate <= new Date(dateTo + 'T23:59:59')
+          matchesDate = matchesDateFrom && matchesDateTo
+        } else {
+          const range = getDateRangeForFilter(dateFilter)
+          if (range) {
+            const fromDate = new Date(range.from)
+            const toDate = new Date(range.to + 'T23:59:59')
+            matchesDate =
+              transactionDate >= fromDate && transactionDate <= toDate
+          }
+        }
+      }
 
       return (
         matchesSearch &&
         matchesType &&
         matchesAccount &&
         matchesCategory &&
-        matchesDateFrom &&
-        matchesDateTo
+        matchesDate
       )
     })
   }, [
@@ -215,6 +259,7 @@ function TransactionsPage() {
     typeFilter,
     accountFilter,
     categoryFilter,
+    dateFilter,
     dateFrom,
     dateTo,
   ])
@@ -235,11 +280,13 @@ function TransactionsPage() {
             left.account.name.localeCompare(right.account.name) * multiplier
           )
         case 'transactionDate':
-          return (
-            (new Date(left.transactionDate).getTime() -
-              new Date(right.transactionDate).getTime()) *
-            multiplier
-          )
+          const leftDate = new Date(left.transactionDate).getTime()
+          const rightDate = new Date(right.transactionDate).getTime()
+          if (sortDirection === 'desc') {
+            return rightDate - leftDate // Descending: newer dates first
+          } else {
+            return leftDate - rightDate // Ascending: older dates first
+          }
         case 'amount':
           return (Number(left.amount) - Number(right.amount)) * multiplier
         default:
@@ -386,7 +433,10 @@ function TransactionsPage() {
       description="Capture credits, debits, and transfers with enough context to track where money moved and how it was entered."
       navigation={<FinanceSectionNav />}
       actions={
-        <Button onClick={() => setIsCreateOpen(true)}>Add transaction</Button>
+        <Button onClick={() => setIsCreateOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add transaction
+        </Button>
       }
     >
       {error ? (
@@ -415,7 +465,7 @@ function TransactionsPage() {
           }
           isEmpty={sortedTransactions.length === 0}
           toolbar={
-            <div className="grid gap-4 xl:grid-cols-[1.2fr_180px_180px_180px_180px_140px_140px_140px]">
+            <div className="grid gap-4 xl:grid-cols-[1.2fr_180px_180px_180px_180px_140px_140px_140px_140px]">
               <div className="flex flex-col gap-2">
                 <label
                   htmlFor="transaction-search"
@@ -506,32 +556,40 @@ function TransactionsPage() {
 
               <div className="flex flex-col gap-2">
                 <label
-                  htmlFor="transaction-date-from"
+                  htmlFor="transaction-filter-date"
                   className="text-sm font-medium"
                 >
-                  Date from
+                  Date range
                 </label>
-                <Input
-                  id="transaction-date-from"
-                  type="date"
-                  value={dateFrom}
-                  onChange={(event) => setDateFrom(event.target.value)}
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label
-                  htmlFor="transaction-date-to"
-                  className="text-sm font-medium"
+                <Select
+                  value={dateFilter}
+                  onValueChange={(value) => {
+                    if (value === 'custom') {
+                      setTempDateFrom(dateFrom)
+                      setTempDateTo(dateTo)
+                      setIsCustomDateModalOpen(true)
+                    } else {
+                      setDateFilter(value)
+                      if (value !== 'custom') {
+                        setDateFrom('')
+                        setDateTo('')
+                      }
+                    }
+                  }}
                 >
-                  Date to
-                </label>
-                <Input
-                  id="transaction-date-to"
-                  type="date"
-                  value={dateTo}
-                  onChange={(event) => setDateTo(event.target.value)}
-                />
+                  <SelectTrigger id="transaction-filter-date">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All dates</SelectItem>
+                    <SelectItem value="today">Today</SelectItem>
+                    <SelectItem value="last24hours">Last 24 hours</SelectItem>
+                    <SelectItem value="last7days">Last 7 days</SelectItem>
+                    <SelectItem value="last30days">Last 30 days</SelectItem>
+                    <SelectItem value="last6months">Last 6 months</SelectItem>
+                    <SelectItem value="custom">Custom range</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex flex-col gap-2">
@@ -612,7 +670,6 @@ function TransactionsPage() {
                   isActive={sortField === 'type'}
                   direction={sortDirection}
                 />
-                <TableHead>Source</TableHead>
                 <SortableHead
                   label="Account"
                   onClick={() => updateSort('account')}
@@ -637,13 +694,20 @@ function TransactionsPage() {
             </TableHeader>
             <TableBody>
               {paginatedTransactions.pageItems.map((transaction) => (
-                <TableRow key={transaction.id}>
+                <TableRow
+                  key={transaction.id}
+                  className="cursor-pointer hover:bg-[var(--accent)]"
+                  onClick={() => setViewingTransaction(transaction)}
+                >
                   <TableCell>
                     <div>
                       <p className="font-medium text-[var(--foreground)]">
                         {transaction.description}
                       </p>
-                      <p className="text-xs text-[var(--muted-foreground)]">
+                      <p className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
+                        {transaction.category?.icon && (
+                          <span>{transaction.category.icon}</span>
+                        )}
                         {transaction.category?.name ??
                           (transaction.transferAccount
                             ? `Transfer to ${transaction.transferAccount.name}`
@@ -652,25 +716,40 @@ function TransactionsPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {getTransactionTypeLabel(transaction.type)}
-                  </TableCell>
-                  <TableCell>
-                    {getEntryModeLabel(transaction.entryMode)}
+                    <span className={getTransactionTypeColor(transaction.type)}>
+                      {getTransactionTypeLabel(transaction.type)}
+                    </span>
                   </TableCell>
                   <TableCell>{transaction.account.name}</TableCell>
                   <TableCell>
-                    {formatDateTime(transaction.transactionDate)}
+                    <div>
+                      <p className="font-medium text-[var(--foreground)]">
+                        {formatDateTime(transaction.transactionDate)}
+                      </p>
+                      <p className="text-xs text-[var(--muted-foreground)]">
+                        {formatRelativeDate(transaction.transactionDate)}
+                      </p>
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatCurrency(
-                      transaction.amount,
-                      transaction.account.currency
-                    )}
+                    <span
+                      className={getTransactionAmountColor(transaction.type)}
+                    >
+                      {formatCurrency(
+                        transaction.amount,
+                        transaction.account.currency
+                      )}
+                    </span>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end">
                       <RowActionsMenu
                         actions={[
+                          {
+                            label: 'View',
+                            onSelect: () => setViewingTransaction(transaction),
+                            icon: Search,
+                          },
                           {
                             label: 'Edit',
                             onSelect: () => openEditTransaction(transaction),
@@ -698,19 +777,64 @@ function TransactionsPage() {
         onOpenChange={setIsCreateOpen}
         title="Create transaction"
         description="Record a one-off credit, debit, or transfer."
+        className="transition-colors"
+        style={
+          selectedAccount?.color
+            ? { backgroundColor: selectedAccount.color }
+            : {}
+        }
       >
         <Form {...createForm}>
           <form
             onSubmit={createForm.handleSubmit(handleCreateTransaction)}
             className="space-y-4"
           >
+            <FormField
+              control={createForm.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Type</FormLabel>
+                  <FormControl>
+                    <div className="flex gap-2">
+                      {TRANSACTION_TYPE_OPTIONS.map((option) => {
+                        const isSelected = field.value === option.value
+                        const Icon =
+                          option.value === 'INCOME'
+                            ? TrendingUp
+                            : option.value === 'EXPENSE'
+                              ? TrendingDown
+                              : ArrowRightLeft
+                        return (
+                          <Button
+                            key={option.value}
+                            type="button"
+                            variant={isSelected ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => field.onChange(option.value)}
+                            className="flex-1"
+                          >
+                            <Icon className="mr-2 h-4 w-4" />
+                            {option.label}
+                          </Button>
+                        )
+                      })}
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={createForm.control}
                 name="accountId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Account</FormLabel>
+                    <FormLabel>
+                      <Building2 className="inline mr-2 h-4 w-4" />
+                      Account
+                    </FormLabel>
                     <FormControl>
                       <Select
                         value={field.value}
@@ -738,7 +862,10 @@ function TransactionsPage() {
                   name="transferAccountId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Transfer account</FormLabel>
+                      <FormLabel>
+                        <ArrowRightLeft className="inline mr-2 h-4 w-4" />
+                        Transfer account
+                      </FormLabel>
                       <FormControl>
                         <Select
                           value={field.value || ''}
@@ -771,7 +898,10 @@ function TransactionsPage() {
                   name="categoryId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Category</FormLabel>
+                      <FormLabel>
+                        <FileText className="inline mr-2 h-4 w-4" />
+                        Category
+                      </FormLabel>
                       <FormControl>
                         <Select
                           value={field.value || ''}
@@ -803,64 +933,13 @@ function TransactionsPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={createForm.control}
-                name="entryMode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Source</FormLabel>
-                    <FormControl>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ENTRY_MODE_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={createForm.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Type</FormLabel>
-                    <FormControl>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {TRANSACTION_TYPE_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={createForm.control}
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Amount</FormLabel>
+                    <FormLabel>
+                      <DollarSign className="inline mr-2 h-4 w-4" />
+                      Amount
+                    </FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -872,28 +951,34 @@ function TransactionsPage() {
                   </FormItem>
                 )}
               />
+              <FormField
+                control={createForm.control}
+                name="transactionDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      <Calendar className="inline mr-2 h-4 w-4" />
+                      Date
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="datetime-local" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
             <FormField
               control={createForm.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>
+                    <FileText className="inline mr-2 h-4 w-4" />
+                    Description
+                  </FormLabel>
                   <FormControl>
                     <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={createForm.control}
-              name="transactionDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Date</FormLabel>
-                  <FormControl>
-                    <Input type="datetime-local" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -907,10 +992,68 @@ function TransactionsPage() {
               >
                 Cancel
               </Button>
-              <Button type="submit">Create transaction</Button>
+              <Button type="submit">
+                <Plus className="mr-2 h-4 w-4" />
+                Create transaction
+              </Button>
             </DialogFooter>
           </form>
         </Form>
+      </CrudDialogShell>
+
+      <CrudDialogShell
+        open={isCustomDateModalOpen}
+        onOpenChange={setIsCustomDateModalOpen}
+        title="Select Custom Date Range"
+        description="Choose the date range for filtering transactions."
+      >
+        <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="custom-date-from" className="text-sm font-medium">
+                From Date
+              </label>
+              <Input
+                id="custom-date-from"
+                type="date"
+                value={tempDateFrom}
+                onChange={(event) => setTempDateFrom(event.target.value)}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="custom-date-to" className="text-sm font-medium">
+                To Date
+              </label>
+              <Input
+                id="custom-date-to"
+                type="date"
+                value={tempDateTo}
+                onChange={(event) => setTempDateTo(event.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsCustomDateModalOpen(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={() => {
+              setDateFrom(tempDateFrom)
+              setDateTo(tempDateTo)
+              setDateFilter('custom')
+              setIsCustomDateModalOpen(false)
+            }}
+          >
+            Apply Range
+          </Button>
+        </DialogFooter>
       </CrudDialogShell>
 
       <CrudDialogShell
@@ -1073,6 +1216,95 @@ function TransactionsPage() {
             <Button type="submit">Save changes</Button>
           </DialogFooter>
         </form>
+      </CrudDialogShell>
+
+      <CrudDialogShell
+        open={Boolean(viewingTransaction)}
+        onOpenChange={(open) => !open && setViewingTransaction(null)}
+        title="Transaction details"
+        description="View the complete transaction information."
+      >
+        {viewingTransaction && (
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="text-sm font-medium">Description</label>
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  {viewingTransaction.description}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Type</label>
+                <p
+                  className={`text-sm ${getTransactionTypeColor(viewingTransaction.type)}`}
+                >
+                  {getTransactionTypeLabel(viewingTransaction.type)}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Account</label>
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  {viewingTransaction.account.name}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Amount</label>
+                <p
+                  className={`text-sm ${getTransactionAmountColor(viewingTransaction.type)}`}
+                >
+                  {formatCurrency(
+                    viewingTransaction.amount,
+                    viewingTransaction.account.currency
+                  )}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Date</label>
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  {formatDateTime(viewingTransaction.transactionDate)}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Category</label>
+                <p className="text-sm text-[var(--muted-foreground)] flex items-center gap-1">
+                  {viewingTransaction.category?.icon && (
+                    <span>{viewingTransaction.category.icon}</span>
+                  )}
+                  {viewingTransaction.category?.name ??
+                    (viewingTransaction.transferAccount
+                      ? `Transfer to ${viewingTransaction.transferAccount.name}`
+                      : 'Uncategorized')}
+                </p>
+              </div>
+            </div>
+            {viewingTransaction.notes && (
+              <div>
+                <label className="text-sm font-medium">Notes</label>
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  {viewingTransaction.notes}
+                </p>
+              </div>
+            )}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setViewingTransaction(null)}
+              >
+                Close
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setViewingTransaction(null)
+                  openEditTransaction(viewingTransaction)
+                }}
+              >
+                Edit
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
       </CrudDialogShell>
 
       <ConfirmActionDialog
