@@ -3,6 +3,7 @@ import {
   ChevronLeft,
   ChevronsUpDown,
   CreditCard,
+  DollarSign,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -19,6 +20,9 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '#/components/ui/dropdown-menu'
 import { Separator } from '#/components/ui/separator'
@@ -30,6 +34,7 @@ import { useSidebarState } from '#/components/sidebar-state'
 
 const navigationItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/manage/transactions', label: 'Transactions', icon: DollarSign },
 ] as const
 
 function SidebarContent({ mobile = false }: { mobile?: boolean }) {
@@ -46,12 +51,6 @@ function SidebarContent({ mobile = false }: { mobile?: boolean }) {
       description: 'Your session has been cleared.',
     })
     void navigate({ to: '/' })
-  }
-
-  function handleSettingsSoon() {
-    toast.message('Settings coming soon', {
-      description: 'This section is planned but not wired yet.',
-    })
   }
 
   return (
@@ -200,13 +199,24 @@ function SidebarContent({ mobile = false }: { mobile?: boolean }) {
                   {isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onClick={handleSettingsSoon}>
-                <Settings className="h-4 w-4" />
-                Settings
-                <span className="ml-auto text-xs text-[var(--muted-foreground)]">
-                  Soon
-                </span>
-              </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem
+                    onClick={() => navigate({ to: '/manage/accounts' })}
+                  >
+                    Accounts
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => navigate({ to: '/manage/categories' })}
+                  >
+                    Categories
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="h-4 w-4" />
                 Logout
