@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import {
   ArrowUpDown,
   Building2,
+  Check,
   CheckCircle2,
   CreditCard,
   Eye,
@@ -14,6 +15,7 @@ import {
   Smartphone,
   Trash2,
   Wallet,
+  X,
 } from 'lucide-react'
 import {
   useEffect,
@@ -664,7 +666,10 @@ function AccountsPage() {
                       : 'Just now'}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end">
+                    <div
+                      className="flex justify-end"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <RowActionsMenu
                         actions={[
                           {
@@ -720,9 +725,11 @@ function AccountsPage() {
                 variant="outline"
                 onClick={() => setIsCreateOpen(false)}
               >
+                <X className="h-4 w-4" />
                 Cancel
               </Button>
               <Button type="submit" disabled={isLoading}>
+                <Check className="h-4 w-4" />
                 Create account
               </Button>
             </DialogFooter>
@@ -754,9 +761,13 @@ function AccountsPage() {
                 variant="outline"
                 onClick={() => setEditingAccount(null)}
               >
+                <X className="h-4 w-4" />
                 Cancel
               </Button>
-              <Button type="submit">Save changes</Button>
+              <Button type="submit">
+                <Check className="h-4 w-4" />
+                Save changes
+              </Button>
             </DialogFooter>
           </form>
         ) : null}
@@ -869,6 +880,7 @@ function AccountsPage() {
                 variant="outline"
                 onClick={() => setViewingAccount(null)}
               >
+                <X className="h-4 w-4" />
                 Close
               </Button>
             </DialogFooter>
@@ -883,6 +895,8 @@ function AccountsPage() {
         description="This permanently deletes the account and erases every transaction tied to it. Surviving account balances will be recalculated after the purge."
         confirmLabel="Delete account"
         onConfirm={confirmDeleteAccount}
+        icon={Trash2}
+        confirmIcon={Trash2}
       />
     </CrudPageShell>
   )
