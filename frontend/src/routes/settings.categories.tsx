@@ -20,7 +20,6 @@ import { ConfirmActionDialog } from '#/components/confirm-action-dialog'
 import { CrudDialogShell } from '#/components/crud-dialog-shell'
 import { CrudPageShell } from '#/components/crud-page-shell'
 import { CrudTableCard } from '#/components/crud-table-card'
-import { FinanceSectionNav } from '#/components/finance-section-nav'
 import { PaginationControls } from '#/components/pagination-controls'
 import { RowActionsMenu } from '#/components/row-actions-menu'
 import { useSession } from '#/components/session-provider'
@@ -289,7 +288,6 @@ function CategoriesPage() {
       badge="Finance workspace"
       title="Categories"
       description="Keep transaction entry clean with categories you can extend, disable, and reuse over time."
-      navigation={<FinanceSectionNav />}
       icon={Tag}
       actions={
         <>

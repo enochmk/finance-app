@@ -34,7 +34,6 @@ import { ConfirmActionDialog } from '#/components/confirm-action-dialog'
 import { CrudDialogShell } from '#/components/crud-dialog-shell'
 import { CrudPageShell } from '#/components/crud-page-shell'
 import { CrudTableCard } from '#/components/crud-table-card'
-import { FinanceSectionNav } from '#/components/finance-section-nav'
 import { PaginationControls } from '#/components/pagination-controls'
 import { RowActionsMenu } from '#/components/row-actions-menu'
 import { useSession } from '#/components/session-provider'
@@ -413,7 +412,6 @@ function AccountsPage() {
       badge="Finance workspace"
       title="Accounts"
       description="Create, edit, disable, and retire money buckets without losing control of dashboard visibility or transaction safety."
-      navigation={<FinanceSectionNav />}
       icon={Building2}
       actions={
         <Button onClick={() => setIsCreateOpen(true)}>
