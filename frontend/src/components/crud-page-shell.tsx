@@ -23,8 +23,8 @@ export function CrudPageShell({
   icon: Icon,
 }: CrudPageShellProps) {
   return (
-    <main className="w-full px-4 py-8 lg:px-8 xl:px-10">
-      <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <main className="w-full px-4 py-6 lg:px-8 xl:px-10">
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <Badge variant="secondary" className="mb-3">
             {badge}

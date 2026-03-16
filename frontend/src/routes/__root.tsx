@@ -131,11 +131,14 @@ function RootLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className="min-h-screen bg-[var(--background)] text-[var(--foreground)] lg:grid"
+      className="bg-[var(--background)] text-[var(--foreground)] lg:grid"
       style={{ gridTemplateColumns: isCollapsed ? '6rem 1fr' : '18rem 1fr' }}
     >
       <AppSidebar />
-      <div className="min-w-0">{children}</div>
+      <div className="flex min-h-screen min-w-0 flex-col">
+        {children}
+        <AppFooter />
+      </div>
     </div>
   )
 }
@@ -167,5 +170,20 @@ function PublicHeader({ isAuthenticated }: { isAuthenticated: boolean }) {
         </div>
       </div>
     </header>
+  )
+}
+
+function AppFooter() {
+  return (
+    <footer className="mt-auto border-t border-[var(--border)] bg-[var(--background)] px-4 py-4 lg:px-8 xl:px-10">
+      <div className="flex flex-col items-center justify-between gap-2 sm:flex-row">
+        <p className="text-xs text-[var(--muted-foreground)]">
+          Personal Finance Workspace
+        </p>
+        <p className="text-xs text-[var(--muted-foreground)]">
+          &copy; {new Date().getFullYear()} All rights reserved.
+        </p>
+      </div>
+    </footer>
   )
 }

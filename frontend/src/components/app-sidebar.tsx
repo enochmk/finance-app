@@ -1,15 +1,19 @@
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import {
   ChevronLeft,
+  ChevronDown,
   ChevronsUpDown,
-  CreditCard,
   DollarSign,
+  FolderTree,
+  Landmark,
   LayoutDashboard,
   LogOut,
   Menu,
   MoonStar,
   Settings,
+  SunMedium,
 } from 'lucide-react'
+import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { Avatar, AvatarFallback } from '#/components/ui/avatar'
@@ -20,21 +24,22 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '#/components/ui/dropdown-menu'
 import { Separator } from '#/components/ui/separator'
 import { Sheet, SheetContent, SheetTrigger } from '#/components/ui/sheet'
-import ThemeToggle from '#/components/ThemeToggle'
 import { useSession } from '#/components/session-provider'
 import { cn } from '#/lib/utils'
 import { useSidebarState } from '#/components/sidebar-state'
 
 const navigationItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/manage/transactions', label: 'Transactions', icon: DollarSign },
+  { to: '/transactions', label: 'Transactions', icon: DollarSign },
+] as const
+
+const settingsItems = [
+  { to: '/settings/accounts', label: 'Accounts', icon: Landmark },
+  { to: '/settings/categories', label: 'Categories', icon: FolderTree },
 ] as const
 
 function SidebarContent({ mobile = false }: { mobile?: boolean }) {
@@ -42,8 +47,27 @@ function SidebarContent({ mobile = false }: { mobile?: boolean }) {
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   })
-  const { isCollapsed, toggleSidebar, setMode } = useSidebarState()
+  const { isCollapsed, toggleSidebar } = useSidebarState()
   const { signOut, user } = useSession()
+  const [settingsOpen, setSettingsOpen] = useState(true)
+  const [themeMode, setThemeMode] = useState<'light' | 'dark'>(() => {
+    if (typeof window === 'undefined') return 'light'
+    const stored = window.localStorage.getItem('theme')
+    if (stored === 'light' || stored === 'dark') return stored
+    return window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light'
+  })
+
+  function toggleTheme() {
+    const next: 'light' | 'dark' = themeMode === 'light' ? 'dark' : 'light'
+    setThemeMode(next)
+    document.documentElement.classList.remove('light', 'dark')
+    document.documentElement.classList.add(next)
+    document.documentElement.setAttribute('data-theme', next)
+    document.documentElement.style.colorScheme = next
+    window.localStorage.setItem('theme', next)
+  }
 
   function handleLogout() {
     signOut()
@@ -52,6 +76,15 @@ function SidebarContent({ mobile = false }: { mobile?: boolean }) {
     })
     void navigate({ to: '/' })
   }
+
+  const userInitials = user?.name
+    ? user.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    : 'U'
 
   return (
     <div className="flex h-full flex-col">
@@ -96,8 +129,6 @@ function SidebarContent({ mobile = false }: { mobile?: boolean }) {
       <Separator className="my-4 bg-[var(--sidebar-border)]" />
 
       <div className="px-2">
-        {(!isCollapsed || mobile) && <div className="mb-3 px-2" />}
-
         <nav className="space-y-1">
           {navigationItems.map((item) => {
             const Icon = item.icon
@@ -121,23 +152,78 @@ function SidebarContent({ mobile = false }: { mobile?: boolean }) {
               </Link>
             )
           })}
+
+          <div className="pt-2">
+            {isCollapsed && !mobile ? (
+              <>
+                <div className="mb-1 flex justify-center py-1" title="Settings">
+                  <Settings className="h-3.5 w-3.5 text-[var(--sidebar-muted-foreground)]" />
+                </div>
+                {settingsItems.map((item) => {
+                  const Icon = item.icon
+                  const active = pathname === item.to
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      className={cn(
+                        'flex items-center justify-center rounded-xl px-3 py-2.5 text-sm font-medium no-underline transition-colors',
+                        active
+                          ? 'sidebar-nav-active text-[var(--sidebar-primary-foreground)] shadow-sm'
+                          : 'text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]'
+                      )}
+                      title={item.label}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </Link>
+                  )
+                })}
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setSettingsOpen((prev) => !prev)}
+                  className="mb-1 flex w-full items-center gap-2 rounded-xl px-3 py-1.5 transition-colors hover:bg-[var(--sidebar-accent)]"
+                >
+                  <Settings className="h-3.5 w-3.5 text-[var(--sidebar-muted-foreground)]" />
+                  <p className="flex-1 text-left text-xs font-semibold uppercase tracking-wider text-[var(--sidebar-muted-foreground)]">
+                    Settings
+                  </p>
+                  <ChevronDown
+                    className={cn(
+                      'h-3.5 w-3.5 text-[var(--sidebar-muted-foreground)] transition-transform duration-200',
+                      !settingsOpen && '-rotate-90'
+                    )}
+                  />
+                </button>
+                {settingsOpen &&
+                  settingsItems.map((item) => {
+                    const Icon = item.icon
+                    const active = pathname === item.to
+                    return (
+                      <Link
+                        key={item.to}
+                        to={item.to}
+                        className={cn(
+                          'flex items-center gap-3 rounded-xl px-3 py-2.5 pl-7 text-sm font-medium no-underline transition-colors',
+                          active
+                            ? 'sidebar-nav-active text-[var(--sidebar-primary-foreground)] shadow-sm'
+                            : 'text-[var(--sidebar-foreground)] hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]'
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {item.label}
+                      </Link>
+                    )
+                  })}
+              </>
+            )}
+          </div>
         </nav>
       </div>
 
-      <div className="mt-auto space-y-4 px-2 pb-2">
-        {(!isCollapsed || mobile) && (
-          <div className="rounded-2xl border border-[var(--sidebar-border)] bg-[rgba(255,255,255,0.04)] p-4">
-            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[var(--sidebar-foreground)]">
-              <CreditCard className="h-4 w-4" />
-              MVP workspace
-            </div>
-            <p className="text-sm leading-6 text-[var(--sidebar-muted-foreground)]">
-              Focused around accounts, categories, transactions, and the
-              selected-account dashboard.
-            </p>
-          </div>
-        )}
-
+      <div className="mt-auto space-y-3 px-2 pb-2">
         <div
           className={cn(
             'rounded-2xl border border-[var(--sidebar-border)] px-3 py-3',
@@ -156,7 +242,7 @@ function SidebarContent({ mobile = false }: { mobile?: boolean }) {
                 )}
               >
                 <Avatar className="h-9 w-9">
-                  <AvatarFallback>EK</AvatarFallback>
+                  <AvatarFallback>{userInitials}</AvatarFallback>
                 </Avatar>
                 {(!isCollapsed || mobile) && (
                   <>
@@ -177,49 +263,38 @@ function SidebarContent({ mobile = false }: { mobile?: boolean }) {
             <DropdownMenuContent
               side="top"
               align={isCollapsed && !mobile ? 'center' : 'start'}
-              className="w-56"
+              className="w-64"
             >
-              <DropdownMenuLabel>Workspace actions</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <div className="px-2 py-2">
-                <div className="mb-2 flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
-                  <MoonStar className="h-4 w-4" />
-                  Theme
+              <DropdownMenuLabel className="py-3">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="text-xs">
+                      {userInitials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-[var(--foreground)]">
+                      {user?.name ?? 'Workspace user'}
+                    </p>
+                    <p className="truncate text-xs font-normal text-[var(--muted-foreground)]">
+                      {user?.email ?? ''}
+                    </p>
+                  </div>
                 </div>
-                <ThemeToggle />
-              </div>
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {!mobile && (
-                <DropdownMenuItem
-                  onClick={() =>
-                    setMode(isCollapsed ? 'expanded' : 'collapsed')
-                  }
-                >
-                  <CreditCard className="h-4 w-4" />
-                  {isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger>
-                  <Settings className="h-4 w-4" />
-                  Settings
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  <DropdownMenuItem
-                    onClick={() => navigate({ to: '/manage/accounts' })}
-                  >
-                    Accounts
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => navigate({ to: '/manage/categories' })}
-                  >
-                    Categories
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
+              <DropdownMenuItem onClick={toggleTheme} className="gap-2">
+                {themeMode === 'dark' ? (
+                  <MoonStar className="h-4 w-4" />
+                ) : (
+                  <SunMedium className="h-4 w-4" />
+                )}
+                {themeMode === 'dark' ? 'Dark mode' : 'Light mode'}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="h-4 w-4" />
-                Logout
+                Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -236,7 +311,7 @@ export function AppSidebar() {
     <>
       <aside
         className={cn(
-          'hidden shrink-0 border-r border-[var(--sidebar-border)] bg-[var(--sidebar)] px-4 py-4 transition-[width] duration-200 lg:block',
+          'sticky top-0 hidden h-screen shrink-0 overflow-y-auto border-r border-[var(--sidebar-border)] bg-[var(--sidebar)] px-4 py-4 transition-[width] duration-200 lg:block',
           isCollapsed ? 'w-24' : 'w-72'
         )}
       >

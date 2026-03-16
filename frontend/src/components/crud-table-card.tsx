@@ -10,8 +10,8 @@ import {
 } from '#/components/ui/card'
 
 type CrudTableCardProps = {
-  title: string
-  description: string
+  title?: string
+  description?: string
   toolbar?: ReactNode
   footer?: ReactNode
   emptyTitle: string
@@ -34,11 +34,13 @@ export function CrudTableCard({
 }: CrudTableCardProps) {
   return (
     <Card className={className}>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
+      {title && (
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+          {description && <CardDescription>{description}</CardDescription>}
+        </CardHeader>
+      )}
+      <CardContent className={!title ? 'pt-4' : undefined}>
         {toolbar ? <div className="mb-4">{toolbar}</div> : null}
 
         {isEmpty ? (
