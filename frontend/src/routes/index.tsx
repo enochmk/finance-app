@@ -52,7 +52,7 @@ function App() {
                     variant="outline"
                     className="border-white/20 bg-white/6 text-white hover:bg-white/12"
                   >
-                    <Link to="/manage">Open workspace</Link>
+                    <Link to="/settings">Open workspace</Link>
                   </Button>
                 </>
               ) : (
@@ -134,7 +134,6 @@ function App() {
             {[
               'Seed the backend with npm --prefix backend run seed:dev',
               'Run the API at http://127.0.0.1:4000 and the frontend at http://127.0.0.1:3000',
-              'Use /sign-in, /manage, /manage/transactions, and /dashboard for the current MVP flow',
             ].map((item, index) => (
               <div
                 key={index}

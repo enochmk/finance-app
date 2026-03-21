@@ -12,9 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsResetRouteImport } from './routes/settings.reset'
 import { Route as SettingsCategoriesRouteImport } from './routes/settings.categories'
@@ -35,19 +33,9 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -73,9 +61,7 @@ const SettingsAccountsRoute = SettingsAccountsRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
   '/dashboard': typeof DashboardRoute
-  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/transactions': typeof TransactionsRoute
@@ -85,9 +71,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
   '/dashboard': typeof DashboardRoute
-  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/transactions': typeof TransactionsRoute
@@ -98,9 +82,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
   '/dashboard': typeof DashboardRoute
-  '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/transactions': typeof TransactionsRoute
@@ -112,9 +94,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/about'
     | '/dashboard'
-    | '/reports'
     | '/settings'
     | '/sign-in'
     | '/transactions'
@@ -124,9 +104,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/about'
     | '/dashboard'
-    | '/reports'
     | '/settings'
     | '/sign-in'
     | '/transactions'
@@ -136,9 +114,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/about'
     | '/dashboard'
-    | '/reports'
     | '/settings'
     | '/sign-in'
     | '/transactions'
@@ -149,9 +125,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
   DashboardRoute: typeof DashboardRoute
-  ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRouteWithChildren
   SignInRoute: typeof SignInRoute
   TransactionsRoute: typeof TransactionsRoute
@@ -180,25 +154,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -250,9 +210,7 @@ const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
   DashboardRoute: DashboardRoute,
-  ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRouteWithChildren,
   SignInRoute: SignInRoute,
   TransactionsRoute: TransactionsRoute,

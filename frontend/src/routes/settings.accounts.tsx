@@ -277,14 +277,6 @@ function AccountsPage() {
 
   const paginatedAccounts = paginateItems(sortedAccounts, currentPage, 8)
 
-  const accountCounts = useMemo(() => {
-    return {
-      total: accounts.length,
-      enabled: accounts.filter((account) => !account.isArchived).length,
-      disabled: accounts.filter((account) => account.isArchived).length,
-    }
-  }, [accounts])
-
   async function handleCreateAccount(values: AccountFormValues) {
     try {
       await createAccount({
@@ -420,12 +412,7 @@ function AccountsPage() {
         </Button>
       }
     >
-      <div className="grid gap-4 md:grid-cols-3">
-        <AccountStatCard label="Total accounts" value={accountCounts.total} />
-        <AccountStatCard label="Enabled" value={accountCounts.enabled} />
-        <AccountStatCard label="Disabled" value={accountCounts.disabled} />
-      </div>
-
+      {' '}
       {error ? (
         <CrudTableCard
           title="Accounts"
@@ -702,7 +689,6 @@ function AccountsPage() {
           </Table>
         </CrudTableCard>
       )}
-
       <CrudDialogShell
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
@@ -733,7 +719,6 @@ function AccountsPage() {
           </form>
         </Form>
       </CrudDialogShell>
-
       <CrudDialogShell
         open={Boolean(editingAccount)}
         onOpenChange={(open) => !open && setEditingAccount(null)}
@@ -769,7 +754,6 @@ function AccountsPage() {
           </form>
         ) : null}
       </CrudDialogShell>
-
       <CrudDialogShell
         open={Boolean(viewingAccount)}
         onOpenChange={(open) => !open && setViewingAccount(null)}
@@ -884,7 +868,6 @@ function AccountsPage() {
           </div>
         )}
       </CrudDialogShell>
-
       <ConfirmActionDialog
         open={Boolean(deletingAccount)}
         onOpenChange={(open) => !open && setDeletingAccount(null)}
@@ -1210,17 +1193,6 @@ function AccountEditFields({
           />
         </div>
       </div>
-    </div>
-  )
-}
-
-function AccountStatCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] px-5 py-4 shadow-sm">
-      <p className="text-sm text-[var(--muted-foreground)]">{label}</p>
-      <p className="mt-2 text-3xl font-semibold text-[var(--foreground)]">
-        {value}
-      </p>
     </div>
   )
 }

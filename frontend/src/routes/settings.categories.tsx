@@ -162,14 +162,6 @@ function CategoriesPage() {
     pageSize
   )
 
-  const categoryCounts = useMemo(() => {
-    return {
-      total: categories.length,
-      enabled: categories.filter((category) => !category.isArchived).length,
-      disabled: categories.filter((category) => category.isArchived).length,
-    }
-  }, [categories])
-
   async function handleCreateCategory(values: z.infer<typeof categorySchema>) {
     try {
       await createCategory(values)
@@ -282,14 +274,6 @@ function CategoriesPage() {
         </Button>
       }
     >
-      <div className="grid gap-4 md:grid-cols-3">
-        <CategoryStatCard
-          label="Total categories"
-          value={categoryCounts.total}
-        />
-        <CategoryStatCard label="Enabled" value={categoryCounts.enabled} />
-        <CategoryStatCard label="Disabled" value={categoryCounts.disabled} />
-      </div>
       {error ? (
         <CrudTableCard
           title="Categories"
@@ -787,17 +771,6 @@ function CategoriesPage() {
         onConfirm={confirmDeleteCategory}
       />
     </CrudPageShell>
-  )
-}
-
-function CategoryStatCard({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-3xl border border-[var(--border)] bg-[var(--card)] px-5 py-4 shadow-sm">
-      <p className="text-sm text-[var(--muted-foreground)]">{label}</p>
-      <p className="mt-2 text-3xl font-semibold text-[var(--foreground)]">
-        {value}
-      </p>
-    </div>
   )
 }
 
