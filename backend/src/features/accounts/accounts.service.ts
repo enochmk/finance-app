@@ -1,6 +1,7 @@
 import createHttpError from 'http-errors';
 
 import prisma from '../../libs/prisma';
+import { ensureSystemCategory } from '../categories/system-categories';
 import type {
   CreateAccountBody,
   ListAccountsQuery,
@@ -57,30 +58,62 @@ class AccountsService {
     const existingAccount = await this.ensureOwnedAccount(id, userId);
 
     const nextOpeningBalance = data.openingBalance;
-    const shouldRebalanceCurrentBalance =
-      nextOpeningBalance !== undefined && data.currentBalance === undefined;
-    const openingBalanceDelta = shouldRebalanceCurrentBalance
-      ? nextOpeningBalance - Number(existingAccount.openingBalance)
+    const openingBalanceDelta =
+      nextOpeningBalance !== undefined
+        ? nextOpeningBalance - Number(existingAccount.openingBalance)
+        : 0;
+    const ledgerCurrentBalance =
+      Number(existingAccount.currentBalance) + openingBalanceDelta;
+    const hasExplicitCurrentBalanceTarget = data.currentBalance !== undefined;
+    const balanceAdjustmentDelta = hasExplicitCurrentBalanceTarget
+      ? Number(data.currentBalance) - ledgerCurrentBalance
       : 0;
+    const adjustmentCategory =
+      balanceAdjustmentDelta === 0
+        ? null
+        : await ensureSystemCategory(
+            userId,
+            balanceAdjustmentDelta > 0 ? 'UNKNOWN_INCOME' : 'UNKNOWN_EXPENSE'
+          );
 
-    return prisma.account.update({
-      where: { id },
-      data: {
-        name: data.name,
-        type: data.type,
-        currency: data.currency,
-        color: data.color,
-        icon: data.icon,
-        openingBalance: data.openingBalance,
-        currentBalance:
-          data.currentBalance ??
-          (shouldRebalanceCurrentBalance
-            ? Number(existingAccount.currentBalance) + openingBalanceDelta
-            : undefined),
-        institutionName: data.institutionName,
-        accountNumberMasked: data.accountNumberMasked,
-        isArchived: data.isArchived,
-      },
+    return prisma.$transaction(async (tx) => {
+      const account = await tx.account.update({
+        where: { id },
+        data: {
+          name: data.name,
+          type: data.type,
+          currency: data.currency,
+          color: data.color,
+          icon: data.icon,
+          openingBalance: data.openingBalance,
+          currentBalance:
+            data.currentBalance ??
+            (nextOpeningBalance !== undefined
+              ? ledgerCurrentBalance
+              : undefined),
+          institutionName: data.institutionName,
+          accountNumberMasked: data.accountNumberMasked,
+          isArchived: data.isArchived,
+        },
+      });
+
+      if (adjustmentCategory && balanceAdjustmentDelta !== 0) {
+        await tx.transaction.create({
+          data: {
+            userId,
+            accountId: id,
+            categoryId: adjustmentCategory.id,
+            type: balanceAdjustmentDelta > 0 ? 'INCOME' : 'EXPENSE',
+            amount: Math.abs(balanceAdjustmentDelta),
+            description: `Balance adjustment for ${account.name}`,
+            notes:
+              'Auto-created to reconcile the stored account balance with the actual balance.',
+            transactionDate: new Date(),
+          },
+        });
+      }
+
+      return account;
     });
   };
 
@@ -180,7 +213,12 @@ class AccountsService {
   private ensureOwnedAccount = async (id: string, userId: string) => {
     const account = await prisma.account.findFirst({
       where: { id, userId },
-      select: { id: true, openingBalance: true, currentBalance: true },
+      select: {
+        id: true,
+        name: true,
+        openingBalance: true,
+        currentBalance: true,
+      },
     });
 
     if (!account) {

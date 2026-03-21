@@ -1,6 +1,10 @@
 import createHttpError from 'http-errors';
 
 import prisma from '../../libs/prisma';
+import {
+  backfillTransferCategory,
+  ensureSystemCategory,
+} from '../categories/system-categories';
 import type {
   CreateTransactionBody,
   ListTransactionsQuery,
@@ -34,6 +38,8 @@ function getBalanceDelta(
 
 class TransactionsService {
   list = async (userId: string, filters: ListTransactionsQuery) => {
+    await backfillTransferCategory(userId);
+
     return prisma.transaction.findMany({
       where: {
         userId,
@@ -60,13 +66,18 @@ class TransactionsService {
 
   create = async (userId: string, data: CreateTransactionBody) => {
     const amount = Number(data.amount);
+    const transferCategory =
+      data.type === 'TRANSFER'
+        ? await ensureSystemCategory(userId, 'TRANSFER')
+        : null;
 
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({
         data: {
           userId,
           accountId: data.accountId,
-          categoryId: data.categoryId,
+          categoryId:
+            data.type === 'TRANSFER' ? transferCategory?.id : data.categoryId,
           type: data.type,
           amount: data.amount,
           description: data.description,
@@ -110,6 +121,10 @@ class TransactionsService {
 
   update = async (id: string, userId: string, data: UpdateTransactionBody) => {
     const existingTransaction = await this.ensureOwnedTransaction(id, userId);
+    const transferCategory =
+      (data.type ?? existingTransaction.type) === 'TRANSFER'
+        ? await ensureSystemCategory(userId, 'TRANSFER')
+        : null;
 
     const nextAccountId = data.accountId ?? existingTransaction.accountId;
     const nextType = data.type ?? existingTransaction.type;
@@ -171,7 +186,8 @@ class TransactionsService {
         where: { id },
         data: {
           accountId: data.accountId,
-          categoryId: data.categoryId,
+          categoryId:
+            nextType === 'TRANSFER' ? transferCategory?.id : data.categoryId,
           type: data.type,
           amount: data.amount,
           description: data.description,

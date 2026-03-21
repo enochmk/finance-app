@@ -1,6 +1,7 @@
 import createHttpError from 'http-errors';
 
 import prisma from '../../libs/prisma';
+import { ensureRequiredSystemCategories } from './system-categories';
 import type {
   CreateCategoryBody,
   ListCategoriesQuery,
@@ -9,6 +10,8 @@ import type {
 
 class CategoriesService {
   list = async (userId: string, filters: ListCategoriesQuery) => {
+    await ensureRequiredSystemCategories(userId);
+
     return prisma.category.findMany({
       where: {
         userId,
@@ -70,6 +73,21 @@ class CategoriesService {
         name: 'Income',
         type: 'INCOME',
         color: '#15803d',
+      },
+      {
+        name: 'Transfer',
+        type: 'EXPENSE',
+        color: '#0f766e',
+      },
+      {
+        name: 'Unknown',
+        type: 'EXPENSE',
+        color: '#dc2626',
+      },
+      {
+        name: 'Unknown',
+        type: 'INCOME',
+        color: '#2563eb',
       },
     ] as const;
 

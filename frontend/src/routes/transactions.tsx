@@ -701,9 +701,11 @@ function TransactionsPage() {
                           <span>{transaction.category.icon}</span>
                         )}
                         {transaction.category?.name ??
-                          (transaction.transferAccount
-                            ? `Transfer to ${transaction.transferAccount.name}`
-                            : 'Uncategorized')}
+                          (transaction.type === 'TRANSFER'
+                            ? 'Transfer'
+                            : transaction.transferAccount
+                              ? `Transfer to ${transaction.transferAccount.name}`
+                              : 'Uncategorized')}
                       </p>
                     </div>
                   </TableCell>
@@ -1246,9 +1248,11 @@ function TransactionsPage() {
                     <span>{viewingTransaction.category.icon}</span>
                   )}
                   {viewingTransaction.category?.name ??
-                    (viewingTransaction.transferAccount
-                      ? `Transfer to ${viewingTransaction.transferAccount.name}`
-                      : 'Uncategorized')}
+                    (viewingTransaction.type === 'TRANSFER'
+                      ? 'Transfer'
+                      : viewingTransaction.transferAccount
+                        ? `Transfer to ${viewingTransaction.transferAccount.name}`
+                        : 'Uncategorized')}
                 </p>
               </div>
             </div>

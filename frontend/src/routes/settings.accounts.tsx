@@ -135,6 +135,9 @@ const accountSchema = z.object({
 })
 
 type AccountFormValues = z.infer<typeof accountSchema>
+type AccountEditValues = AccountFormValues & {
+  currentBalance: number
+}
 type AccountStatusFilter = 'ALL' | 'ENABLED' | 'DISABLED'
 type AccountSortField =
   | 'name'
@@ -147,8 +150,13 @@ type SortDirection = 'asc' | 'desc'
 
 type EditAccountState = {
   account: Account
-  values: AccountFormValues
+  values: AccountEditValues
+  hasCurrentBalanceOverride: boolean
 }
+
+const editAccountSchema = accountSchema.extend({
+  currentBalance: z.coerce.number().finite(),
+})
 
 function getDefaultAccountValues(): AccountFormValues {
   return {
@@ -163,7 +171,7 @@ function getDefaultAccountValues(): AccountFormValues {
   }
 }
 
-function getAccountFormValues(account: Account): AccountFormValues {
+function getAccountFormValues(account: Account): AccountEditValues {
   return {
     name: account.name,
     type: account.type as AccountFormValues['type'],
@@ -171,6 +179,7 @@ function getAccountFormValues(account: Account): AccountFormValues {
     color: account.color ?? '#176b6c',
     icon: account.icon ?? '',
     openingBalance: Number(account.openingBalance),
+    currentBalance: Number(account.currentBalance),
     institutionName: account.institutionName ?? '',
     accountNumberMasked: account.accountNumberMasked ?? '',
   }
@@ -307,6 +316,7 @@ function AccountsPage() {
     setEditingAccount({
       account,
       values: getAccountFormValues(account),
+      hasCurrentBalanceOverride: false,
     })
   }
 
@@ -317,7 +327,7 @@ function AccountsPage() {
       return
     }
 
-    const result = accountSchema.safeParse(editingAccount.values)
+    const result = editAccountSchema.safeParse(editingAccount.values)
 
     if (!result.success) {
       const firstIssue =
@@ -328,6 +338,15 @@ function AccountsPage() {
       return
     }
 
+    const derivedCurrentBalance =
+      Number(editingAccount.account.currentBalance) +
+      (result.data.openingBalance -
+        Number(editingAccount.account.openingBalance))
+
+    const hasBalanceAdjustment =
+      editingAccount.hasCurrentBalanceOverride &&
+      result.data.currentBalance !== derivedCurrentBalance
+
     try {
       await updateAccount(editingAccount.account.id, {
         name: result.data.name,
@@ -336,13 +355,20 @@ function AccountsPage() {
         color: result.data.color,
         icon: result.data.icon || undefined,
         openingBalance: result.data.openingBalance,
+        currentBalance: editingAccount.hasCurrentBalanceOverride
+          ? result.data.currentBalance
+          : undefined,
         institutionName: result.data.institutionName || undefined,
         accountNumberMasked: result.data.accountNumberMasked || undefined,
       })
 
       await refreshAll()
       setEditingAccount(null)
-      toast.success('Account updated')
+      toast.success(
+        hasBalanceAdjustment
+          ? 'Account updated and balance adjustment recorded'
+          : 'Account updated'
+      )
     } catch (updateError) {
       toast.error('Unable to update account', {
         description:
@@ -729,11 +755,17 @@ function AccountsPage() {
         {editingAccount ? (
           <form onSubmit={submitEditAccount} className="space-y-4">
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--secondary)]/40 px-4 py-3 text-sm text-[var(--muted-foreground)]">
-              Changing the opening balance also shifts the current balance by
-              the same amount, so existing transaction history stays intact.
+              Changing the opening balance shifts the derived balance without
+              touching history. If you also set the actual current balance, the
+              app records the unexplained difference as an automatic transaction
+              in the Unknown category.
             </div>
             <AccountEditFields
+              account={editingAccount.account}
               values={editingAccount.values}
+              hasCurrentBalanceOverride={
+                editingAccount.hasCurrentBalanceOverride
+              }
               setEditingAccount={setEditingAccount}
             />
 
@@ -1054,19 +1086,51 @@ function AccountFormFields({
 }
 
 function AccountEditFields({
+  account,
   values,
+  hasCurrentBalanceOverride,
   setEditingAccount,
 }: {
-  values: AccountFormValues
+  account: Account
+  values: AccountEditValues
+  hasCurrentBalanceOverride: boolean
   setEditingAccount: Dispatch<SetStateAction<EditAccountState | null>>
 }) {
-  function updateField<Key extends keyof AccountFormValues>(
+  function updateField<Key extends keyof AccountEditValues>(
     field: Key,
-    value: AccountFormValues[Key]
+    value: AccountEditValues[Key]
   ) {
     setEditingAccount((current) => {
       if (!current) {
         return current
+      }
+
+      if (field === 'openingBalance') {
+        const nextOpeningBalance = Number(value)
+        const openingBalanceDelta =
+          nextOpeningBalance - Number(current.values.openingBalance)
+
+        return {
+          ...current,
+          values: {
+            ...current.values,
+            openingBalance: nextOpeningBalance,
+            currentBalance: current.hasCurrentBalanceOverride
+              ? current.values.currentBalance
+              : current.values.currentBalance + openingBalanceDelta,
+          },
+        }
+      }
+
+      if (field === 'currentBalance') {
+        return {
+          ...current,
+          hasCurrentBalanceOverride: true,
+          values: {
+            ...current.values,
+            currentBalance: Number(value),
+          },
+        }
       }
 
       return {
@@ -1159,6 +1223,58 @@ function AccountEditFields({
               updateField('openingBalance', Number(event.target.value))
             }
           />
+        </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <label
+              htmlFor="edit-account-current"
+              className="text-sm font-medium"
+            >
+              Actual current balance
+            </label>
+            {hasCurrentBalanceOverride ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setEditingAccount((current) => {
+                    if (!current) {
+                      return current
+                    }
+
+                    const derivedBalance =
+                      Number(account.currentBalance) +
+                      (Number(current.values.openingBalance) -
+                        Number(account.openingBalance))
+
+                    return {
+                      ...current,
+                      hasCurrentBalanceOverride: false,
+                      values: {
+                        ...current.values,
+                        currentBalance: derivedBalance,
+                      },
+                    }
+                  })
+                }}
+              >
+                Use derived balance
+              </Button>
+            ) : null}
+          </div>
+          <Input
+            id="edit-account-current"
+            type="number"
+            value={String(values.currentBalance)}
+            onChange={(event) =>
+              updateField('currentBalance', Number(event.target.value))
+            }
+          />
+          <p className="text-xs text-[var(--muted-foreground)]">
+            If this differs from the tracked balance, an Unknown-category
+            transaction is created automatically.
+          </p>
         </div>
       </div>
 

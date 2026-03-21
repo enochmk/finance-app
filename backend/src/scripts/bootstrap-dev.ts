@@ -122,6 +122,7 @@ export async function bootstrapDevData() {
       },
       {
         name: 'Savings',
+        categoryName: 'Transfer',
         type: AccountType.SAVINGS,
         currency: 'GHS',
         color: '#1d4ed8',
@@ -131,6 +132,7 @@ export async function bootstrapDevData() {
       },
       {
         name: 'Wedding',
+        categoryName: 'Transfer',
         type: AccountType.SAVINGS,
         currency: 'GHS',
         color: '#be185d',
@@ -255,6 +257,24 @@ export async function bootstrapDevData() {
         type: CategoryType.INCOME,
         color: '#15803d',
         icon: '💰',
+      },
+      {
+        name: 'Transfer',
+        type: CategoryType.EXPENSE,
+        color: '#0f766e',
+        icon: '↔️',
+      },
+      {
+        name: 'Unknown',
+        type: CategoryType.EXPENSE,
+        color: '#dc2626',
+        icon: '❓',
+      },
+      {
+        name: 'Unknown',
+        type: CategoryType.INCOME,
+        color: '#2563eb',
+        icon: '❓',
       },
       {
         name: 'Archived Legacy',

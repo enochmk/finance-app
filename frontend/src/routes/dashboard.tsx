@@ -9,8 +9,6 @@ import {
   CartesianGrid,
   Cell,
   Legend,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -75,17 +73,17 @@ const MONTH_LABELS = [
   'Dec',
 ]
 
-const PIE_COLORS = [
-  'var(--primary)',
-  '#2bb8ad',
-  '#20878a',
-  '#5a9ea0',
-  '#8ec6c8',
-  '#3d6b6d',
-  '#a8d5d6',
-  '#1a5658',
-  '#6db3b5',
-  '#b5dfe0',
+const CHART_COLORS = [
+  '#0f766e',
+  '#dc2626',
+  '#2563eb',
+  '#d97706',
+  '#7c3aed',
+  '#be123c',
+  '#0891b2',
+  '#65a30d',
+  '#4338ca',
+  '#ea580c',
 ]
 
 function getStoredDashboardAccountId() {
@@ -328,11 +326,14 @@ function DashboardPage() {
     [data]
   )
 
-  const expensePieData = useMemo(
+  const expenseChartData = useMemo(
     () =>
-      (data?.expensesByCategory ?? [])
-        .slice(0, 8)
-        .map((item) => ({ name: item.name, value: item.amount })),
+      (data?.expensesByCategory ?? []).slice(0, 8).map((item, index) => ({
+        name: item.name.length > 18 ? `${item.name.slice(0, 18)}…` : item.name,
+        fullName: item.name,
+        value: item.amount,
+        fill: CHART_COLORS[index % CHART_COLORS.length],
+      })),
     [data]
   )
 
@@ -359,12 +360,18 @@ function DashboardPage() {
 
   const accountBalanceData = useMemo(
     () =>
-      (data?.accounts ?? []).map((a) => ({
-        name: a.name.length > 12 ? `${a.name.slice(0, 12)}…` : a.name,
-        fullName: a.name,
-        balance: a.currentBalance,
-        currency: a.currency,
-      })),
+      [...(data?.accounts ?? [])]
+        .sort((left, right) => right.currentBalance - left.currentBalance)
+        .map((account, index) => ({
+          name:
+            account.name.length > 14
+              ? `${account.name.slice(0, 14)}…`
+              : account.name,
+          fullName: account.name,
+          balance: account.currentBalance,
+          currency: account.currency,
+          fill: account.color ?? CHART_COLORS[index % CHART_COLORS.length],
+        })),
     [data]
   )
 
@@ -602,7 +609,7 @@ function DashboardPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {expensePieData.length === 0 ? (
+                  {expenseChartData.length === 0 ? (
                     <Alert>
                       <AlertTitle>No expense categories</AlertTitle>
                       <AlertDescription>
@@ -612,31 +619,50 @@ function DashboardPage() {
                   ) : (
                     <ChartContainer>
                       <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={expensePieData}
-                            dataKey="value"
-                            nameKey="name"
-                            cx="50%"
-                            cy="50%"
-                            innerRadius="35%"
-                            outerRadius="65%"
-                            paddingAngle={2}
-                          >
-                            {expensePieData.map((_, index) => (
-                              <Cell
-                                key={index}
-                                fill={PIE_COLORS[index % PIE_COLORS.length]}
-                              />
-                            ))}
-                          </Pie>
+                        <BarChart
+                          data={expenseChartData}
+                          layout="vertical"
+                          margin={{ left: 12, right: 12 }}
+                        >
+                          <CartesianGrid
+                            stroke="var(--border)"
+                            strokeDasharray="4 4"
+                            horizontal={false}
+                          />
+                          <XAxis
+                            type="number"
+                            stroke="var(--muted-foreground)"
+                            tickLine={false}
+                            axisLine={false}
+                            tick={{ fontSize: 11 }}
+                          />
+                          <YAxis
+                            dataKey="name"
+                            type="category"
+                            stroke="var(--muted-foreground)"
+                            tickLine={false}
+                            axisLine={false}
+                            tick={{ fontSize: 12 }}
+                            width={128}
+                          />
                           <Tooltip
                             formatter={(value: unknown) =>
                               formatCurrency(Number(value), selectedCurrency)
                             }
+                            labelFormatter={(_label: unknown, payload) =>
+                              payload?.[0]?.payload?.fullName ?? ''
+                            }
                           />
-                          <Legend />
-                        </PieChart>
+                          <Bar
+                            dataKey="value"
+                            name="Expenses"
+                            radius={[0, 4, 4, 0]}
+                          >
+                            {expenseChartData.map((item, index) => (
+                              <Cell key={index} fill={item.fill} />
+                            ))}
+                          </Bar>
+                        </BarChart>
                       </ResponsiveContainer>
                     </ChartContainer>
                   )}
@@ -799,25 +825,31 @@ function DashboardPage() {
                   ) : (
                     <ChartContainer>
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={accountBalanceData}>
+                        <BarChart
+                          data={accountBalanceData}
+                          layout="vertical"
+                          margin={{ left: 12, right: 12 }}
+                        >
                           <CartesianGrid
                             stroke="var(--border)"
                             strokeDasharray="4 4"
-                            vertical={false}
+                            horizontal={false}
                           />
                           <XAxis
-                            dataKey="name"
+                            type="number"
                             stroke="var(--muted-foreground)"
                             tickLine={false}
                             axisLine={false}
                             tick={{ fontSize: 11 }}
                           />
                           <YAxis
+                            dataKey="name"
+                            type="category"
                             stroke="var(--muted-foreground)"
                             tickLine={false}
                             axisLine={false}
-                            width={80}
-                            tick={{ fontSize: 11 }}
+                            width={120}
+                            tick={{ fontSize: 12 }}
                           />
                           <Tooltip
                             formatter={(
@@ -830,17 +862,17 @@ function DashboardPage() {
                                 props.payload?.currency ?? selectedCurrency
                               )
                             }
+                            labelFormatter={(_label: unknown, payload) =>
+                              payload?.[0]?.payload?.fullName ?? ''
+                            }
                           />
                           <Bar
                             dataKey="balance"
                             name="Balance"
-                            radius={[4, 4, 0, 0]}
+                            radius={[0, 4, 4, 0]}
                           >
-                            {accountBalanceData.map((_, index) => (
-                              <Cell
-                                key={index}
-                                fill={PIE_COLORS[index % PIE_COLORS.length]}
-                              />
+                            {accountBalanceData.map((item, index) => (
+                              <Cell key={index} fill={item.fill} />
                             ))}
                           </Bar>
                         </BarChart>
@@ -955,11 +987,14 @@ function DashboardPage() {
                             {tx.description}
                           </TableCell>
                           <TableCell>
-                            {tx.category?.name ?? (
-                              <span className="text-muted-foreground">
-                                Uncategorized
-                              </span>
-                            )}
+                            {tx.category?.name ??
+                              (tx.type === 'TRANSFER' ? (
+                                'Transfer'
+                              ) : (
+                                <span className="text-muted-foreground">
+                                  Uncategorized
+                                </span>
+                              ))}
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline">

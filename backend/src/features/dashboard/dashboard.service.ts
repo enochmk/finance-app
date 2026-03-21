@@ -1,6 +1,7 @@
 import createHttpError from 'http-errors';
 
 import prisma from '../../libs/prisma';
+import { backfillTransferCategory } from '../categories/system-categories';
 
 import type { GetDashboardSummaryQuery } from './dashboard.schema';
 
@@ -32,6 +33,8 @@ function toNumber(value: unknown) {
 
 class DashboardService {
   getSummary = async (userId: string, filters: GetDashboardSummaryQuery) => {
+    await backfillTransferCategory(userId);
+
     const { selectedMonth, selectedYear, periodStart, periodEnd } =
       getPeriodBounds(filters.month, filters.year);
     const recentLimit = filters.recentLimit ?? 10;
