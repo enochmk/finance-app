@@ -122,34 +122,6 @@ export async function bootstrapDevData() {
         openingBalance: 3200,
         currentBalance: 3200,
       },
-      {
-        name: 'Subscription',
-        type: AccountType.CASH,
-        currency: 'GHS',
-        color: '#7c3aed',
-        icon: 'CreditCard',
-        openingBalance: 600,
-        currentBalance: 600,
-      },
-      {
-        name: 'Mobile Money',
-        type: AccountType.CASH,
-        currency: 'GHS',
-        color: '#f59e0b',
-        icon: 'Smartphone',
-        openingBalance: 850,
-        currentBalance: 850,
-      },
-      {
-        name: 'Old Travel Wallet',
-        type: AccountType.CASH,
-        currency: 'GHS',
-        color: '#64748b',
-        icon: 'Wallet',
-        openingBalance: 0,
-        currentBalance: 0,
-        isArchived: true,
-      },
     ].map((account) =>
       prisma.account.upsert({
         where: {
@@ -165,7 +137,7 @@ export async function bootstrapDevData() {
           icon: account.icon,
           openingBalance: account.openingBalance,
           currentBalance: account.currentBalance,
-          isArchived: account.isArchived ?? false,
+          isArchived: false,
           institutionName: null,
           accountNumberMasked: null,
         },
@@ -178,7 +150,7 @@ export async function bootstrapDevData() {
           icon: account.icon,
           openingBalance: account.openingBalance,
           currentBalance: account.currentBalance,
-          isArchived: account.isArchived ?? false,
+          isArchived: false,
         },
       })
     )
