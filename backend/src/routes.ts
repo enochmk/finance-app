@@ -8,6 +8,7 @@ import dashboardRoutes from './features/dashboard/dashboard.routes';
 import reportsRoutes from './features/reports/reports.routes';
 import transactionsRoutes from './features/transactions/transactions.routes';
 import healthRoutes from './features/health/health.routes';
+import workspaceRoutes from './features/workspace/workspace.routes';
 
 const apiRoutes = Router();
 
@@ -19,5 +20,6 @@ apiRoutes.use('/transactions', transactionsRoutes);
 apiRoutes.use('/dashboard', dashboardRoutes);
 apiRoutes.use('/reports', reportsRoutes);
 apiRoutes.use('/budgets', budgetsRoutes);
+apiRoutes.use('/workspace', workspaceRoutes);
 
 export default apiRoutes;

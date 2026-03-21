@@ -21,9 +21,8 @@ type UpdateRecurringTransactionRequest = Request<
   UpdateRecurringTransactionBody,
   EmptyObject
 >;
-type DeleteRecurringTransactionRequest = Request<
-  DeleteRecurringTransactionParams
->;
+type DeleteRecurringTransactionRequest =
+  Request<DeleteRecurringTransactionParams>;
 
 export const validateCreateRecurringTransactionOwnership = async (
   req: CreateRecurringTransactionRequest,

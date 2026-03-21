@@ -43,7 +43,8 @@ const recurringTransactionBodySchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['transferAccountId'],
-        message: 'transferAccountId is required for transfer recurring transactions',
+        message:
+          'transferAccountId is required for transfer recurring transactions',
       });
     }
 
@@ -59,13 +60,16 @@ const recurringTransactionBodySchema = z
     }
 
     if (
-      (value.frequency === 'MONTHLY' || value.frequency === 'QUARTERLY' || value.frequency === 'YEARLY') &&
+      (value.frequency === 'MONTHLY' ||
+        value.frequency === 'QUARTERLY' ||
+        value.frequency === 'YEARLY') &&
       value.dayOfMonth === undefined
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['dayOfMonth'],
-        message: 'dayOfMonth is required for monthly, quarterly, or yearly recurrence',
+        message:
+          'dayOfMonth is required for monthly, quarterly, or yearly recurrence',
       });
     }
 

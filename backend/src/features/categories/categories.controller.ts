@@ -64,11 +64,7 @@ class CategoriesController {
     }
   };
 
-  seedDefaults = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
+  seedDefaults = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const categories = await categoriesService.seedDefaults(req.user!.id);
 

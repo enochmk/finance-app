@@ -29,9 +29,8 @@ type UpdateRecurringTransactionRequest = Request<
   UpdateRecurringTransactionBody,
   EmptyObject
 >;
-type DeleteRecurringTransactionRequest = Request<
-  DeleteRecurringTransactionParams
->;
+type DeleteRecurringTransactionRequest =
+  Request<DeleteRecurringTransactionParams>;
 type RunRecurringTransactionsRequest = Request<
   EmptyObject,
   unknown,
