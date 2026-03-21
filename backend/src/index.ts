@@ -5,7 +5,7 @@ import env from './env';
 import { getLogger } from './libs/logger';
 import prisma from './libs/prisma';
 import { createApp } from './app';
-import { bootstrapDevData } from './scripts/bootstrap-dev';
+// import { bootstrapDevData } from './scripts/bootstrap-dev';
 
 const logger = getLogger('Server');
 
@@ -33,9 +33,9 @@ server.on('error', async (err) => {
   process.exit(1);
 });
 
-void bootstrapDevData().catch((error) => {
-  logger.error('Development bootstrap failed', { error });
-});
+// void bootstrapDevData().catch((error) => {
+//   logger.error('Development bootstrap failed', { error });
+// });
 
 process.on('SIGINT', async () => {
   await shutdown('SIGINT');
