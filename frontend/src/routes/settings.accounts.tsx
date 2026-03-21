@@ -604,7 +604,11 @@ function AccountsPage() {
               {paginatedAccounts.pageItems.map((account, index) => (
                 <TableRow
                   key={account.id}
-                  className="cursor-pointer hover:bg-[var(--accent)]"
+                  className="cursor-pointer hover:brightness-95 dark:hover:brightness-110"
+                  style={{
+                    backgroundColor: `${account.color ?? '#176b6c'}18`,
+                    borderLeft: `3px solid ${account.color ?? '#176b6c'}`,
+                  }}
                   onClick={() => setViewingAccount(account)}
                 >
                   <TableCell className="font-mono text-sm text-[var(--muted-foreground)]">
@@ -612,12 +616,6 @@ function AccountsPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <span
-                        className="inline-flex h-3.5 w-3.5 flex-shrink-0 rounded-full border border-[var(--border)]"
-                        style={{
-                          backgroundColor: account.color ?? '#176b6c',
-                        }}
-                      />
                       {(() => {
                         const IconComponent = getAccountIcon(account.icon)
                         return (
@@ -639,7 +637,10 @@ function AccountsPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={account.isArchived ? 'outline' : 'success'}>
+                    <Badge
+                      variant={account.isArchived ? 'outline' : 'secondary'}
+                      className="font-semibold"
+                    >
                       {account.isArchived ? 'Disabled' : 'Enabled'}
                     </Badge>
                   </TableCell>

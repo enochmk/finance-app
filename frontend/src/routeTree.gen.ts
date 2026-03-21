@@ -13,17 +13,12 @@ import { Route as TransactionsRouteImport } from './routes/transactions'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as ManageRouteImport } from './routes/manage'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ManageIndexRouteImport } from './routes/manage.index'
 import { Route as SettingsResetRouteImport } from './routes/settings.reset'
 import { Route as SettingsCategoriesRouteImport } from './routes/settings.categories'
 import { Route as SettingsAccountsRouteImport } from './routes/settings.accounts'
-import { Route as ManageTransactionsRouteImport } from './routes/manage.transactions'
-import { Route as ManageCategoriesRouteImport } from './routes/manage.categories'
-import { Route as ManageAccountsRouteImport } from './routes/manage.accounts'
 
 const TransactionsRoute = TransactionsRouteImport.update({
   id: '/transactions',
@@ -45,11 +40,6 @@ const ReportsRoute = ReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ManageRoute = ManageRouteImport.update({
-  id: '/manage',
-  path: '/manage',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -64,11 +54,6 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any)
-const ManageIndexRoute = ManageIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ManageRoute,
 } as any)
 const SettingsResetRoute = SettingsResetRouteImport.update({
   id: '/reset',
@@ -85,38 +70,18 @@ const SettingsAccountsRoute = SettingsAccountsRouteImport.update({
   path: '/accounts',
   getParentRoute: () => SettingsRoute,
 } as any)
-const ManageTransactionsRoute = ManageTransactionsRouteImport.update({
-  id: '/transactions',
-  path: '/transactions',
-  getParentRoute: () => ManageRoute,
-} as any)
-const ManageCategoriesRoute = ManageCategoriesRouteImport.update({
-  id: '/categories',
-  path: '/categories',
-  getParentRoute: () => ManageRoute,
-} as any)
-const ManageAccountsRoute = ManageAccountsRouteImport.update({
-  id: '/accounts',
-  path: '/accounts',
-  getParentRoute: () => ManageRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/dashboard': typeof DashboardRoute
-  '/manage': typeof ManageRouteWithChildren
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/transactions': typeof TransactionsRoute
-  '/manage/accounts': typeof ManageAccountsRoute
-  '/manage/categories': typeof ManageCategoriesRoute
-  '/manage/transactions': typeof ManageTransactionsRoute
   '/settings/accounts': typeof SettingsAccountsRoute
   '/settings/categories': typeof SettingsCategoriesRoute
   '/settings/reset': typeof SettingsResetRoute
-  '/manage/': typeof ManageIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -126,31 +91,22 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/transactions': typeof TransactionsRoute
-  '/manage/accounts': typeof ManageAccountsRoute
-  '/manage/categories': typeof ManageCategoriesRoute
-  '/manage/transactions': typeof ManageTransactionsRoute
   '/settings/accounts': typeof SettingsAccountsRoute
   '/settings/categories': typeof SettingsCategoriesRoute
   '/settings/reset': typeof SettingsResetRoute
-  '/manage': typeof ManageIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/dashboard': typeof DashboardRoute
-  '/manage': typeof ManageRouteWithChildren
   '/reports': typeof ReportsRoute
   '/settings': typeof SettingsRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/transactions': typeof TransactionsRoute
-  '/manage/accounts': typeof ManageAccountsRoute
-  '/manage/categories': typeof ManageCategoriesRoute
-  '/manage/transactions': typeof ManageTransactionsRoute
   '/settings/accounts': typeof SettingsAccountsRoute
   '/settings/categories': typeof SettingsCategoriesRoute
   '/settings/reset': typeof SettingsResetRoute
-  '/manage/': typeof ManageIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -158,18 +114,13 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/dashboard'
-    | '/manage'
     | '/reports'
     | '/settings'
     | '/sign-in'
     | '/transactions'
-    | '/manage/accounts'
-    | '/manage/categories'
-    | '/manage/transactions'
     | '/settings/accounts'
     | '/settings/categories'
     | '/settings/reset'
-    | '/manage/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -179,37 +130,27 @@ export interface FileRouteTypes {
     | '/settings'
     | '/sign-in'
     | '/transactions'
-    | '/manage/accounts'
-    | '/manage/categories'
-    | '/manage/transactions'
     | '/settings/accounts'
     | '/settings/categories'
     | '/settings/reset'
-    | '/manage'
   id:
     | '__root__'
     | '/'
     | '/about'
     | '/dashboard'
-    | '/manage'
     | '/reports'
     | '/settings'
     | '/sign-in'
     | '/transactions'
-    | '/manage/accounts'
-    | '/manage/categories'
-    | '/manage/transactions'
     | '/settings/accounts'
     | '/settings/categories'
     | '/settings/reset'
-    | '/manage/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   DashboardRoute: typeof DashboardRoute
-  ManageRoute: typeof ManageRouteWithChildren
   ReportsRoute: typeof ReportsRoute
   SettingsRoute: typeof SettingsRouteWithChildren
   SignInRoute: typeof SignInRoute
@@ -246,13 +187,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/manage': {
-      id: '/manage'
-      path: '/manage'
-      fullPath: '/manage'
-      preLoaderRoute: typeof ManageRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
@@ -273,13 +207,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/manage/': {
-      id: '/manage/'
-      path: '/'
-      fullPath: '/manage/'
-      preLoaderRoute: typeof ManageIndexRouteImport
-      parentRoute: typeof ManageRoute
     }
     '/settings/reset': {
       id: '/settings/reset'
@@ -302,46 +229,8 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsAccountsRouteImport
       parentRoute: typeof SettingsRoute
     }
-    '/manage/transactions': {
-      id: '/manage/transactions'
-      path: '/transactions'
-      fullPath: '/manage/transactions'
-      preLoaderRoute: typeof ManageTransactionsRouteImport
-      parentRoute: typeof ManageRoute
-    }
-    '/manage/categories': {
-      id: '/manage/categories'
-      path: '/categories'
-      fullPath: '/manage/categories'
-      preLoaderRoute: typeof ManageCategoriesRouteImport
-      parentRoute: typeof ManageRoute
-    }
-    '/manage/accounts': {
-      id: '/manage/accounts'
-      path: '/accounts'
-      fullPath: '/manage/accounts'
-      preLoaderRoute: typeof ManageAccountsRouteImport
-      parentRoute: typeof ManageRoute
-    }
   }
 }
-
-interface ManageRouteChildren {
-  ManageAccountsRoute: typeof ManageAccountsRoute
-  ManageCategoriesRoute: typeof ManageCategoriesRoute
-  ManageTransactionsRoute: typeof ManageTransactionsRoute
-  ManageIndexRoute: typeof ManageIndexRoute
-}
-
-const ManageRouteChildren: ManageRouteChildren = {
-  ManageAccountsRoute: ManageAccountsRoute,
-  ManageCategoriesRoute: ManageCategoriesRoute,
-  ManageTransactionsRoute: ManageTransactionsRoute,
-  ManageIndexRoute: ManageIndexRoute,
-}
-
-const ManageRouteWithChildren =
-  ManageRoute._addFileChildren(ManageRouteChildren)
 
 interface SettingsRouteChildren {
   SettingsAccountsRoute: typeof SettingsAccountsRoute
@@ -363,7 +252,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   DashboardRoute: DashboardRoute,
-  ManageRoute: ManageRouteWithChildren,
   ReportsRoute: ReportsRoute,
   SettingsRoute: SettingsRouteWithChildren,
   SignInRoute: SignInRoute,

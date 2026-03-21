@@ -454,14 +454,6 @@ function CategoriesPage() {
                   direction={sortDirection}
                 />
                 <SortableHead
-                  label="Type"
-                  onClick={() => updateSort('type')}
-                  isActive={sortField === 'type'}
-                  direction={sortDirection}
-                />
-                <TableHead>Icon</TableHead>
-                <TableHead>Color</TableHead>
-                <SortableHead
                   label="Status"
                   onClick={() => updateSort('status')}
                   isActive={sortField === 'status'}
@@ -474,30 +466,30 @@ function CategoriesPage() {
               {paginatedCategories.pageItems.map((category, index) => (
                 <TableRow
                   key={category.id}
-                  className="cursor-pointer hover:bg-[var(--accent)]"
+                  className="cursor-pointer hover:brightness-95 dark:hover:brightness-110"
+                  style={{
+                    backgroundColor: `${category.color ?? '#176b6c'}18`,
+                    borderLeft: `3px solid ${category.color ?? '#176b6c'}`,
+                  }}
                   onClick={() => setViewingCategory(category)}
                 >
                   <TableCell className="font-mono text-sm text-[var(--muted-foreground)]">
                     {(currentPage - 1) * pageSize + index + 1}
                   </TableCell>
-                  <TableCell className="font-medium">{category.name}</TableCell>
-                  <TableCell>{category.type}</TableCell>
                   <TableCell>
-                    {category.icon ? (
-                      <span className="text-lg">{category.icon}</span>
-                    ) : (
-                      <span className="text-[var(--muted-foreground)]">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className="inline-flex h-5 w-5 rounded-full border border-[var(--border)]"
-                      style={{ backgroundColor: category.color ?? '#176b6c' }}
-                    />
+                    <div className="flex items-center gap-2">
+                      {category.icon && (
+                        <span className="text-base leading-none">
+                          {category.icon}
+                        </span>
+                      )}
+                      <span className="font-medium">{category.name}</span>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge
-                      variant={category.isArchived ? 'outline' : 'success'}
+                      variant={category.isArchived ? 'outline' : 'secondary'}
+                      className="font-semibold"
                     >
                       {category.isArchived ? 'Disabled' : 'Enabled'}
                     </Badge>
