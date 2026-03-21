@@ -570,14 +570,7 @@ function AccountsPage() {
                   isActive={sortField === 'name'}
                   direction={sortDirection}
                 />
-                <TableHead>Icon</TableHead>
                 <TableHead>Status</TableHead>
-                <SortableHead
-                  label="Type"
-                  onClick={() => updateSort('type')}
-                  isActive={sortField === 'type'}
-                  direction={sortDirection}
-                />
                 <SortableHead
                   label="Currency"
                   onClick={() => updateSort('currency')}
@@ -618,44 +611,49 @@ function AccountsPage() {
                     {(currentPage - 1) * 8 + index + 1}
                   </TableCell>
                   <TableCell>
-                    <div>
-                      <div className="flex items-center gap-3">
-                        <span
-                          className="inline-flex h-3.5 w-3.5 rounded-full border border-[var(--border)]"
-                          style={{
-                            backgroundColor: account.color ?? '#176b6c',
-                          }}
-                        />
-                        <div>
-                          <p className="font-medium text-[var(--foreground)]">
-                            {account.name}
-                          </p>
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="inline-flex h-3.5 w-3.5 flex-shrink-0 rounded-full border border-[var(--border)]"
+                        style={{
+                          backgroundColor: account.color ?? '#176b6c',
+                        }}
+                      />
+                      {(() => {
+                        const IconComponent = getAccountIcon(account.icon)
+                        return (
+                          <IconComponent className="h-4 w-4 flex-shrink-0 text-[var(--muted-foreground)]" />
+                        )
+                      })()}
+                      <div>
+                        <p className="font-medium text-[var(--foreground)]">
+                          {account.name}
+                        </p>
+                        {(account.institutionName ||
+                          account.accountNumberMasked) && (
                           <p className="text-xs text-[var(--muted-foreground)]">
                             {account.institutionName ||
-                              account.accountNumberMasked ||
-                              'No institution details'}
+                              account.accountNumberMasked}
                           </p>
-                        </div>
+                        )}
                       </div>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    {(() => {
-                      const IconComponent = getAccountIcon(account.icon)
-                      return <IconComponent className="h-4 w-4" />
-                    })()}
                   </TableCell>
                   <TableCell>
                     <Badge variant={account.isArchived ? 'outline' : 'success'}>
                       {account.isArchived ? 'Disabled' : 'Enabled'}
                     </Badge>
                   </TableCell>
-                  <TableCell>{account.type.replaceAll('_', ' ')}</TableCell>
                   <TableCell>{account.currency}</TableCell>
                   <TableCell className="text-right">
                     {formatCurrency(account.openingBalance, account.currency)}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell
+                    className={`text-right font-medium ${
+                      Number(account.currentBalance) < 0
+                        ? 'text-destructive'
+                        : ''
+                    }`}
+                  >
                     {formatCurrency(account.currentBalance, account.currency)}
                   </TableCell>
                   <TableCell>
