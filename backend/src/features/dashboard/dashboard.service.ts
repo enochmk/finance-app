@@ -4,10 +4,16 @@ import prisma from '../../libs/prisma';
 
 import type { GetDashboardSummaryQuery } from './dashboard.schema';
 
-function getPeriodBounds(month?: number, year?: number) {
+function getPeriodBounds(month?: number | string, year?: number | string) {
   const now = new Date();
-  const selectedMonth = month ?? now.getUTCMonth() + 1;
-  const selectedYear = year ?? now.getUTCFullYear();
+  const selectedMonth = Number(month ?? now.getUTCMonth() + 1);
+  const selectedYear = Number(year ?? now.getUTCFullYear());
+
+  if (Number.isNaN(selectedMonth) || Number.isNaN(selectedYear)) {
+    throw new Error(
+      'Invalid period bounds: month and year must be numeric values'
+    );
+  }
 
   const periodStart = new Date(Date.UTC(selectedYear, selectedMonth - 1, 1));
   const periodEnd = new Date(Date.UTC(selectedYear, selectedMonth, 1));
@@ -28,7 +34,12 @@ class DashboardService {
   getSummary = async (userId: string, filters: GetDashboardSummaryQuery) => {
     const { selectedMonth, selectedYear, periodStart, periodEnd } =
       getPeriodBounds(filters.month, filters.year);
-    const recentLimit = filters.recentLimit ?? 5;
+    const recentLimit = filters.recentLimit ?? 10;
+
+    const prevMonth = selectedMonth === 1 ? 12 : selectedMonth - 1;
+    const prevYear = selectedMonth === 1 ? selectedYear - 1 : selectedYear;
+    const previousPeriodStart = new Date(Date.UTC(prevYear, prevMonth - 1, 1));
+    const previousPeriodEnd = new Date(Date.UTC(prevYear, prevMonth, 1));
 
     const accounts = await prisma.account.findMany({
       where: {
@@ -76,6 +87,10 @@ class DashboardService {
       transactionGroups,
       spendingByCategory,
       upcomingRecurringTransactions,
+      incomeCategoryGroups,
+      allPeriodTransactions,
+      previousPeriodGroups,
+      allCategories,
     ] = await Promise.all([
       prisma.budget.findMany({
         where: {
@@ -160,6 +175,55 @@ class DashboardService {
         orderBy: [{ nextRunAt: 'asc' }],
         take: 5,
       }),
+      // Income by category for the selected account in this period
+      prisma.transaction.groupBy({
+        by: ['categoryId'],
+        where: {
+          userId,
+          accountId: selectedAccount.id,
+          type: 'INCOME',
+          categoryId: { not: null },
+          transactionDate: { gte: periodStart, lt: periodEnd },
+        },
+        _sum: { amount: true },
+      }),
+      // All period transactions (lightweight) for cash flow and balance trend
+      prisma.transaction.findMany({
+        where: {
+          userId,
+          OR: [
+            { accountId: selectedAccount.id },
+            { transferAccountId: selectedAccount.id },
+          ],
+          transactionDate: { gte: periodStart, lt: periodEnd },
+        },
+        select: {
+          type: true,
+          amount: true,
+          transactionDate: true,
+          accountId: true,
+          transferAccountId: true,
+        },
+        orderBy: [{ transactionDate: 'asc' }],
+      }),
+      // Previous period transaction totals by type
+      prisma.transaction.groupBy({
+        by: ['type'],
+        where: {
+          userId,
+          OR: [
+            { accountId: selectedAccount.id },
+            { transferAccountId: selectedAccount.id },
+          ],
+          transactionDate: { gte: previousPeriodStart, lt: previousPeriodEnd },
+        },
+        _sum: { amount: true },
+      }),
+      // All categories for name/color resolution
+      prisma.category.findMany({
+        where: { userId },
+        select: { id: true, name: true, type: true, color: true, icon: true },
+      }),
     ]);
 
     const totalsByType = transactionGroups.reduce(
@@ -210,6 +274,124 @@ class DashboardService {
       };
     });
 
+    // Build category lookup map for expense/income breakdowns
+    const categoryMap = new Map(
+      allCategories.map((c) => [
+        c.id,
+        { id: c.id, name: c.name, type: c.type, color: c.color, icon: c.icon },
+      ])
+    );
+
+    const expensesByCategory = spendingByCategory
+      .map((item) => ({
+        categoryId: item.categoryId,
+        name: item.categoryId
+          ? (categoryMap.get(item.categoryId)?.name ?? 'Uncategorized')
+          : 'Uncategorized',
+        amount: toNumber(item._sum.amount),
+        color: item.categoryId
+          ? (categoryMap.get(item.categoryId)?.color ?? null)
+          : null,
+        icon: item.categoryId
+          ? (categoryMap.get(item.categoryId)?.icon ?? null)
+          : null,
+      }))
+      .filter((item) => item.amount > 0)
+      .sort((a, b) => b.amount - a.amount);
+
+    const incomesByCategory = incomeCategoryGroups
+      .map((item) => ({
+        categoryId: item.categoryId,
+        name: item.categoryId
+          ? (categoryMap.get(item.categoryId)?.name ?? 'Uncategorized')
+          : 'Uncategorized',
+        amount: toNumber(item._sum.amount),
+        color: item.categoryId
+          ? (categoryMap.get(item.categoryId)?.color ?? null)
+          : null,
+        icon: item.categoryId
+          ? (categoryMap.get(item.categoryId)?.icon ?? null)
+          : null,
+      }))
+      .filter((item) => item.amount > 0)
+      .sort((a, b) => b.amount - a.amount);
+
+    // Compute daily cash flow and balance trend from all period transactions
+    const dailyCashFlowMap = new Map<
+      string,
+      { income: number; expenses: number; net: number }
+    >();
+
+    for (const tx of allPeriodTransactions) {
+      const dateKey = (tx.transactionDate as Date).toISOString().slice(0, 10);
+      const existing = dailyCashFlowMap.get(dateKey) ?? {
+        income: 0,
+        expenses: 0,
+        net: 0,
+      };
+      const amount = toNumber(tx.amount);
+
+      if (tx.type === 'INCOME' && tx.accountId === selectedAccount.id) {
+        existing.income += amount;
+        existing.net += amount;
+      } else if (tx.type === 'EXPENSE' && tx.accountId === selectedAccount.id) {
+        existing.expenses += amount;
+        existing.net -= amount;
+      } else if (tx.type === 'TRANSFER') {
+        if (tx.accountId === selectedAccount.id) {
+          existing.net -= amount; // outgoing transfer
+        } else {
+          existing.net += amount; // incoming transfer
+        }
+      }
+
+      dailyCashFlowMap.set(dateKey, existing);
+    }
+
+    const dailyCashFlow = [...dailyCashFlowMap.entries()]
+      .map(([date, flow]) => ({
+        date,
+        income: Math.round(flow.income * 100) / 100,
+        expenses: Math.round(flow.expenses * 100) / 100,
+        net: Math.round(flow.net * 100) / 100,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Balance trend: compute running balance over the period
+    const netPeriodChange = allPeriodTransactions.reduce((sum, tx) => {
+      const amount = toNumber(tx.amount);
+      if (tx.type === 'INCOME' && tx.accountId === selectedAccount.id)
+        return sum + amount;
+      if (tx.type === 'EXPENSE' && tx.accountId === selectedAccount.id)
+        return sum - amount;
+      if (tx.type === 'TRANSFER') {
+        if (tx.accountId === selectedAccount.id) return sum - amount;
+        return sum + amount;
+      }
+      return sum;
+    }, 0);
+
+    const periodStartBalance =
+      toNumber(selectedAccount.currentBalance) - netPeriodChange;
+    let runningBalance = periodStartBalance;
+
+    const balanceTrend = dailyCashFlow.map((day) => {
+      runningBalance += day.net;
+      return {
+        date: day.date,
+        balance: Math.round(runningBalance * 100) / 100,
+      };
+    });
+
+    // Previous period totals
+    const previousTotals = previousPeriodGroups.reduce(
+      (acc, group) => {
+        acc[group.type] = toNumber(group._sum.amount);
+        return acc;
+      },
+      { INCOME: 0, EXPENSE: 0, TRANSFER: 0 } as Record<string, number>
+    );
+
     return {
       period: {
         month: selectedMonth,
@@ -246,6 +428,18 @@ class DashboardService {
         openingBalance: toNumber(account.openingBalance),
       })),
       budgets: budgetsWithUsage,
+      expensesByCategory,
+      incomesByCategory,
+      dailyCashFlow,
+      balanceTrend,
+      previousPeriod: {
+        month: prevMonth,
+        year: prevYear,
+        totalIncome: previousTotals.INCOME,
+        totalExpenses: previousTotals.EXPENSE,
+        totalTransfers: previousTotals.TRANSFER,
+        netCashFlow: previousTotals.INCOME - previousTotals.EXPENSE,
+      },
       recurringTransactions: upcomingRecurringTransactions.map(
         (recurringTransaction) => ({
           id: recurringTransaction.id,

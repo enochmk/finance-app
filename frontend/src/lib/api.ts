@@ -131,6 +131,38 @@ export type DashboardSummary = {
       type: string
     } | null
   }>
+  expensesByCategory: Array<{
+    categoryId: string | null
+    name: string
+    amount: number
+    color: string | null
+    icon: string | null
+  }>
+  incomesByCategory: Array<{
+    categoryId: string | null
+    name: string
+    amount: number
+    color: string | null
+    icon: string | null
+  }>
+  dailyCashFlow: Array<{
+    date: string
+    income: number
+    expenses: number
+    net: number
+  }>
+  balanceTrend: Array<{
+    date: string
+    balance: number
+  }>
+  previousPeriod: {
+    month: number
+    year: number
+    totalIncome: number
+    totalExpenses: number
+    totalTransfers: number
+    netCashFlow: number
+  }
 }
 
 export type MonthlyReport = {
@@ -472,8 +504,20 @@ export async function loginWithSeedUser() {
   return auth
 }
 
-export async function getDashboardSummary(search = '') {
-  return request<DashboardSummary>(`/dashboard/summary${search}`)
+export async function getDashboardSummary(params?: {
+  accountId?: string
+  month?: number
+  year?: number
+  recentLimit?: number
+}) {
+  const searchParams = new URLSearchParams()
+  if (params?.accountId) searchParams.set('accountId', params.accountId)
+  if (params?.month) searchParams.set('month', String(params.month))
+  if (params?.year) searchParams.set('year', String(params.year))
+  if (params?.recentLimit)
+    searchParams.set('recentLimit', String(params.recentLimit))
+  const qs = searchParams.toString()
+  return request<DashboardSummary>(`/dashboard/summary${qs ? `?${qs}` : ''}`)
 }
 
 export async function getMonthlyReport(search = '') {

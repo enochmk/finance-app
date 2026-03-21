@@ -15,7 +15,11 @@ const resourceValidator =
     };
 
     try {
-      await schema.parseAsync(data);
+      const parsed = await schema.parseAsync(data);
+      // Assign coerced values back so downstream handlers receive the correct types
+      if (parsed.body !== undefined) req.body = parsed.body;
+      if (parsed.query !== undefined) Object.assign(req.query, parsed.query);
+      if (parsed.params !== undefined) Object.assign(req.params, parsed.params);
       return next();
     } catch (err: any) {
       const zodErrors = err?.errors ?? [];

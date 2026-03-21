@@ -21,6 +21,22 @@ const toUtcDate = (
   minute = 0
 ) => new Date(Date.UTC(year, monthIndex, day, hour, minute, 0));
 
+const getBalanceDelta = (
+  type: TransactionType,
+  amount: number,
+  direction: 'primary' | 'transfer'
+) => {
+  if (type === TransactionType.INCOME) {
+    return direction === 'primary' ? amount : 0;
+  }
+
+  if (type === TransactionType.EXPENSE) {
+    return direction === 'primary' ? -amount : 0;
+  }
+
+  return direction === 'primary' ? -amount : amount;
+};
+
 type SeedTransaction = {
   id: string;
   accountName: string;
@@ -121,6 +137,24 @@ export async function bootstrapDevData() {
         icon: 'Heart',
         openingBalance: 3200,
         currentBalance: 3200,
+      },
+      {
+        name: 'Mobile Money',
+        type: AccountType.CASH,
+        currency: 'GHS',
+        color: '#15803d',
+        icon: 'Smartphone',
+        openingBalance: 900,
+        currentBalance: 900,
+      },
+      {
+        name: 'Subscription',
+        type: AccountType.CASH,
+        currency: 'GHS',
+        color: '#7c3aed',
+        icon: 'CreditCard',
+        openingBalance: 200,
+        currentBalance: 200,
       },
     ].map((account) =>
       prisma.account.upsert({
@@ -507,6 +541,70 @@ export async function bootstrapDevData() {
         },
       });
     })
+  );
+
+  const accountsForBalanceSync = await prisma.account.findMany({
+    where: {
+      userId: user.id,
+    },
+    select: {
+      id: true,
+      openingBalance: true,
+    },
+  });
+
+  const allUserTransactions = await prisma.transaction.findMany({
+    where: {
+      userId: user.id,
+    },
+    select: {
+      accountId: true,
+      transferAccountId: true,
+      type: true,
+      amount: true,
+    },
+  });
+
+  const recalculatedBalances = new Map(
+    accountsForBalanceSync.map((account) => [
+      account.id,
+      Number(account.openingBalance),
+    ])
+  );
+
+  for (const transaction of allUserTransactions) {
+    const amount = Number(transaction.amount);
+    const primaryBalance = recalculatedBalances.get(transaction.accountId) ?? 0;
+
+    recalculatedBalances.set(
+      transaction.accountId,
+      primaryBalance + getBalanceDelta(transaction.type, amount, 'primary')
+    );
+
+    if (transaction.transferAccountId) {
+      const transferBalance =
+        recalculatedBalances.get(transaction.transferAccountId) ?? 0;
+
+      recalculatedBalances.set(
+        transaction.transferAccountId,
+        transferBalance + getBalanceDelta(transaction.type, amount, 'transfer')
+      );
+    }
+  }
+
+  await Promise.all(
+    accountsForBalanceSync.map((account) =>
+      prisma.account.update({
+        where: {
+          id: account.id,
+        },
+        data: {
+          currentBalance:
+            recalculatedBalances.get(account.id) ??
+            Number(account.openingBalance),
+        },
+      })
+    )
   );
 
   const seededRecurringTransactions: SeedRecurringTransaction[] = [
