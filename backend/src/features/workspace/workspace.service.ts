@@ -13,6 +13,41 @@ const DEFAULT_CATEGORIES = [
   { name: 'Income', type: 'INCOME' as const, color: '#15803d' },
 ] as const;
 
+const DEFAULT_ACCOUNTS = [
+  {
+    name: 'Bank',
+    type: 'CHECKING' as const,
+    currency: 'GHS',
+    color: '#1d4ed8',
+    icon: 'Building2',
+    openingBalance: 0,
+  },
+  {
+    name: 'Savings',
+    type: 'SAVINGS' as const,
+    currency: 'GHS',
+    color: '#15803d',
+    icon: 'PiggyBank',
+    openingBalance: 0,
+  },
+  {
+    name: 'Mobile Money',
+    type: 'CHECKING' as const,
+    currency: 'GHS',
+    color: '#f59e0b',
+    icon: 'Smartphone',
+    openingBalance: 0,
+  },
+  {
+    name: 'Cash',
+    type: 'CASH' as const,
+    currency: 'GHS',
+    color: '#7c3aed',
+    icon: 'Wallet',
+    openingBalance: 0,
+  },
+] as const;
+
 class WorkspaceService {
   resetAll = async (userId: string) => {
     await prisma.$transaction(async (tx) => {
@@ -54,6 +89,20 @@ class WorkspaceService {
           })
         )
       );
+
+      await tx.account.createMany({
+        data: DEFAULT_ACCOUNTS.map((account) => ({
+          userId,
+          name: account.name,
+          type: account.type,
+          currency: account.currency,
+          color: account.color,
+          icon: account.icon,
+          openingBalance: account.openingBalance,
+          currentBalance: account.openingBalance,
+          isArchived: false,
+        })),
+      });
     });
   };
 }
