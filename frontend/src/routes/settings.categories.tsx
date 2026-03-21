@@ -55,7 +55,6 @@ import { useProtectedRoute } from '#/hooks/use-protected-route'
 import {
   createCategory,
   deleteCategory,
-  seedDefaultCategories,
   updateCategory,
   type Category,
 } from '#/lib/api'
@@ -256,19 +255,6 @@ function CategoriesPage() {
     }
   }
 
-  async function handleSeedCategories() {
-    try {
-      await seedDefaultCategories()
-      await refreshAll()
-      toast.success('Starter categories seeded')
-    } catch (seedError) {
-      toast.error('Unable to seed starter categories', {
-        description:
-          seedError instanceof Error ? seedError.message : 'Request failed',
-      })
-    }
-  }
-
   function updateSort(field: CategorySortField) {
     if (sortField === field) {
       setSortDirection((current) => (current === 'asc' ? 'desc' : 'asc'))
@@ -290,12 +276,10 @@ function CategoriesPage() {
       description="Keep transaction entry clean with categories you can extend, disable, and reuse over time."
       icon={Tag}
       actions={
-        <>
-          <Button variant="outline" onClick={handleSeedCategories}>
-            Seed starter categories
-          </Button>
-          <Button onClick={() => setIsCreateOpen(true)}>Add category</Button>
-        </>
+        <Button onClick={() => setIsCreateOpen(true)}>
+          <Plus className="h-4 w-4" />
+          Add category
+        </Button>
       }
     >
       <div className="grid gap-4 md:grid-cols-3">

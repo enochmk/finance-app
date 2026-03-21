@@ -13,6 +13,7 @@ type ConfirmActionDialogProps = {
   onConfirm: () => void
   icon?: LucideIcon
   confirmIcon?: LucideIcon
+  isLoading?: boolean
 }
 
 export function ConfirmActionDialog({
@@ -24,6 +25,7 @@ export function ConfirmActionDialog({
   onConfirm,
   icon,
   confirmIcon,
+  isLoading = false,
 }: ConfirmActionDialogProps) {
   const ConfirmIcon = confirmIcon
   return (
@@ -39,12 +41,18 @@ export function ConfirmActionDialog({
         <Button
           type="button"
           variant="outline"
+          disabled={isLoading}
           onClick={() => onOpenChange(false)}
         >
           <X className="h-4 w-4" />
           Cancel
         </Button>
-        <Button type="button" variant="destructive" onClick={onConfirm}>
+        <Button
+          type="button"
+          variant="destructive"
+          disabled={isLoading}
+          onClick={onConfirm}
+        >
           {ConfirmIcon && <ConfirmIcon className="h-4 w-4" />}
           {confirmLabel}
         </Button>

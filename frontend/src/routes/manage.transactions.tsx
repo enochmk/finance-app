@@ -24,7 +24,6 @@ import { ConfirmActionDialog } from '#/components/confirm-action-dialog'
 import { CrudDialogShell } from '#/components/crud-dialog-shell'
 import { CrudPageShell } from '#/components/crud-page-shell'
 import { CrudTableCard } from '#/components/crud-table-card'
-import { FinanceSectionNav } from '#/components/finance-section-nav'
 import { PaginationControls } from '#/components/pagination-controls'
 import { RowActionsMenu } from '#/components/row-actions-menu'
 import { useSession } from '#/components/session-provider'
@@ -424,7 +423,6 @@ function TransactionsPage() {
       badge="Finance workspace"
       title="Transactions"
       description="Capture credits, debits, and transfers with enough context to track where money moved and how it was entered."
-      navigation={<FinanceSectionNav />}
       icon={DollarSign}
       actions={
         <Button onClick={() => setIsCreateOpen(true)}>

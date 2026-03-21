@@ -10,6 +10,7 @@ import {
   LogOut,
   Menu,
   MoonStar,
+  RotateCcw,
   Settings,
   SunMedium,
 } from 'lucide-react'
@@ -40,6 +41,7 @@ const navigationItems = [
 const settingsItems = [
   { to: '/settings/accounts', label: 'Accounts', icon: Landmark },
   { to: '/settings/categories', label: 'Categories', icon: FolderTree },
+  { to: '/settings/reset', label: 'Reset workspace', icon: RotateCcw },
 ] as const
 
 function SidebarContent({ mobile = false }: { mobile?: boolean }) {

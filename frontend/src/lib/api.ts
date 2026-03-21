@@ -479,3 +479,10 @@ export async function getDashboardSummary(search = '') {
 export async function getMonthlyReport(search = '') {
   return request<MonthlyReport>(`/reports/monthly${search}`)
 }
+
+export async function resetWorkspace() {
+  return request<{ reset: boolean }>('/workspace/reset', {
+    method: 'POST',
+    body: {},
+  })
+}

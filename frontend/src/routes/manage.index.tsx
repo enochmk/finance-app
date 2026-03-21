@@ -2,7 +2,6 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { ArrowRight } from 'lucide-react'
 
 import { CrudPageShell } from '#/components/crud-page-shell'
-import { FinanceSectionNav } from '#/components/finance-section-nav'
 import { useSession } from '#/components/session-provider'
 import { Badge } from '#/components/ui/badge'
 import { Button } from '#/components/ui/button'
@@ -36,7 +35,6 @@ function ManageOverviewPage() {
       badge="Finance workspace"
       title="Management overview"
       description="Jump into the core MVP sections for accounts, categories, and transactions."
-      navigation={<FinanceSectionNav />}
       actions={
         <Button asChild>
           <Link to="/manage/transactions">

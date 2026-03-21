@@ -18,6 +18,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ManageIndexRouteImport } from './routes/manage.index'
+import { Route as SettingsResetRouteImport } from './routes/settings.reset'
 import { Route as SettingsCategoriesRouteImport } from './routes/settings.categories'
 import { Route as SettingsAccountsRouteImport } from './routes/settings.accounts'
 import { Route as ManageTransactionsRouteImport } from './routes/manage.transactions'
@@ -69,6 +70,11 @@ const ManageIndexRoute = ManageIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ManageRoute,
 } as any)
+const SettingsResetRoute = SettingsResetRouteImport.update({
+  id: '/reset',
+  path: '/reset',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsCategoriesRoute = SettingsCategoriesRouteImport.update({
   id: '/categories',
   path: '/categories',
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/manage/transactions': typeof ManageTransactionsRoute
   '/settings/accounts': typeof SettingsAccountsRoute
   '/settings/categories': typeof SettingsCategoriesRoute
+  '/settings/reset': typeof SettingsResetRoute
   '/manage/': typeof ManageIndexRoute
 }
 export interface FileRoutesByTo {
@@ -124,6 +131,7 @@ export interface FileRoutesByTo {
   '/manage/transactions': typeof ManageTransactionsRoute
   '/settings/accounts': typeof SettingsAccountsRoute
   '/settings/categories': typeof SettingsCategoriesRoute
+  '/settings/reset': typeof SettingsResetRoute
   '/manage': typeof ManageIndexRoute
 }
 export interface FileRoutesById {
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/manage/transactions': typeof ManageTransactionsRoute
   '/settings/accounts': typeof SettingsAccountsRoute
   '/settings/categories': typeof SettingsCategoriesRoute
+  '/settings/reset': typeof SettingsResetRoute
   '/manage/': typeof ManageIndexRoute
 }
 export interface FileRouteTypes {
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
     | '/manage/transactions'
     | '/settings/accounts'
     | '/settings/categories'
+    | '/settings/reset'
     | '/manage/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/manage/transactions'
     | '/settings/accounts'
     | '/settings/categories'
+    | '/settings/reset'
     | '/manage'
   id:
     | '__root__'
@@ -190,6 +201,7 @@ export interface FileRouteTypes {
     | '/manage/transactions'
     | '/settings/accounts'
     | '/settings/categories'
+    | '/settings/reset'
     | '/manage/'
   fileRoutesById: FileRoutesById
 }
@@ -269,6 +281,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ManageIndexRouteImport
       parentRoute: typeof ManageRoute
     }
+    '/settings/reset': {
+      id: '/settings/reset'
+      path: '/reset'
+      fullPath: '/settings/reset'
+      preLoaderRoute: typeof SettingsResetRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/categories': {
       id: '/settings/categories'
       path: '/categories'
@@ -327,11 +346,13 @@ const ManageRouteWithChildren =
 interface SettingsRouteChildren {
   SettingsAccountsRoute: typeof SettingsAccountsRoute
   SettingsCategoriesRoute: typeof SettingsCategoriesRoute
+  SettingsResetRoute: typeof SettingsResetRoute
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsAccountsRoute: SettingsAccountsRoute,
   SettingsCategoriesRoute: SettingsCategoriesRoute,
+  SettingsResetRoute: SettingsResetRoute,
 }
 
 const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
