@@ -13,6 +13,11 @@ import {
   ArrowRightLeft,
   TrendingUp,
   TrendingDown,
+  PiggyBank,
+  Heart,
+  CreditCard,
+  Smartphone,
+  Wallet,
 } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useForm } from 'react-hook-form'
@@ -53,6 +58,7 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table'
+import { Card, CardContent } from '#/components/ui/card'
 import { useFinanceWorkspaceData } from '#/hooks/use-finance-workspace-data'
 import { useProtectedRoute } from '#/hooks/use-protected-route'
 import {
@@ -62,6 +68,7 @@ import {
   type Transaction,
 } from '#/lib/api'
 import {
+  ACCOUNT_TYPE_OPTIONS,
   TRANSACTION_TYPE_OPTIONS,
   formatCurrency,
   formatDateTime,
@@ -73,6 +80,25 @@ import {
   paginateItems,
   toDateTimeLocalValue,
 } from '#/lib/finance'
+
+function getAccountIcon(iconName?: string | null) {
+  switch (iconName) {
+    case 'Building2':
+      return Building2
+    case 'PiggyBank':
+      return PiggyBank
+    case 'Heart':
+      return Heart
+    case 'CreditCard':
+      return CreditCard
+    case 'Smartphone':
+      return Smartphone
+    case 'Wallet':
+      return Wallet
+    default:
+      return Building2
+  }
+}
 
 export const Route = createFileRoute('/transactions')({
   component: TransactionsPage,
@@ -174,6 +200,7 @@ function TransactionsPage() {
   ])
 
   const watchedCreateType = createForm.watch('type')
+  const watchedCreateAmount = createForm.watch('amount')
 
   const availableAccounts = useMemo(
     () => accounts.filter((account) => !account.isArchived),
@@ -185,6 +212,26 @@ function TransactionsPage() {
   const selectedAccount = availableAccounts.find(
     (account) => account.id === watchedAccountId
   )
+
+  const selectedAccountProjection = useMemo(() => {
+    if (!selectedAccount) {
+      return null
+    }
+
+    const current = Number(selectedAccount.currentBalance)
+    const amt = Number(watchedCreateAmount) || 0
+    const projected =
+      watchedCreateType === 'INCOME'
+        ? current + amt
+        : watchedCreateType === 'EXPENSE'
+          ? current - amt
+          : current - amt
+
+    return {
+      projected,
+      color: projected >= 0 ? 'text-green-600' : 'text-red-600',
+    }
+  }, [selectedAccount, watchedCreateAmount, watchedCreateType])
 
   const editAccountOptions = useMemo(() => {
     if (!editingTransaction) {
@@ -307,6 +354,30 @@ function TransactionsPage() {
     currentPage,
     pageSize
   )
+
+  const insights = useMemo(() => {
+    const income = filteredTransactions
+      .filter((t) => t.type === 'INCOME')
+      .reduce((sum, t) => sum + Number(t.amount), 0)
+    const expenses = filteredTransactions
+      .filter((t) => t.type === 'EXPENSE')
+      .reduce((sum, t) => sum + Number(t.amount), 0)
+    const transfers = filteredTransactions
+      .filter((t) => t.type === 'TRANSFER')
+      .reduce((sum, t) => sum + Number(t.amount), 0)
+    return {
+      income,
+      expenses,
+      netFlow: income - expenses,
+      transfers,
+      incomeCount: filteredTransactions.filter((t) => t.type === 'INCOME')
+        .length,
+      expenseCount: filteredTransactions.filter((t) => t.type === 'EXPENSE')
+        .length,
+      transferCount: filteredTransactions.filter((t) => t.type === 'TRANSFER')
+        .length,
+    }
+  }, [filteredTransactions])
 
   async function handleCreateTransaction(
     values: z.infer<typeof transactionSchema>
@@ -440,6 +511,169 @@ function TransactionsPage() {
         </Button>
       }
     >
+      {!error && availableAccounts.length > 0 && (
+        <div className="mb-6">
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            <button
+              type="button"
+              onClick={() => setAccountFilter('ALL')}
+              className={`flex-shrink-0 w-28 rounded-xl border cursor-pointer transition-all text-left p-4 ${
+                accountFilter === 'ALL'
+                  ? 'ring-2 ring-[var(--primary)] border-[var(--primary)] bg-[var(--accent)]'
+                  : 'border-[var(--border)] bg-[var(--card)] hover:bg-[var(--accent)]'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <Wallet className="h-4 w-4 text-[var(--muted-foreground)]" />
+              </div>
+              <p className="text-sm font-semibold text-[var(--foreground)]">
+                All accounts
+              </p>
+              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                {availableAccounts.length} account
+                {availableAccounts.length !== 1 ? 's' : ''}
+              </p>
+            </button>
+
+            {availableAccounts.map((account) => {
+              const AccountIcon = getAccountIcon(account.icon)
+              const isSelected = accountFilter === account.id
+              const typeLabel =
+                ACCOUNT_TYPE_OPTIONS.find((o) => o.value === account.type)
+                  ?.label ?? account.type
+              return (
+                <button
+                  key={account.id}
+                  type="button"
+                  onClick={() => {
+                    setAccountFilter(account.id)
+                    createForm.setValue('accountId', account.id)
+                  }}
+                  className={`flex-shrink-0 w-44 rounded-xl border cursor-pointer transition-all text-left p-4 ${
+                    isSelected
+                      ? 'ring-2 ring-[var(--primary)] border-[var(--primary)] bg-[var(--accent)]'
+                      : 'border-[var(--border)] bg-[var(--card)] hover:bg-[var(--accent)]'
+                  }`}
+                  style={
+                    account.color && !isSelected
+                      ? { borderLeftColor: account.color, borderLeftWidth: 3 }
+                      : undefined
+                  }
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <AccountIcon
+                      className="h-4 w-4"
+                      style={
+                        account.color ? { color: account.color } : undefined
+                      }
+                    />
+                    <span className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide truncate">
+                      {typeLabel}
+                    </span>
+                  </div>
+                  <p className="text-sm font-semibold text-[var(--foreground)] truncate mb-1">
+                    {account.name}
+                  </p>
+                  <p
+                    className={`text-lg font-bold ${
+                      Number(account.currentBalance) >= 0
+                        ? 'text-green-600'
+                        : 'text-red-600'
+                    }`}
+                  >
+                    {formatCurrency(account.currentBalance, account.currency)}
+                  </p>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {!error && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
+                  Credited
+                </span>
+                <TrendingUp className="h-4 w-4 text-green-600" />
+              </div>
+              <p className="text-xl font-bold text-green-600">
+                {formatCurrency(insights.income)}
+              </p>
+              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                {insights.incomeCount} transaction
+                {insights.incomeCount !== 1 ? 's' : ''}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
+                  Debited
+                </span>
+                <TrendingDown className="h-4 w-4 text-red-600" />
+              </div>
+              <p className="text-xl font-bold text-red-600">
+                {formatCurrency(insights.expenses)}
+              </p>
+              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                {insights.expenseCount} transaction
+                {insights.expenseCount !== 1 ? 's' : ''}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
+                  Net flow
+                </span>
+                <ArrowRightLeft
+                  className={`h-4 w-4 ${
+                    insights.netFlow >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}
+                />
+              </div>
+              <p
+                className={`text-xl font-bold ${
+                  insights.netFlow >= 0 ? 'text-green-600' : 'text-red-600'
+                }`}
+              >
+                {insights.netFlow < 0 ? '-' : ''}
+                {formatCurrency(Math.abs(insights.netFlow))}
+              </p>
+              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                {insights.netFlow >= 0 ? 'Surplus' : 'Deficit'}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
+                  Transfers
+                </span>
+                <ArrowRightLeft className="h-4 w-4 text-yellow-600" />
+              </div>
+              <p className="text-xl font-bold text-yellow-600">
+                {formatCurrency(insights.transfers)}
+              </p>
+              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                {insights.transferCount} transaction
+                {insights.transferCount !== 1 ? 's' : ''}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {error ? (
         <CrudTableCard
           emptyTitle="Transactions unavailable"
@@ -934,6 +1168,48 @@ function TransactionsPage() {
                 />
               )}
             </div>
+
+            {selectedAccount && (
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-4 py-3 flex items-center justify-between gap-4 mb-4">
+                <div>
+                  <p className="text-xs text-[var(--muted-foreground)] mb-0.5">
+                    Current balance
+                  </p>
+                  <p
+                    className={`text-sm font-semibold ${
+                      Number(selectedAccount.currentBalance) >= 0
+                        ? 'text-green-600'
+                        : 'text-red-600'
+                    }`}
+                  >
+                    {formatCurrency(
+                      selectedAccount.currentBalance,
+                      selectedAccount.currency
+                    )}
+                  </p>
+                </div>
+                <ArrowRightLeft className="h-4 w-4 text-[var(--muted-foreground)] flex-shrink-0" />
+                <div className="text-right">
+                  <p className="text-xs text-[var(--muted-foreground)] mb-0.5">
+                    After transaction
+                  </p>
+                  <p
+                    className={`text-sm font-semibold ${
+                      selectedAccountProjection?.color ??
+                      'text-[var(--muted-foreground)]'
+                    }`}
+                  >
+                    {selectedAccountProjection
+                      ? formatCurrency(
+                          selectedAccountProjection.projected,
+                          selectedAccount.currency
+                        )
+                      : ''}
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={createForm.control}
