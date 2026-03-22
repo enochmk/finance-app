@@ -11,6 +11,7 @@ import {
   Menu,
   MoonStar,
   RotateCcw,
+  Search,
   Settings,
   SunMedium,
 } from 'lucide-react'
@@ -79,6 +80,12 @@ function SidebarContent({ mobile = false }: { mobile?: boolean }) {
     void navigate({ to: '/' })
   }
 
+  function openCommandPalette() {
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true })
+    )
+  }
+
   const userInitials = user?.name
     ? user.name
         .split(' ')
@@ -131,6 +138,32 @@ function SidebarContent({ mobile = false }: { mobile?: boolean }) {
       <Separator className="my-4 bg-[var(--sidebar-border)]" />
 
       <div className="px-2">
+        {isCollapsed && !mobile ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Open command palette"
+            title="Search (⌘K)"
+            className="mb-1 w-full text-[var(--sidebar-muted-foreground)] hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]"
+            onClick={openCommandPalette}
+          >
+            <Search className="h-4 w-4" />
+          </Button>
+        ) : (
+          <button
+            type="button"
+            aria-label="Open command palette"
+            className="mb-2 flex w-full items-center gap-2 rounded-xl border border-[var(--sidebar-border)] px-3 py-2 text-sm text-[var(--sidebar-muted-foreground)] transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]"
+            onClick={openCommandPalette}
+          >
+            <Search className="h-3.5 w-3.5 shrink-0" />
+            <span className="flex-1 text-left">Search...</span>
+            <kbd className="pointer-events-none hidden rounded border border-[var(--sidebar-border)] bg-[var(--sidebar-accent)] px-1.5 py-0.5 font-mono text-[10px] sm:inline-flex">
+              ⌘K
+            </kbd>
+          </button>
+        )}
+
         <nav className="space-y-1">
           {navigationItems.map((item) => {
             const Icon = item.icon

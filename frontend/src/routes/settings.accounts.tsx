@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useSearch } from '@tanstack/react-router'
 import {
   ArrowUpDown,
   Building2,
@@ -110,6 +110,10 @@ const ACCOUNT_ICON_OPTIONS = [
 
 export const Route = createFileRoute('/settings/accounts')({
   component: AccountsPage,
+  validateSearch: (search: Record<string, unknown>): { create?: boolean } =>
+    search['create'] === 'true' || search['create'] === true
+      ? { create: true }
+      : {},
 })
 
 const accountTypeValues = ACCOUNT_TYPE_OPTIONS.map(
@@ -204,7 +208,12 @@ function AccountsPage() {
   const { isLoading: isSessionLoading } = useProtectedRoute()
   const { accounts, error, isLoading, refreshAll } =
     useFinanceWorkspaceData(isAuthenticated)
+  const { create } = useSearch({ from: '/settings/accounts' })
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+
+  useEffect(() => {
+    if (create) setIsCreateOpen(true)
+  }, [create])
   const [editingAccount, setEditingAccount] = useState<EditAccountState | null>(
     null
   )

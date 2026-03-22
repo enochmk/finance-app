@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useSearch } from '@tanstack/react-router'
 import {
   ArrowUpDown,
   Eye,
@@ -76,6 +76,10 @@ import {
 
 export const Route = createFileRoute('/transactions')({
   component: TransactionsPage,
+  validateSearch: (search: Record<string, unknown>): { create?: boolean } =>
+    search['create'] === 'true' || search['create'] === true
+      ? { create: true }
+      : {},
 })
 
 const transactionSchema = z.object({
@@ -103,7 +107,12 @@ function TransactionsPage() {
   const { isLoading: isSessionLoading } = useProtectedRoute()
   const { accounts, categories, transactions, error, refreshAll } =
     useFinanceWorkspaceData(isAuthenticated)
+  const { create } = useSearch({ from: '/transactions' })
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+
+  useEffect(() => {
+    if (create) setIsCreateOpen(true)
+  }, [create])
   const [editingTransaction, setEditingTransaction] =
     useState<Transaction | null>(null)
   const [deletingTransaction, setDeletingTransaction] =

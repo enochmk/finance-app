@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useSearch } from '@tanstack/react-router'
 import {
   ArrowUpDown,
   Eye,
@@ -62,6 +62,10 @@ import { CATEGORY_TYPE_OPTIONS, paginateItems } from '#/lib/finance'
 
 export const Route = createFileRoute('/settings/categories')({
   component: CategoriesPage,
+  validateSearch: (search: Record<string, unknown>): { create?: boolean } =>
+    search['create'] === 'true' || search['create'] === true
+      ? { create: true }
+      : {},
 })
 
 const categorySchema = z.object({
@@ -80,7 +84,12 @@ function CategoriesPage() {
   const { isLoading: isSessionLoading } = useProtectedRoute()
   const { categories, error, refreshAll } =
     useFinanceWorkspaceData(isAuthenticated)
+  const { create } = useSearch({ from: '/settings/categories' })
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+
+  useEffect(() => {
+    if (create) setIsCreateOpen(true)
+  }, [create])
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(
     null

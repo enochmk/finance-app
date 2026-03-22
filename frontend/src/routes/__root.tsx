@@ -11,6 +11,7 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 import { useEffect } from 'react'
 
 import { AppSidebar } from '#/components/app-sidebar'
+import { CommandPalette } from '#/components/command-palette'
 import { SessionProvider, useSession } from '#/components/session-provider'
 import {
   SidebarStateProvider,
@@ -139,6 +140,7 @@ function RootLayout({ children }: { children: React.ReactNode }) {
         {children}
         <AppFooter />
       </div>
+      <CommandPalette />
     </div>
   )
 }
