@@ -7,6 +7,7 @@ import {
   createAccountSchema,
   deleteAccountSchema,
   listAccountsSchema,
+  reorderAccountsSchema,
   updateAccountSchema,
 } from './accounts.schema';
 
@@ -24,6 +25,12 @@ accountsRoutes.post(
   '/',
   resourceValidator(createAccountSchema),
   accountsController.create
+);
+
+accountsRoutes.patch(
+  '/reorder',
+  resourceValidator(reorderAccountsSchema),
+  accountsController.reorder
 );
 
 accountsRoutes.patch(

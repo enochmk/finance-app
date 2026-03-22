@@ -32,7 +32,44 @@ class AccountsService {
         type: filters.type,
         isArchived: filters.isArchived,
       },
-      orderBy: [{ isArchived: 'asc' }, { createdAt: 'desc' }],
+      orderBy: [
+        { isArchived: 'asc' },
+        { position: 'asc' },
+        { createdAt: 'desc' },
+      ],
+    });
+  };
+
+  reorder = async (userId: string, orderedIds: string[]) => {
+    const accounts = await prisma.account.findMany({
+      where: { userId },
+      select: { id: true },
+    });
+
+    const ownedIds = new Set(accounts.map((a) => a.id));
+
+    for (const id of orderedIds) {
+      if (!ownedIds.has(id)) {
+        throw createHttpError(403, 'Access denied to one or more accounts');
+      }
+    }
+
+    await prisma.$transaction(
+      orderedIds.map((id, index) =>
+        prisma.account.update({
+          where: { id },
+          data: { position: index },
+        })
+      )
+    );
+
+    return prisma.account.findMany({
+      where: { userId },
+      orderBy: [
+        { isArchived: 'asc' },
+        { position: 'asc' },
+        { createdAt: 'desc' },
+      ],
     });
   };
 

@@ -25,6 +25,7 @@ export type Account = {
   institutionName?: string | null
   accountNumberMasked?: string | null
   isArchived: boolean
+  position?: number
   createdAt?: string
   updatedAt?: string
 }
@@ -406,6 +407,13 @@ export async function updateAccount(
 export async function deleteAccount(id: string) {
   return request<Account>(`/accounts/${id}`, {
     method: 'DELETE',
+  })
+}
+
+export async function reorderAccounts(orderedIds: string[]) {
+  return request<Account[]>('/accounts/reorder', {
+    method: 'PATCH',
+    body: { orderedIds },
   })
 }
 

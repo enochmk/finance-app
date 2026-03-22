@@ -5,6 +5,7 @@ import type {
   CreateAccountBody,
   DeleteAccountParams,
   ListAccountsQuery,
+  ReorderAccountsBody,
   UpdateAccountBody,
   UpdateAccountParams,
 } from './accounts.schema';
@@ -95,6 +96,25 @@ class AccountsController {
       return res.status(200).json({
         data: account,
         message: 'Account deleted successfully',
+      });
+    } catch (error) {
+      return next(error);
+    }
+  };
+
+  reorder = async (
+    req: Request<Record<string, never>, unknown, ReorderAccountsBody>,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const accounts = await accountsService.reorder(
+        req.user!.id,
+        req.body.orderedIds
+      );
+
+      return res.status(200).json({
+        data: accounts,
       });
     } catch (error) {
       return next(error);

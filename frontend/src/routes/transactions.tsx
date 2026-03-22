@@ -18,8 +18,16 @@ import {
   CreditCard,
   Smartphone,
   Wallet,
+  GripVertical,
 } from 'lucide-react'
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -41,7 +49,14 @@ import {
   FormMessage,
 } from '#/components/ui/form'
 import { Button } from '#/components/ui/button'
-import { DialogFooter } from '#/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '#/components/ui/dialog'
 import { Input } from '#/components/ui/input'
 import {
   Select,
@@ -64,11 +79,11 @@ import { useProtectedRoute } from '#/hooks/use-protected-route'
 import {
   createTransaction,
   deleteTransaction,
+  reorderAccounts,
   updateTransaction,
   type Transaction,
 } from '#/lib/api'
 import {
-  ACCOUNT_TYPE_OPTIONS,
   TRANSACTION_TYPE_OPTIONS,
   formatCurrency,
   formatDateTime,
@@ -98,6 +113,14 @@ function getAccountIcon(iconName?: string | null) {
     default:
       return Building2
   }
+}
+
+function getDarkColor(hex: string): string {
+  const clean = hex.replace('#', '')
+  const r = parseInt(clean.slice(0, 2), 16)
+  const g = parseInt(clean.slice(2, 4), 16)
+  const b = parseInt(clean.slice(4, 6), 16)
+  return `rgb(${Math.round(r * 0.3)}, ${Math.round(g * 0.3)}, ${Math.round(b * 0.3)})`
 }
 
 export const Route = createFileRoute('/transactions')({
@@ -145,6 +168,8 @@ function TransactionsPage() {
     useState<Transaction | null>(null)
   const [viewingTransaction, setViewingTransaction] =
     useState<Transaction | null>(null)
+  const [keyboardTransaction, setKeyboardTransaction] =
+    useState<Transaction | null>(null)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('ALL')
   const [accountFilter, setAccountFilter] = useState('ALL')
@@ -160,6 +185,8 @@ function TransactionsPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [pageSize, setPageSize] = useState(5)
   const [currentPage, setCurrentPage] = useState(1)
+  const [accountOrder, setAccountOrder] = useState<string[]>([])
+  const dragOverId = useRef<string | null>(null)
 
   const createForm = useForm<z.infer<typeof transactionSchema>>({
     resolver: zodResolver(transactionSchema),
@@ -205,6 +232,41 @@ function TransactionsPage() {
   const availableAccounts = useMemo(
     () => accounts.filter((account) => !account.isArchived),
     [accounts]
+  )
+
+  // Sync accountOrder when accounts load for the first time
+  useEffect(() => {
+    if (availableAccounts.length > 0 && accountOrder.length === 0) {
+      const ids = availableAccounts.map((a) => a.id)
+      setAccountOrder(ids)
+    }
+  }, [availableAccounts, accountOrder.length])
+
+  // Auto-select the first account once accounts are loaded
+  useEffect(() => {
+    if (availableAccounts.length > 0 && accountFilter === 'ALL') {
+      const firstId =
+        accountOrder.length > 0 ? accountOrder[0] : availableAccounts[0].id
+      setAccountFilter(firstId)
+      createForm.setValue('accountId', firstId)
+    }
+    // Only run when accounts first become available
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableAccounts.length > 0])
+
+  const orderedAccounts = useMemo(() => {
+    if (accountOrder.length === 0) return availableAccounts
+    const orderMap = new Map(accountOrder.map((id, i) => [id, i]))
+    return [...availableAccounts].sort((a, b) => {
+      const ia = orderMap.get(a.id) ?? 999
+      const ib = orderMap.get(b.id) ?? 999
+      return ia - ib
+    })
+  }, [availableAccounts, accountOrder])
+
+  const selectedFilterAccount = useMemo(
+    () => availableAccounts.find((a) => a.id === accountFilter) ?? null,
+    [availableAccounts, accountFilter]
   )
 
   const watchedAccountId = createForm.watch('accountId')
@@ -400,7 +462,7 @@ function TransactionsPage() {
       })
 
       createForm.reset({
-        accountId: '',
+        accountId: accountFilter !== 'ALL' ? accountFilter : '',
         categoryId: '',
         transferAccountId: '',
         type: 'EXPENSE',
@@ -494,6 +556,106 @@ function TransactionsPage() {
     setSortDirection(field === 'transactionDate' ? 'desc' : 'asc')
   }
 
+  const handleDragStart = useCallback(
+    (event: React.DragEvent<HTMLButtonElement>, id: string) => {
+      event.dataTransfer.setData('text/plain', id)
+      event.dataTransfer.effectAllowed = 'move'
+    },
+    []
+  )
+
+  const handleDragOver = useCallback(
+    (event: React.DragEvent<HTMLButtonElement>, id: string) => {
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'move'
+      dragOverId.current = id
+    },
+    []
+  )
+
+  const handleDrop = useCallback(
+    async (event: React.DragEvent<HTMLButtonElement>, targetId: string) => {
+      event.preventDefault()
+      const draggedId = event.dataTransfer.getData('text/plain')
+      if (!draggedId || draggedId === targetId) return
+
+      const base =
+        accountOrder.length > 0
+          ? accountOrder
+          : orderedAccounts.map((a) => a.id)
+      const from = base.indexOf(draggedId)
+      const to = base.indexOf(targetId)
+      if (from === -1 || to === -1) return
+
+      const next = [...base]
+      next.splice(from, 1)
+      next.splice(to, 0, draggedId)
+      setAccountOrder(next)
+      dragOverId.current = null
+
+      try {
+        await reorderAccounts(next)
+      } catch {
+        setAccountOrder(base)
+        toast.error('Failed to save account order')
+      }
+    },
+    [accountOrder, orderedAccounts]
+  )
+
+  // Keyboard shortcuts: N = add, D = delete, E = edit, V = view
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const tag = (event.target as HTMLElement).tagName
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return
+      if (event.metaKey || event.ctrlKey || event.altKey) return
+
+      const anyModalOpen =
+        isCreateOpen ||
+        Boolean(editingTransaction) ||
+        Boolean(viewingTransaction) ||
+        Boolean(deletingTransaction) ||
+        isCustomDateModalOpen
+
+      switch (event.key.toLowerCase()) {
+        case 'n':
+          if (!anyModalOpen) {
+            event.preventDefault()
+            setIsCreateOpen(true)
+          }
+          break
+        case 'd':
+          if (!anyModalOpen && keyboardTransaction) {
+            event.preventDefault()
+            setDeletingTransaction(keyboardTransaction)
+          }
+          break
+        case 'e':
+          if (!anyModalOpen && keyboardTransaction) {
+            event.preventDefault()
+            openEditTransaction(keyboardTransaction)
+          }
+          break
+        case 'v':
+          if (!anyModalOpen && keyboardTransaction) {
+            event.preventDefault()
+            setViewingTransaction(keyboardTransaction)
+          }
+          break
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [
+    isCreateOpen,
+    editingTransaction,
+    viewingTransaction,
+    deletingTransaction,
+    isCustomDateModalOpen,
+    keyboardTransaction,
+  ])
+
   if (!isAuthenticated && !isSessionLoading) {
     return null
   }
@@ -514,64 +676,46 @@ function TransactionsPage() {
       {!error && availableAccounts.length > 0 && (
         <div className="mb-6">
           <div className="flex gap-3 overflow-x-auto pb-2">
-            <button
-              type="button"
-              onClick={() => setAccountFilter('ALL')}
-              className={`flex-shrink-0 w-28 rounded-xl border cursor-pointer transition-all text-left p-4 ${
-                accountFilter === 'ALL'
-                  ? 'ring-2 ring-[var(--primary)] border-[var(--primary)] bg-[var(--accent)]'
-                  : 'border-[var(--border)] bg-[var(--card)] hover:bg-[var(--accent)]'
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <Wallet className="h-4 w-4 text-[var(--muted-foreground)]" />
-              </div>
-              <p className="text-sm font-semibold text-[var(--foreground)]">
-                All accounts
-              </p>
-              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
-                {availableAccounts.length} account
-                {availableAccounts.length !== 1 ? 's' : ''}
-              </p>
-            </button>
-
-            {availableAccounts.map((account) => {
+            {orderedAccounts.map((account) => {
               const AccountIcon = getAccountIcon(account.icon)
               const isSelected = accountFilter === account.id
-              const typeLabel =
-                ACCOUNT_TYPE_OPTIONS.find((o) => o.value === account.type)
-                  ?.label ?? account.type
+              const accentColor = account.color ?? '#176b6c'
               return (
                 <button
                   key={account.id}
                   type="button"
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, account.id)}
+                  onDragOver={(e) => handleDragOver(e, account.id)}
+                  onDrop={(e) => handleDrop(e, account.id)}
                   onClick={() => {
                     setAccountFilter(account.id)
                     createForm.setValue('accountId', account.id)
                   }}
-                  className={`flex-shrink-0 w-44 rounded-xl border cursor-pointer transition-all text-left p-4 ${
-                    isSelected
-                      ? 'ring-2 ring-[var(--primary)] border-[var(--primary)] bg-[var(--accent)]'
-                      : 'border-[var(--border)] bg-[var(--card)] hover:bg-[var(--accent)]'
-                  }`}
+                  className="shrink-0 w-44 rounded-xl border cursor-pointer transition-all text-left p-4 select-none"
                   style={
-                    account.color && !isSelected
-                      ? { borderLeftColor: account.color, borderLeftWidth: 3 }
-                      : undefined
+                    isSelected
+                      ? {
+                          borderColor: accentColor,
+                          boxShadow: `0 0 0 2px ${accentColor}55, 0 4px 16px ${accentColor}33`,
+                          background: `${accentColor}12`,
+                        }
+                      : {
+                          borderColor: 'var(--border)',
+                          background: 'var(--card)',
+                          borderLeftColor: accentColor,
+                          borderLeftWidth: 3,
+                        }
                   }
                 >
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center justify-between mb-3">
                     <AccountIcon
-                      className="h-4 w-4"
-                      style={
-                        account.color ? { color: account.color } : undefined
-                      }
+                      className="h-5 w-5"
+                      style={{ color: accentColor }}
                     />
-                    <span className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide truncate">
-                      {typeLabel}
-                    </span>
+                    <GripVertical className="h-4 w-4 text-muted-foreground opacity-40" />
                   </div>
-                  <p className="text-sm font-semibold text-[var(--foreground)] truncate mb-1">
+                  <p className="text-sm font-semibold text-foreground truncate mb-1">
                     {account.name}
                   </p>
                   <p
@@ -592,46 +736,62 @@ function TransactionsPage() {
 
       {!error && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Card>
+          <Card
+            className="cursor-pointer hover:bg-accent transition-colors"
+            onClick={() =>
+              setTypeFilter(typeFilter === 'INCOME' ? 'ALL' : 'INCOME')
+            }
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Credited
                 </span>
                 <TrendingUp className="h-4 w-4 text-green-600" />
               </div>
               <p className="text-xl font-bold text-green-600">
-                {formatCurrency(insights.income)}
+                {formatCurrency(
+                  insights.income,
+                  selectedFilterAccount?.currency
+                )}
               </p>
-              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {insights.incomeCount} transaction
                 {insights.incomeCount !== 1 ? 's' : ''}
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            className="cursor-pointer hover:bg-accent transition-colors"
+            onClick={() =>
+              setTypeFilter(typeFilter === 'EXPENSE' ? 'ALL' : 'EXPENSE')
+            }
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Debited
                 </span>
                 <TrendingDown className="h-4 w-4 text-red-600" />
               </div>
               <p className="text-xl font-bold text-red-600">
-                {formatCurrency(insights.expenses)}
+                {formatCurrency(
+                  insights.expenses,
+                  selectedFilterAccount?.currency
+                )}
               </p>
-              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {insights.expenseCount} transaction
                 {insights.expenseCount !== 1 ? 's' : ''}
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="cursor-default">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Net flow
                 </span>
                 <ArrowRightLeft
@@ -646,26 +806,37 @@ function TransactionsPage() {
                 }`}
               >
                 {insights.netFlow < 0 ? '-' : ''}
-                {formatCurrency(Math.abs(insights.netFlow))}
+                {formatCurrency(
+                  Math.abs(insights.netFlow),
+                  selectedFilterAccount?.currency
+                )}
               </p>
-              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {insights.netFlow >= 0 ? 'Surplus' : 'Deficit'}
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            className="cursor-pointer hover:bg-accent transition-colors"
+            onClick={() =>
+              setTypeFilter(typeFilter === 'TRANSFER' ? 'ALL' : 'TRANSFER')
+            }
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Transfers
                 </span>
                 <ArrowRightLeft className="h-4 w-4 text-yellow-600" />
               </div>
               <p className="text-xl font-bold text-yellow-600">
-                {formatCurrency(insights.transfers)}
+                {formatCurrency(
+                  insights.transfers,
+                  selectedFilterAccount?.currency
+                )}
               </p>
-              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {insights.transferCount} transaction
                 {insights.transferCount !== 1 ? 's' : ''}
               </p>
@@ -705,7 +876,7 @@ function TransactionsPage() {
                   Search transactions
                 </label>
                 <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="transaction-search"
                     placeholder="Description, account, category"
@@ -889,7 +1060,7 @@ function TransactionsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-16 min-w-[4rem]">#</TableHead>
+                <TableHead className="w-16 min-w-16">#</TableHead>
                 <SortableHead
                   label="Description"
                   onClick={() => updateSort('description')}
@@ -928,18 +1099,25 @@ function TransactionsPage() {
               {paginatedTransactions.pageItems.map((transaction, index) => (
                 <TableRow
                   key={transaction.id}
-                  className="cursor-pointer hover:bg-[var(--accent)]"
-                  onClick={() => setViewingTransaction(transaction)}
+                  className={`cursor-pointer hover:bg-accent ${
+                    keyboardTransaction?.id === transaction.id
+                      ? 'ring-1 ring-inset ring-primary'
+                      : ''
+                  }`}
+                  onClick={() => {
+                    setKeyboardTransaction(transaction)
+                    setViewingTransaction(transaction)
+                  }}
                 >
-                  <TableCell className="font-mono text-sm text-[var(--muted-foreground)]">
+                  <TableCell className="font-mono text-sm text-muted-foreground">
                     {(currentPage - 1) * pageSize + index + 1}
                   </TableCell>
                   <TableCell>
                     <div>
-                      <p className="font-medium text-[var(--foreground)]">
+                      <p className="font-medium text-foreground">
                         {transaction.description}
                       </p>
-                      <p className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
                         {transaction.category?.icon && (
                           <span>{transaction.category.icon}</span>
                         )}
@@ -960,10 +1138,10 @@ function TransactionsPage() {
                   <TableCell>{transaction.account.name}</TableCell>
                   <TableCell>
                     <div>
-                      <p className="font-medium text-[var(--foreground)]">
+                      <p className="font-medium text-foreground">
                         {formatDateTime(transaction.transactionDate)}
                       </p>
-                      <p className="text-xs text-[var(--muted-foreground)]">
+                      <p className="text-xs text-muted-foreground">
                         {formatRelativeDate(transaction.transactionDate)}
                       </p>
                     </div>
@@ -1009,177 +1187,52 @@ function TransactionsPage() {
         </CrudTableCard>
       )}
 
-      <CrudDialogShell
-        open={isCreateOpen}
-        onOpenChange={setIsCreateOpen}
-        title="Create transaction"
-        description="Record a one-off credit, debit, or transfer."
-        icon={Plus}
-        className="transition-colors"
-        style={
-          selectedAccount?.color
-            ? { backgroundColor: selectedAccount.color }
-            : {}
-        }
-      >
-        <Form {...createForm}>
-          <form
-            onSubmit={createForm.handleSubmit(handleCreateTransaction)}
-            className="space-y-4"
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent className="p-0 overflow-hidden max-w-lg">
+          {/* Modernized header with account color */}
+          <div
+            className="px-6 pt-6 pb-5"
+            style={{
+              background: selectedAccount?.color
+                ? getDarkColor(selectedAccount.color)
+                : 'var(--card)',
+            }}
           >
-            <FormField
-              control={createForm.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Type</FormLabel>
-                  <FormControl>
-                    <div className="flex gap-2">
-                      {TRANSACTION_TYPE_OPTIONS.map((option) => {
-                        const isSelected = field.value === option.value
-                        const Icon =
-                          option.value === 'INCOME'
-                            ? TrendingUp
-                            : option.value === 'EXPENSE'
-                              ? TrendingDown
-                              : ArrowRightLeft
-                        return (
-                          <Button
-                            key={option.value}
-                            type="button"
-                            variant={isSelected ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => field.onChange(option.value)}
-                            className="flex-1"
-                          >
-                            <Icon className="mr-2 h-4 w-4" />
-                            {option.label}
-                          </Button>
-                        )
-                      })}
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid gap-4 md:grid-cols-2">
-              <FormField
-                control={createForm.control}
-                name="accountId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      <Building2 className="inline mr-2 h-4 w-4" />
-                      Account
-                    </FormLabel>
-                    <FormControl>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select account" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableAccounts.map((account) => (
-                            <SelectItem key={account.id} value={account.id}>
-                              {account.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {watchedCreateType === 'TRANSFER' ? (
-                <FormField
-                  control={createForm.control}
-                  name="transferAccountId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        <ArrowRightLeft className="inline mr-2 h-4 w-4" />
-                        Transfer account
-                      </FormLabel>
-                      <FormControl>
-                        <Select
-                          value={field.value || ''}
-                          onValueChange={field.onChange}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select destination account" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availableAccounts
-                              .filter(
-                                (account) =>
-                                  account.id !== createForm.watch('accountId')
-                              )
-                              .map((account) => (
-                                <SelectItem key={account.id} value={account.id}>
-                                  {account.name}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ) : (
-                <FormField
-                  control={createForm.control}
-                  name="categoryId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        <FileText className="inline mr-2 h-4 w-4" />
-                        Category
-                      </FormLabel>
-                      <FormControl>
-                        <Select
-                          value={field.value || ''}
-                          onValueChange={field.onChange}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categories
-                              .filter((category) => !category.isArchived)
-                              .map((category) => (
-                                <SelectItem
-                                  key={category.id}
-                                  value={category.id}
-                                >
-                                  {category.name}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-            </div>
+            <DialogHeader>
+              <div className="flex items-center gap-2 mb-1">
+                {selectedAccount &&
+                  (() => {
+                    const Icon = getAccountIcon(selectedAccount.icon)
+                    return (
+                      <Icon
+                        className="h-5 w-5"
+                        style={{ color: selectedAccount.color ?? 'white' }}
+                      />
+                    )
+                  })()}
+                <DialogTitle className="text-white text-lg font-semibold">
+                  Add transaction
+                </DialogTitle>
+              </div>
+              <DialogDescription className="text-white/60 text-sm">
+                {selectedAccount
+                  ? selectedAccount.name
+                  : 'Record a credit, debit, or transfer'}
+              </DialogDescription>
+            </DialogHeader>
 
+            {/* Balance projection header */}
             {selectedAccount && (
-              <div className="rounded-lg border border-[var(--border)] bg-[var(--muted)] px-4 py-3 flex items-center justify-between gap-4 mb-4">
+              <div className="mt-4 flex items-center justify-between gap-4 rounded-lg bg-black/20 px-4 py-3">
                 <div>
-                  <p className="text-xs text-[var(--muted-foreground)] mb-0.5">
+                  <p className="text-xs text-white/60 mb-0.5 uppercase tracking-wide">
                     Current balance
                   </p>
                   <p
-                    className={`text-sm font-semibold ${
+                    className={`text-base font-bold ${
                       Number(selectedAccount.currentBalance) >= 0
-                        ? 'text-green-600'
-                        : 'text-red-600'
+                        ? 'text-green-400'
+                        : 'text-red-400'
                     }`}
                   >
                     {formatCurrency(
@@ -1188,15 +1241,18 @@ function TransactionsPage() {
                     )}
                   </p>
                 </div>
-                <ArrowRightLeft className="h-4 w-4 text-[var(--muted-foreground)] flex-shrink-0" />
+                <ArrowRightLeft className="h-4 w-4 text-white/40 shrink-0" />
                 <div className="text-right">
-                  <p className="text-xs text-[var(--muted-foreground)] mb-0.5">
+                  <p className="text-xs text-white/60 mb-0.5 uppercase tracking-wide">
                     After transaction
                   </p>
                   <p
-                    className={`text-sm font-semibold ${
-                      selectedAccountProjection?.color ??
-                      'text-[var(--muted-foreground)]'
+                    className={`text-base font-bold ${
+                      selectedAccountProjection
+                        ? selectedAccountProjection.projected >= 0
+                          ? 'text-green-400'
+                          : 'text-red-400'
+                        : 'text-white/40'
                     }`}
                   >
                     {selectedAccountProjection
@@ -1204,82 +1260,240 @@ function TransactionsPage() {
                           selectedAccountProjection.projected,
                           selectedAccount.currency
                         )
-                      : ''}
+                      : '—'}
                   </p>
                 </div>
               </div>
             )}
+          </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <FormField
-                control={createForm.control}
-                name="amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      <DollarSign className="inline mr-2 h-4 w-4" />
-                      Amount
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        value={String(field.value ?? 0)}
-                        onChange={(event) => field.onChange(event.target.value)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={createForm.control}
-                name="transactionDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      <Calendar className="inline mr-2 h-4 w-4" />
-                      Date
-                    </FormLabel>
-                    <FormControl>
-                      <Input type="datetime-local" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <FormField
-              control={createForm.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    <FileText className="inline mr-2 h-4 w-4" />
-                    Description
-                  </FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsCreateOpen(false)}
+          {/* Form body */}
+          <div className="px-6 pb-6 pt-5">
+            <Form {...createForm}>
+              <form
+                onSubmit={createForm.handleSubmit(handleCreateTransaction)}
+                className="space-y-4"
               >
-                Cancel
-              </Button>
-              <Button type="submit">
-                <Plus className="mr-2 h-4 w-4" />
-                Create transaction
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </CrudDialogShell>
+                <FormField
+                  control={createForm.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Type</FormLabel>
+                      <FormControl>
+                        <div className="flex gap-2">
+                          {TRANSACTION_TYPE_OPTIONS.map((option) => {
+                            const isSelected = field.value === option.value
+                            const Icon =
+                              option.value === 'INCOME'
+                                ? TrendingUp
+                                : option.value === 'EXPENSE'
+                                  ? TrendingDown
+                                  : ArrowRightLeft
+                            return (
+                              <Button
+                                key={option.value}
+                                type="button"
+                                variant={isSelected ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => field.onChange(option.value)}
+                                className="flex-1"
+                              >
+                                <Icon className="mr-2 h-4 w-4" />
+                                {option.label}
+                              </Button>
+                            )
+                          })}
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={createForm.control}
+                    name="accountId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          <Building2 className="inline mr-2 h-4 w-4" />
+                          Account
+                        </FormLabel>
+                        <FormControl>
+                          <Select
+                            value={field.value}
+                            onValueChange={field.onChange}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select account" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableAccounts.map((account) => (
+                                <SelectItem key={account.id} value={account.id}>
+                                  {account.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {watchedCreateType === 'TRANSFER' ? (
+                    <FormField
+                      control={createForm.control}
+                      name="transferAccountId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            <ArrowRightLeft className="inline mr-2 h-4 w-4" />
+                            Transfer account
+                          </FormLabel>
+                          <FormControl>
+                            <Select
+                              value={field.value || ''}
+                              onValueChange={field.onChange}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select destination account" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableAccounts
+                                  .filter(
+                                    (account) =>
+                                      account.id !==
+                                      createForm.watch('accountId')
+                                  )
+                                  .map((account) => (
+                                    <SelectItem
+                                      key={account.id}
+                                      value={account.id}
+                                    >
+                                      {account.name}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ) : (
+                    <FormField
+                      control={createForm.control}
+                      name="categoryId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            <FileText className="inline mr-2 h-4 w-4" />
+                            Category
+                          </FormLabel>
+                          <FormControl>
+                            <Select
+                              value={field.value || ''}
+                              onValueChange={field.onChange}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {categories
+                                  .filter((category) => !category.isArchived)
+                                  .map((category) => (
+                                    <SelectItem
+                                      key={category.id}
+                                      value={category.id}
+                                    >
+                                      {category.name}
+                                    </SelectItem>
+                                  ))}
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={createForm.control}
+                    name="amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          <DollarSign className="inline mr-2 h-4 w-4" />
+                          Amount
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            value={String(field.value ?? 0)}
+                            onChange={(event) =>
+                              field.onChange(event.target.value)
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={createForm.control}
+                    name="transactionDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>
+                          <Calendar className="inline mr-2 h-4 w-4" />
+                          Date
+                        </FormLabel>
+                        <FormControl>
+                          <Input type="datetime-local" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={createForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        <FileText className="inline mr-2 h-4 w-4" />
+                        Description
+                      </FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsCreateOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add transaction
+                  </Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <CrudDialogShell
         open={isCustomDateModalOpen}
@@ -1491,7 +1705,7 @@ function TransactionsPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="text-sm font-medium">Description</label>
-                <p className="text-sm text-[var(--muted-foreground)]">
+                <p className="text-sm text-muted-foreground">
                   {viewingTransaction.description}
                 </p>
               </div>
@@ -1505,7 +1719,7 @@ function TransactionsPage() {
               </div>
               <div>
                 <label className="text-sm font-medium">Account</label>
-                <p className="text-sm text-[var(--muted-foreground)]">
+                <p className="text-sm text-muted-foreground">
                   {viewingTransaction.account.name}
                 </p>
               </div>
@@ -1522,13 +1736,13 @@ function TransactionsPage() {
               </div>
               <div>
                 <label className="text-sm font-medium">Date</label>
-                <p className="text-sm text-[var(--muted-foreground)]">
+                <p className="text-sm text-muted-foreground">
                   {formatDateTime(viewingTransaction.transactionDate)}
                 </p>
               </div>
               <div>
                 <label className="text-sm font-medium">Category</label>
-                <p className="text-sm text-[var(--muted-foreground)] flex items-center gap-1">
+                <p className="text-sm text-muted-foreground flex items-center gap-1">
                   {viewingTransaction.category?.icon && (
                     <span>{viewingTransaction.category.icon}</span>
                   )}
@@ -1544,7 +1758,7 @@ function TransactionsPage() {
             {viewingTransaction.notes && (
               <div>
                 <label className="text-sm font-medium">Notes</label>
-                <p className="text-sm text-[var(--muted-foreground)]">
+                <p className="text-sm text-muted-foreground">
                   {viewingTransaction.notes}
                 </p>
               </div>
@@ -1601,11 +1815,11 @@ function SortableHead({
       <button
         type="button"
         onClick={onClick}
-        className="inline-flex items-center gap-1 text-left font-medium text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
+        className="inline-flex items-center gap-1 text-left font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
         {label}
         <ArrowUpDown
-          className={isActive ? 'h-4 w-4 text-[var(--foreground)]' : 'h-4 w-4'}
+          className={isActive ? 'h-4 w-4 text-foreground' : 'h-4 w-4'}
         />
         {isActive ? <span className="sr-only">sorted {direction}</span> : null}
       </button>

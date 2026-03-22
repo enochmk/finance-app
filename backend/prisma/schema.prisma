@@ -68,6 +68,7 @@ model Account {
   institutionName               String?
   accountNumberMasked           String?
   isArchived                    Boolean                @default(false)
+  position                      Int                    @default(0)
   user                          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   recurringTransactions         RecurringTransaction[] @relation("RecurringPrimaryAccount")
   recurringTransferTransactions RecurringTransaction[] @relation("RecurringTransferAccount")

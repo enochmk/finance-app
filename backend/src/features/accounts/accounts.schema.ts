@@ -53,8 +53,17 @@ export const deleteAccountSchema = z.object({
   body: z.object({}).optional(),
 });
 
+export const reorderAccountsSchema = z.object({
+  body: z.object({
+    orderedIds: z.array(z.string().uuid()).min(1),
+  }),
+  params: z.object({}),
+  query: z.object({}),
+});
+
 export type ListAccountsQuery = z.infer<typeof listAccountsSchema>['query'];
 export type CreateAccountBody = z.infer<typeof createAccountSchema>['body'];
 export type UpdateAccountParams = z.infer<typeof updateAccountSchema>['params'];
 export type UpdateAccountBody = z.infer<typeof updateAccountSchema>['body'];
 export type DeleteAccountParams = z.infer<typeof deleteAccountSchema>['params'];
+export type ReorderAccountsBody = z.infer<typeof reorderAccountsSchema>['body'];
