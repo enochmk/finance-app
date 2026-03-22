@@ -62,6 +62,17 @@ export type Transaction = {
 
 export type DashboardSummary = {
   period: {
+    label: string
+    preset:
+      | 'today'
+      | 'last7days'
+      | 'last30days'
+      | 'thisMonth'
+      | 'lastMonth'
+      | 'thisYear'
+      | 'lastYear'
+      | 'customMonth'
+    compareBy: 'day' | 'week' | 'month' | 'year'
     month: number
     year: number
     start: string
@@ -74,6 +85,8 @@ export type DashboardSummary = {
     currency: string
     color?: string | null
     currentBalance: number
+    liveCurrentBalance: number
+    periodStartBalance: number
     openingBalance: number
   } | null
   overview: {
@@ -91,6 +104,7 @@ export type DashboardSummary = {
     currency: string
     color?: string | null
     currentBalance: number
+    liveCurrentBalance: number
     openingBalance: number
   }>
   budgets: Array<{
@@ -147,21 +161,53 @@ export type DashboardSummary = {
   }>
   dailyCashFlow: Array<{
     date: string
+    label: string
     income: number
     expenses: number
     net: number
   }>
   balanceTrend: Array<{
     date: string
+    label: string
     balance: number
   }>
   previousPeriod: {
+    label: string
+    start: string
+    end: string
     month: number
     year: number
     totalIncome: number
     totalExpenses: number
     totalTransfers: number
     netCashFlow: number
+    closingBalance: number
+  }
+  comparison: {
+    totalBalance: {
+      current: number
+      previous: number
+      change: number
+      changePct: number | null
+    }
+    totalIncome: {
+      current: number
+      previous: number
+      change: number
+      changePct: number | null
+    }
+    totalExpenses: {
+      current: number
+      previous: number
+      change: number
+      changePct: number | null
+    }
+    netCashFlow: {
+      current: number
+      previous: number
+      change: number
+      changePct: number | null
+    }
   }
 }
 
@@ -506,12 +552,23 @@ export async function loginWithSeedUser() {
 
 export async function getDashboardSummary(params?: {
   accountId?: string
+  preset?:
+    | 'today'
+    | 'last7days'
+    | 'last30days'
+    | 'thisMonth'
+    | 'lastMonth'
+    | 'thisYear'
+    | 'lastYear'
+  compareBy?: 'day' | 'week' | 'month' | 'year'
   month?: number
   year?: number
   recentLimit?: number
 }) {
   const searchParams = new URLSearchParams()
   if (params?.accountId) searchParams.set('accountId', params.accountId)
+  if (params?.preset) searchParams.set('preset', params.preset)
+  if (params?.compareBy) searchParams.set('compareBy', params.compareBy)
   if (params?.month) searchParams.set('month', String(params.month))
   if (params?.year) searchParams.set('year', String(params.year))
   if (params?.recentLimit)

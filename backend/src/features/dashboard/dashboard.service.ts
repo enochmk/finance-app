@@ -5,10 +5,167 @@ import { backfillTransferCategory } from '../categories/system-categories';
 
 import type { GetDashboardSummaryQuery } from './dashboard.schema';
 
-function getPeriodBounds(month?: number | string, year?: number | string) {
+function toNumber(value: unknown) {
+  return Number(value ?? 0);
+}
+
+type DashboardPreset = NonNullable<GetDashboardSummaryQuery['preset']>;
+type DashboardCompareBy = NonNullable<GetDashboardSummaryQuery['compareBy']>;
+
+type PeriodDefinition = {
+  preset: DashboardPreset | 'customMonth';
+  label: string;
+  start: Date;
+  end: Date;
+  compareBy: DashboardCompareBy;
+};
+
+type LightweightTransaction = {
+  type: string;
+  amount: unknown;
+  transactionDate: Date;
+  accountId: string;
+  transferAccountId: string | null;
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function startOfUtcDay(date: Date) {
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+  );
+}
+
+function addDays(date: Date, days: number) {
+  return new Date(date.getTime() + days * DAY_MS);
+}
+
+function daysBetween(start: Date, end: Date) {
+  return Math.max(0, Math.round((end.getTime() - start.getTime()) / DAY_MS));
+}
+
+function getDefaultCompareBy(preset: DashboardPreset | 'customMonth') {
+  if (preset === 'today') {
+    return 'day';
+  }
+
+  if (preset === 'thisYear' || preset === 'lastYear') {
+    return 'month';
+  }
+
+  return 'week';
+}
+
+function formatRangeLabel(start: Date, endExclusive: Date) {
+  const end = addDays(endExclusive, -1);
+  const startLabel = start.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+  const endLabel = end.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+
+  if (start.getUTCFullYear() !== end.getUTCFullYear()) {
+    return `${startLabel}, ${start.getUTCFullYear()} - ${endLabel}, ${end.getUTCFullYear()}`;
+  }
+
+  return `${startLabel} - ${endLabel}, ${start.getUTCFullYear()}`;
+}
+
+function resolvePeriod(filters: GetDashboardSummaryQuery): PeriodDefinition {
   const now = new Date();
-  const selectedMonth = Number(month ?? now.getUTCMonth() + 1);
-  const selectedYear = Number(year ?? now.getUTCFullYear());
+  const todayStart = startOfUtcDay(now);
+  const tomorrowStart = addDays(todayStart, 1);
+
+  if (filters.preset) {
+    switch (filters.preset) {
+      case 'today':
+        return {
+          preset: filters.preset,
+          label: 'Today',
+          start: todayStart,
+          end: tomorrowStart,
+          compareBy: filters.compareBy ?? getDefaultCompareBy(filters.preset),
+        };
+      case 'last7days':
+        return {
+          preset: filters.preset,
+          label: 'Last 7 days',
+          start: addDays(tomorrowStart, -7),
+          end: tomorrowStart,
+          compareBy: filters.compareBy ?? getDefaultCompareBy(filters.preset),
+        };
+      case 'last30days':
+        return {
+          preset: filters.preset,
+          label: 'Last 30 days',
+          start: addDays(tomorrowStart, -30),
+          end: tomorrowStart,
+          compareBy: filters.compareBy ?? getDefaultCompareBy(filters.preset),
+        };
+      case 'thisMonth': {
+        const start = new Date(
+          Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)
+        );
+
+        return {
+          preset: filters.preset,
+          label: 'This month',
+          start,
+          end: tomorrowStart,
+          compareBy: filters.compareBy ?? getDefaultCompareBy(filters.preset),
+        };
+      }
+      case 'lastMonth': {
+        const start = new Date(
+          Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)
+        );
+        const end = new Date(
+          Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)
+        );
+
+        return {
+          preset: filters.preset,
+          label: 'Last month',
+          start,
+          end,
+          compareBy: filters.compareBy ?? getDefaultCompareBy(filters.preset),
+        };
+      }
+      case 'thisYear': {
+        const start = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+
+        return {
+          preset: filters.preset,
+          label: 'This year',
+          start,
+          end: tomorrowStart,
+          compareBy: filters.compareBy ?? getDefaultCompareBy(filters.preset),
+        };
+      }
+      case 'lastYear': {
+        const start = new Date(Date.UTC(now.getUTCFullYear() - 1, 0, 1));
+        const end = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
+
+        return {
+          preset: filters.preset,
+          label: 'Last year',
+          start,
+          end,
+          compareBy: filters.compareBy ?? getDefaultCompareBy(filters.preset),
+        };
+      }
+      default:
+        break;
+    }
+  }
+
+  const selectedMonth = Number(filters.month ?? now.getUTCMonth() + 1);
+  const selectedYear = Number(filters.year ?? now.getUTCFullYear());
 
   if (Number.isNaN(selectedMonth) || Number.isNaN(selectedYear)) {
     throw new Error(
@@ -16,33 +173,290 @@ function getPeriodBounds(month?: number | string, year?: number | string) {
     );
   }
 
-  const periodStart = new Date(Date.UTC(selectedYear, selectedMonth - 1, 1));
-  const periodEnd = new Date(Date.UTC(selectedYear, selectedMonth, 1));
+  const start = new Date(Date.UTC(selectedYear, selectedMonth - 1, 1));
+  const end = new Date(Date.UTC(selectedYear, selectedMonth, 1));
 
   return {
-    selectedMonth,
-    selectedYear,
-    periodStart,
-    periodEnd,
+    preset: 'customMonth',
+    label: start.toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }),
+    start,
+    end,
+    compareBy: filters.compareBy ?? getDefaultCompareBy('customMonth'),
   };
 }
 
-function toNumber(value: unknown) {
-  return Number(value ?? 0);
+function getBucketStart(date: Date, compareBy: DashboardCompareBy) {
+  if (compareBy === 'day') {
+    return startOfUtcDay(date);
+  }
+
+  if (compareBy === 'week') {
+    const day = date.getUTCDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    return addDays(startOfUtcDay(date), diff);
+  }
+
+  if (compareBy === 'month') {
+    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+  }
+
+  return new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+}
+
+function addBucket(date: Date, compareBy: DashboardCompareBy) {
+  if (compareBy === 'day') {
+    return addDays(date, 1);
+  }
+
+  if (compareBy === 'week') {
+    return addDays(date, 7);
+  }
+
+  if (compareBy === 'month') {
+    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 1));
+  }
+
+  return new Date(Date.UTC(date.getUTCFullYear() + 1, 0, 1));
+}
+
+function formatBucketLabel(date: Date, compareBy: DashboardCompareBy) {
+  if (compareBy === 'day') {
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
+    });
+  }
+
+  if (compareBy === 'week') {
+    return `Week of ${date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
+    })}`;
+  }
+
+  if (compareBy === 'month') {
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    });
+  }
+
+  return String(date.getUTCFullYear());
+}
+
+function getTransactionEffect(
+  transaction: LightweightTransaction,
+  accountId: string
+) {
+  const amount = toNumber(transaction.amount);
+
+  if (transaction.type === 'INCOME' && transaction.accountId === accountId) {
+    return amount;
+  }
+
+  if (transaction.type === 'EXPENSE' && transaction.accountId === accountId) {
+    return -amount;
+  }
+
+  if (transaction.type === 'TRANSFER') {
+    if (transaction.accountId === accountId) {
+      return -amount;
+    }
+
+    if (transaction.transferAccountId === accountId) {
+      return amount;
+    }
+  }
+
+  return 0;
+}
+
+function sumNetEffect(
+  transactions: LightweightTransaction[],
+  accountId: string
+) {
+  return transactions.reduce(
+    (sum, transaction) => sum + getTransactionEffect(transaction, accountId),
+    0
+  );
+}
+
+function calculatePercentChange(current: number, previous: number) {
+  if (previous === 0) {
+    if (current === 0) {
+      return 0;
+    }
+
+    return null;
+  }
+
+  return ((current - previous) / Math.abs(previous)) * 100;
+}
+
+function getMonthsInRange(start: Date, end: Date) {
+  const months: Array<{ month: number; year: number; start: Date; end: Date }> =
+    [];
+  let cursor = new Date(
+    Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1)
+  );
+
+  while (cursor < end) {
+    const monthStart = new Date(cursor);
+    const monthEnd = new Date(
+      Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1)
+    );
+
+    months.push({
+      month: monthStart.getUTCMonth() + 1,
+      year: monthStart.getUTCFullYear(),
+      start: monthStart,
+      end: monthEnd,
+    });
+
+    cursor = monthEnd;
+  }
+
+  return months;
+}
+
+function getOverlapRatio(
+  periodStart: Date,
+  periodEnd: Date,
+  monthStart: Date,
+  monthEnd: Date
+) {
+  const overlapStart = new Date(
+    Math.max(periodStart.getTime(), monthStart.getTime())
+  );
+  const overlapEnd = new Date(
+    Math.min(periodEnd.getTime(), monthEnd.getTime())
+  );
+
+  if (overlapEnd <= overlapStart) {
+    return 0;
+  }
+
+  const overlapDays = daysBetween(overlapStart, overlapEnd);
+  const monthDays = daysBetween(monthStart, monthEnd);
+
+  if (monthDays === 0) {
+    return 0;
+  }
+
+  return overlapDays / monthDays;
+}
+
+function buildTrendSeries(
+  periodStart: Date,
+  periodEnd: Date,
+  compareBy: DashboardCompareBy,
+  transactions: LightweightTransaction[],
+  selectedAccountId: string,
+  periodStartBalance: number
+) {
+  const buckets = new Map<
+    string,
+    {
+      start: Date;
+      label: string;
+      income: number;
+      expenses: number;
+      net: number;
+    }
+  >();
+
+  for (
+    let cursor = getBucketStart(periodStart, compareBy);
+    cursor < periodEnd;
+    cursor = addBucket(cursor, compareBy)
+  ) {
+    buckets.set(cursor.toISOString(), {
+      start: cursor,
+      label: formatBucketLabel(cursor, compareBy),
+      income: 0,
+      expenses: 0,
+      net: 0,
+    });
+  }
+
+  for (const transaction of transactions) {
+    const bucketStart = getBucketStart(transaction.transactionDate, compareBy);
+    const bucket = buckets.get(bucketStart.toISOString());
+
+    if (!bucket) {
+      continue;
+    }
+
+    const amount = toNumber(transaction.amount);
+
+    if (
+      transaction.type === 'INCOME' &&
+      transaction.accountId === selectedAccountId
+    ) {
+      bucket.income += amount;
+      bucket.net += amount;
+    } else if (
+      transaction.type === 'EXPENSE' &&
+      transaction.accountId === selectedAccountId
+    ) {
+      bucket.expenses += amount;
+      bucket.net -= amount;
+    } else if (transaction.type === 'TRANSFER') {
+      if (transaction.accountId === selectedAccountId) {
+        bucket.net -= amount;
+      } else if (transaction.transferAccountId === selectedAccountId) {
+        bucket.net += amount;
+      }
+    }
+  }
+
+  let runningBalance = periodStartBalance;
+
+  const orderedBuckets = [...buckets.values()].sort(
+    (left, right) => left.start.getTime() - right.start.getTime()
+  );
+
+  const cashFlowSeries = orderedBuckets.map((bucket) => ({
+    date: bucket.start.toISOString().slice(0, 10),
+    label: bucket.label,
+    income: Math.round(bucket.income * 100) / 100,
+    expenses: Math.round(bucket.expenses * 100) / 100,
+    net: Math.round(bucket.net * 100) / 100,
+  }));
+
+  const balanceTrend = orderedBuckets.map((bucket) => {
+    runningBalance += bucket.net;
+
+    return {
+      date: bucket.start.toISOString().slice(0, 10),
+      label: bucket.label,
+      balance: Math.round(runningBalance * 100) / 100,
+    };
+  });
+
+  return {
+    cashFlowSeries,
+    balanceTrend,
+  };
 }
 
 class DashboardService {
   getSummary = async (userId: string, filters: GetDashboardSummaryQuery) => {
     await backfillTransferCategory(userId);
 
-    const { selectedMonth, selectedYear, periodStart, periodEnd } =
-      getPeriodBounds(filters.month, filters.year);
+    const period = resolvePeriod(filters);
     const recentLimit = filters.recentLimit ?? 10;
-
-    const prevMonth = selectedMonth === 1 ? 12 : selectedMonth - 1;
-    const prevYear = selectedMonth === 1 ? selectedYear - 1 : selectedYear;
-    const previousPeriodStart = new Date(Date.UTC(prevYear, prevMonth - 1, 1));
-    const previousPeriodEnd = new Date(Date.UTC(prevYear, prevMonth, 1));
+    const previousPeriodEnd = period.start;
+    const previousPeriodStart = new Date(
+      period.start.getTime() - (period.end.getTime() - period.start.getTime())
+    );
 
     const accounts = await prisma.account.findMany({
       where: {
@@ -55,13 +469,15 @@ class DashboardService {
     if (accounts.length === 0) {
       return {
         period: {
-          month: selectedMonth,
-          year: selectedYear,
-          start: periodStart.toISOString(),
-          end: periodEnd.toISOString(),
+          label: period.label,
+          preset: period.preset,
+          compareBy: period.compareBy,
+          month: period.start.getUTCMonth() + 1,
+          year: period.start.getUTCFullYear(),
+          start: period.start.toISOString(),
+          end: period.end.toISOString(),
         },
         selectedAccount: null,
-        accounts: [],
         overview: {
           totalBalance: 0,
           totalIncome: 0,
@@ -70,9 +486,32 @@ class DashboardService {
           netCashFlow: 0,
           totalBudgeted: 0,
         },
+        accounts: [],
         budgets: [],
-        recurringTransactions: [],
         recentTransactions: [],
+        expensesByCategory: [],
+        incomesByCategory: [],
+        dailyCashFlow: [],
+        balanceTrend: [],
+        previousPeriod: {
+          label: formatRangeLabel(previousPeriodStart, previousPeriodEnd),
+          start: previousPeriodStart.toISOString(),
+          end: previousPeriodEnd.toISOString(),
+          month: previousPeriodStart.getUTCMonth() + 1,
+          year: previousPeriodStart.getUTCFullYear(),
+          totalIncome: 0,
+          totalExpenses: 0,
+          totalTransfers: 0,
+          netCashFlow: 0,
+          closingBalance: 0,
+        },
+        comparison: {
+          totalBalance: { current: 0, previous: 0, change: 0, changePct: 0 },
+          totalIncome: { current: 0, previous: 0, change: 0, changePct: 0 },
+          totalExpenses: { current: 0, previous: 0, change: 0, changePct: 0 },
+          netCashFlow: { current: 0, previous: 0, change: 0, changePct: 0 },
+        },
+        recurringTransactions: [],
       };
     }
 
@@ -84,6 +523,9 @@ class DashboardService {
       throw createHttpError(404, 'Selected account not found');
     }
 
+    const accountIds = accounts.map((account) => account.id);
+    const budgetMonths = getMonthsInRange(period.start, period.end);
+
     const [
       budgets,
       recentTransactions,
@@ -91,15 +533,18 @@ class DashboardService {
       spendingByCategory,
       upcomingRecurringTransactions,
       incomeCategoryGroups,
-      allPeriodTransactions,
+      currentPeriodTransactions,
       previousPeriodGroups,
       allCategories,
+      futureTransactions,
     ] = await Promise.all([
       prisma.budget.findMany({
         where: {
           userId,
-          month: selectedMonth,
-          year: selectedYear,
+          OR: budgetMonths.map((month) => ({
+            month: month.month,
+            year: month.year,
+          })),
         },
         include: {
           category: true,
@@ -114,8 +559,8 @@ class DashboardService {
             { transferAccountId: selectedAccount.id },
           ],
           transactionDate: {
-            gte: periodStart,
-            lt: periodEnd,
+            gte: period.start,
+            lt: period.end,
           },
         },
         include: {
@@ -135,8 +580,8 @@ class DashboardService {
             { transferAccountId: selectedAccount.id },
           ],
           transactionDate: {
-            gte: periodStart,
-            lt: periodEnd,
+            gte: period.start,
+            lt: period.end,
           },
         },
         _sum: {
@@ -153,8 +598,8 @@ class DashboardService {
             not: null,
           },
           transactionDate: {
-            gte: periodStart,
-            lt: periodEnd,
+            gte: period.start,
+            lt: period.end,
           },
         },
         _sum: {
@@ -178,7 +623,6 @@ class DashboardService {
         orderBy: [{ nextRunAt: 'asc' }],
         take: 5,
       }),
-      // Income by category for the selected account in this period
       prisma.transaction.groupBy({
         by: ['categoryId'],
         where: {
@@ -186,11 +630,13 @@ class DashboardService {
           accountId: selectedAccount.id,
           type: 'INCOME',
           categoryId: { not: null },
-          transactionDate: { gte: periodStart, lt: periodEnd },
+          transactionDate: {
+            gte: period.start,
+            lt: period.end,
+          },
         },
         _sum: { amount: true },
       }),
-      // All period transactions (lightweight) for cash flow and balance trend
       prisma.transaction.findMany({
         where: {
           userId,
@@ -198,7 +644,10 @@ class DashboardService {
             { accountId: selectedAccount.id },
             { transferAccountId: selectedAccount.id },
           ],
-          transactionDate: { gte: periodStart, lt: periodEnd },
+          transactionDate: {
+            gte: period.start,
+            lt: period.end,
+          },
         },
         select: {
           type: true,
@@ -209,7 +658,6 @@ class DashboardService {
         },
         orderBy: [{ transactionDate: 'asc' }],
       }),
-      // Previous period transaction totals by type
       prisma.transaction.groupBy({
         by: ['type'],
         where: {
@@ -218,14 +666,35 @@ class DashboardService {
             { accountId: selectedAccount.id },
             { transferAccountId: selectedAccount.id },
           ],
-          transactionDate: { gte: previousPeriodStart, lt: previousPeriodEnd },
+          transactionDate: {
+            gte: previousPeriodStart,
+            lt: previousPeriodEnd,
+          },
         },
         _sum: { amount: true },
       }),
-      // All categories for name/color resolution
       prisma.category.findMany({
         where: { userId },
         select: { id: true, name: true, type: true, color: true, icon: true },
+      }),
+      prisma.transaction.findMany({
+        where: {
+          userId,
+          OR: [
+            { accountId: { in: accountIds } },
+            { transferAccountId: { in: accountIds } },
+          ],
+          transactionDate: {
+            gte: period.end,
+          },
+        },
+        select: {
+          type: true,
+          amount: true,
+          transactionDate: true,
+          accountId: true,
+          transferAccountId: true,
+        },
       }),
     ]);
 
@@ -241,12 +710,57 @@ class DashboardService {
       } as Record<string, number>
     );
 
-    const totalBalance = toNumber(selectedAccount.currentBalance);
+    const futureNetByAccount = futureTransactions.reduce((acc, transaction) => {
+      const affectedAccountIds = [
+        transaction.accountId,
+        ...(transaction.transferAccountId
+          ? [transaction.transferAccountId]
+          : []),
+      ];
 
-    const totalBudgeted = budgets.reduce(
-      (sum, budget) => sum + toNumber(budget.amount),
-      0
+      for (const accountId of affectedAccountIds) {
+        acc.set(
+          accountId,
+          (acc.get(accountId) ?? 0) +
+            getTransactionEffect(transaction, accountId)
+        );
+      }
+
+      return acc;
+    }, new Map<string, number>());
+
+    const accountBalancesAtPeriodEnd = new Map(
+      accounts.map((account) => {
+        const currentBalance = toNumber(account.currentBalance);
+        const futureNet = futureNetByAccount.get(account.id) ?? 0;
+
+        return [account.id, currentBalance - futureNet] as const;
+      })
     );
+
+    const totalBalance =
+      accountBalancesAtPeriodEnd.get(selectedAccount.id) ?? 0;
+
+    const totalBudgeted = budgets.reduce((sum, budget) => {
+      const matchingMonth = budgetMonths.find(
+        (month) => month.month === budget.month && month.year === budget.year
+      );
+
+      if (!matchingMonth) {
+        return sum;
+      }
+
+      return (
+        sum +
+        toNumber(budget.amount) *
+          getOverlapRatio(
+            period.start,
+            period.end,
+            matchingMonth.start,
+            matchingMonth.end
+          )
+      );
+    }, 0);
 
     const spendingMap = new Map(
       spendingByCategory.map((item) => [
@@ -255,33 +769,89 @@ class DashboardService {
       ])
     );
 
-    const budgetsWithUsage = budgets.map((budget) => {
-      const spent = spendingMap.get(budget.categoryId) ?? 0;
-      const amount = toNumber(budget.amount);
+    const budgetAggregates = budgets.reduce(
+      (acc, budget) => {
+        const matchingMonth = budgetMonths.find(
+          (month) => month.month === budget.month && month.year === budget.year
+        );
+
+        if (!matchingMonth) {
+          return acc;
+        }
+
+        const scaledAmount =
+          toNumber(budget.amount) *
+          getOverlapRatio(
+            period.start,
+            period.end,
+            matchingMonth.start,
+            matchingMonth.end
+          );
+
+        const existing = acc.get(budget.categoryId) ?? {
+          id: budget.id,
+          month: budget.month,
+          year: budget.year,
+          amount: 0,
+          category: {
+            id: budget.category.id,
+            name: budget.category.name,
+            type: budget.category.type,
+            color: budget.category.color,
+            icon: budget.category.icon,
+          },
+        };
+
+        acc.set(budget.categoryId, {
+          ...existing,
+          amount: existing.amount + scaledAmount,
+        });
+
+        return acc;
+      },
+      new Map<
+        string,
+        {
+          id: string;
+          month: number;
+          year: number;
+          amount: number;
+          category: {
+            id: string;
+            name: string;
+            type: string;
+            color: string | null;
+            icon: string | null;
+          };
+        }
+      >()
+    );
+
+    const budgetsWithUsage = [...budgetAggregates.values()].map((budget) => {
+      const spent = spendingMap.get(budget.category.id) ?? 0;
 
       return {
         id: budget.id,
         month: budget.month,
         year: budget.year,
-        amount,
+        amount: Math.round(budget.amount * 100) / 100,
         spent,
-        remaining: amount - spent,
-        utilizationRate: amount > 0 ? spent / amount : 0,
-        category: {
-          id: budget.category.id,
-          name: budget.category.name,
-          type: budget.category.type,
-          color: budget.category.color,
-          icon: budget.category.icon,
-        },
+        remaining: Math.round((budget.amount - spent) * 100) / 100,
+        utilizationRate: budget.amount > 0 ? spent / budget.amount : 0,
+        category: budget.category,
       };
     });
 
-    // Build category lookup map for expense/income breakdowns
     const categoryMap = new Map(
-      allCategories.map((c) => [
-        c.id,
-        { id: c.id, name: c.name, type: c.type, color: c.color, icon: c.icon },
+      allCategories.map((category) => [
+        category.id,
+        {
+          id: category.id,
+          name: category.name,
+          type: category.type,
+          color: category.color,
+          icon: category.icon,
+        },
       ])
     );
 
@@ -319,74 +889,24 @@ class DashboardService {
       .filter((item) => item.amount > 0)
       .sort((a, b) => b.amount - a.amount);
 
-    // Compute daily cash flow and balance trend from all period transactions
-    const dailyCashFlowMap = new Map<
-      string,
-      { income: number; expenses: number; net: number }
-    >();
-
-    for (const tx of allPeriodTransactions) {
-      const dateKey = (tx.transactionDate as Date).toISOString().slice(0, 10);
-      const existing = dailyCashFlowMap.get(dateKey) ?? {
-        income: 0,
-        expenses: 0,
-        net: 0,
-      };
-      const amount = toNumber(tx.amount);
-
-      if (tx.type === 'INCOME' && tx.accountId === selectedAccount.id) {
-        existing.income += amount;
-        existing.net += amount;
-      } else if (tx.type === 'EXPENSE' && tx.accountId === selectedAccount.id) {
-        existing.expenses += amount;
-        existing.net -= amount;
-      } else if (tx.type === 'TRANSFER') {
-        if (tx.accountId === selectedAccount.id) {
-          existing.net -= amount; // outgoing transfer
-        } else {
-          existing.net += amount; // incoming transfer
-        }
-      }
-
-      dailyCashFlowMap.set(dateKey, existing);
-    }
-
-    const dailyCashFlow = [...dailyCashFlowMap.entries()]
-      .map(([date, flow]) => ({
-        date,
-        income: Math.round(flow.income * 100) / 100,
-        expenses: Math.round(flow.expenses * 100) / 100,
-        net: Math.round(flow.net * 100) / 100,
-      }))
-      .sort((a, b) => a.date.localeCompare(b.date));
-
-    // Balance trend: compute running balance over the period
-    const netPeriodChange = allPeriodTransactions.reduce((sum, tx) => {
-      const amount = toNumber(tx.amount);
-      if (tx.type === 'INCOME' && tx.accountId === selectedAccount.id)
-        return sum + amount;
-      if (tx.type === 'EXPENSE' && tx.accountId === selectedAccount.id)
-        return sum - amount;
-      if (tx.type === 'TRANSFER') {
-        if (tx.accountId === selectedAccount.id) return sum - amount;
-        return sum + amount;
-      }
-      return sum;
-    }, 0);
-
+    const currentPeriodNetChange = sumNetEffect(
+      currentPeriodTransactions,
+      selectedAccount.id
+    );
+    const selectedAccountClosingBalance =
+      accountBalancesAtPeriodEnd.get(selectedAccount.id) ?? 0;
     const periodStartBalance =
-      toNumber(selectedAccount.currentBalance) - netPeriodChange;
-    let runningBalance = periodStartBalance;
+      selectedAccountClosingBalance - currentPeriodNetChange;
 
-    const balanceTrend = dailyCashFlow.map((day) => {
-      runningBalance += day.net;
-      return {
-        date: day.date,
-        balance: Math.round(runningBalance * 100) / 100,
-      };
-    });
+    const { cashFlowSeries, balanceTrend } = buildTrendSeries(
+      period.start,
+      period.end,
+      period.compareBy,
+      currentPeriodTransactions,
+      selectedAccount.id,
+      periodStartBalance
+    );
 
-    // Previous period totals
     const previousTotals = previousPeriodGroups.reduce(
       (acc, group) => {
         acc[group.type] = toNumber(group._sum.amount);
@@ -395,12 +915,17 @@ class DashboardService {
       { INCOME: 0, EXPENSE: 0, TRANSFER: 0 } as Record<string, number>
     );
 
+    const previousClosingBalance = periodStartBalance;
+
     return {
       period: {
-        month: selectedMonth,
-        year: selectedYear,
-        start: periodStart.toISOString(),
-        end: periodEnd.toISOString(),
+        label: period.label,
+        preset: period.preset,
+        compareBy: period.compareBy,
+        month: period.start.getUTCMonth() + 1,
+        year: period.start.getUTCFullYear(),
+        start: period.start.toISOString(),
+        end: period.end.toISOString(),
       },
       selectedAccount: {
         id: selectedAccount.id,
@@ -409,7 +934,9 @@ class DashboardService {
         currency: selectedAccount.currency,
         color: selectedAccount.color,
         icon: selectedAccount.icon,
-        currentBalance: toNumber(selectedAccount.currentBalance),
+        currentBalance: selectedAccountClosingBalance,
+        liveCurrentBalance: toNumber(selectedAccount.currentBalance),
+        periodStartBalance,
         openingBalance: toNumber(selectedAccount.openingBalance),
       },
       overview: {
@@ -418,7 +945,7 @@ class DashboardService {
         totalExpenses: totalsByType.EXPENSE,
         totalTransfers: totalsByType.TRANSFER,
         netCashFlow: totalsByType.INCOME - totalsByType.EXPENSE,
-        totalBudgeted,
+        totalBudgeted: Math.round(totalBudgeted * 100) / 100,
       },
       accounts: accounts.map((account) => ({
         id: account.id,
@@ -427,21 +954,68 @@ class DashboardService {
         currency: account.currency,
         color: account.color,
         icon: account.icon,
-        currentBalance: toNumber(account.currentBalance),
+        currentBalance: accountBalancesAtPeriodEnd.get(account.id) ?? 0,
+        liveCurrentBalance: toNumber(account.currentBalance),
         openingBalance: toNumber(account.openingBalance),
       })),
       budgets: budgetsWithUsage,
+      recentTransactions,
       expensesByCategory,
       incomesByCategory,
-      dailyCashFlow,
+      dailyCashFlow: cashFlowSeries,
       balanceTrend,
       previousPeriod: {
-        month: prevMonth,
-        year: prevYear,
+        label: formatRangeLabel(previousPeriodStart, previousPeriodEnd),
+        start: previousPeriodStart.toISOString(),
+        end: previousPeriodEnd.toISOString(),
+        month: previousPeriodStart.getUTCMonth() + 1,
+        year: previousPeriodStart.getUTCFullYear(),
         totalIncome: previousTotals.INCOME,
         totalExpenses: previousTotals.EXPENSE,
         totalTransfers: previousTotals.TRANSFER,
         netCashFlow: previousTotals.INCOME - previousTotals.EXPENSE,
+        closingBalance: previousClosingBalance,
+      },
+      comparison: {
+        totalBalance: {
+          current: selectedAccountClosingBalance,
+          previous: previousClosingBalance,
+          change: selectedAccountClosingBalance - previousClosingBalance,
+          changePct: calculatePercentChange(
+            selectedAccountClosingBalance,
+            previousClosingBalance
+          ),
+        },
+        totalIncome: {
+          current: totalsByType.INCOME,
+          previous: previousTotals.INCOME,
+          change: totalsByType.INCOME - previousTotals.INCOME,
+          changePct: calculatePercentChange(
+            totalsByType.INCOME,
+            previousTotals.INCOME
+          ),
+        },
+        totalExpenses: {
+          current: totalsByType.EXPENSE,
+          previous: previousTotals.EXPENSE,
+          change: totalsByType.EXPENSE - previousTotals.EXPENSE,
+          changePct: calculatePercentChange(
+            totalsByType.EXPENSE,
+            previousTotals.EXPENSE
+          ),
+        },
+        netCashFlow: {
+          current: totalsByType.INCOME - totalsByType.EXPENSE,
+          previous: previousTotals.INCOME - previousTotals.EXPENSE,
+          change:
+            totalsByType.INCOME -
+            totalsByType.EXPENSE -
+            (previousTotals.INCOME - previousTotals.EXPENSE),
+          changePct: calculatePercentChange(
+            totalsByType.INCOME - totalsByType.EXPENSE,
+            previousTotals.INCOME - previousTotals.EXPENSE
+          ),
+        },
       },
       recurringTransactions: upcomingRecurringTransactions.map(
         (recurringTransaction) => ({
@@ -473,7 +1047,6 @@ class DashboardService {
             : null,
         })
       ),
-      recentTransactions,
     };
   };
 }

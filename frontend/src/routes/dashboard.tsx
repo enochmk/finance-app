@@ -1,5 +1,13 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { AlertTriangle, ArrowRight, Lightbulb, RefreshCw } from 'lucide-react'
+import {
+  AlertTriangle,
+  ArrowDownRight,
+  ArrowRight,
+  ArrowUpRight,
+  Lightbulb,
+  RefreshCw,
+  SlidersHorizontal,
+} from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Area,
@@ -29,6 +37,15 @@ import {
   CardTitle,
 } from '#/components/ui/card'
 import { ChartContainer, ChartTooltipContent } from '#/components/ui/chart'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '#/components/ui/dropdown-menu'
 import { Progress } from '#/components/ui/progress'
 import {
   Select,
@@ -51,27 +68,13 @@ import {
   getTransactionAmountColor,
   getTransactionTypeLabel,
 } from '#/lib/finance'
+import { cn } from '#/lib/utils'
 
 export const Route = createFileRoute('/dashboard')({
   component: DashboardPage,
 })
 
 const DASHBOARD_ACCOUNT_STORAGE_KEY = 'dashboard-selected-account-id'
-
-const MONTH_LABELS = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-]
 
 const CHART_COLORS = [
   '#0f766e',
@@ -86,6 +89,27 @@ const CHART_COLORS = [
   '#ea580c',
 ]
 
+const DASHBOARD_PRESET_OPTIONS = [
+  { value: 'today', label: 'Today' },
+  { value: 'last7days', label: 'Last 7 days' },
+  { value: 'last30days', label: 'Last 30 days' },
+  { value: 'thisMonth', label: 'This month' },
+  { value: 'lastMonth', label: 'Last month' },
+  { value: 'thisYear', label: 'This year' },
+  { value: 'lastYear', label: 'Last year' },
+] as const
+
+const COMPARE_BY_OPTIONS = [
+  { value: 'day', label: 'Daily' },
+  { value: 'week', label: 'Weekly' },
+  { value: 'month', label: 'Monthly' },
+  { value: 'year', label: 'Yearly' },
+] as const
+
+type DashboardPresetOption = (typeof DASHBOARD_PRESET_OPTIONS)[number]['value']
+type DashboardCompareByOption = (typeof COMPARE_BY_OPTIONS)[number]['value']
+type ComparisonMetric = DashboardSummary['comparison']['totalBalance']
+
 function getStoredDashboardAccountId() {
   if (typeof window === 'undefined') return ''
   return window.localStorage.getItem(DASHBOARD_ACCOUNT_STORAGE_KEY) ?? ''
@@ -97,18 +121,65 @@ function storeDashboardAccountId(accountId: string) {
   }
 }
 
-function buildPeriodOptions() {
-  const now = new Date()
-  const options: Array<{ label: string; month: number; year: number }> = []
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    options.push({
-      label: `${MONTH_LABELS[d.getMonth()]} ${d.getFullYear()}`,
-      month: d.getMonth() + 1,
-      year: d.getFullYear(),
-    })
+function getDefaultCompareByForPreset(
+  preset: DashboardPresetOption
+): DashboardCompareByOption {
+  if (preset === 'today') {
+    return 'day'
   }
-  return options
+
+  if (preset === 'thisYear' || preset === 'lastYear') {
+    return 'month'
+  }
+
+  return 'week'
+}
+
+function getPresetLabel(preset: DashboardPresetOption) {
+  return DASHBOARD_PRESET_OPTIONS.find((option) => option.value === preset)
+    ?.label
+}
+
+function getCompareByLabel(compareBy: DashboardCompareByOption) {
+  return COMPARE_BY_OPTIONS.find((option) => option.value === compareBy)?.label
+}
+
+function getDeltaTone(change: number, inverse = false) {
+  if (change === 0) {
+    return 'neutral'
+  }
+
+  const improved = inverse ? change < 0 : change > 0
+  return improved ? 'positive' : 'negative'
+}
+
+function formatPercentage(value: number | null) {
+  if (value === null) {
+    return 'New'
+  }
+
+  const digits = Math.abs(value) >= 10 ? 0 : 1
+  const formatted = value.toFixed(digits)
+  return value > 0 ? `+${formatted}%` : `${formatted}%`
+}
+
+function getDeltaMessage(
+  tone: ReturnType<typeof getDeltaTone>,
+  changePct: number | null
+) {
+  if (changePct === null) {
+    return 'No prior baseline'
+  }
+
+  if (tone === 'positive') {
+    return 'Better than previous period'
+  }
+
+  if (tone === 'negative') {
+    return 'Worse than previous period'
+  }
+
+  return 'No change from previous period'
 }
 
 function DashboardLoadingState() {
@@ -131,7 +202,7 @@ function DashboardLoadingState() {
               <Skeleton className="h-5 w-40" />
             </CardHeader>
             <CardContent>
-              <Skeleton className="h-[240px] w-full" />
+              <Skeleton className="h-60 w-full" />
             </CardContent>
           </Card>
         ))}
@@ -140,36 +211,66 @@ function DashboardLoadingState() {
   )
 }
 
+function ComparisonPill({
+  metric,
+  inverse = false,
+}: {
+  metric: ComparisonMetric
+  inverse?: boolean
+}) {
+  const tone = getDeltaTone(metric.change, inverse)
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold',
+        tone === 'positive' &&
+          'bg-[rgba(34,197,94,0.14)] text-[rgb(21,128,61)] dark:text-[rgb(74,222,128)]',
+        tone === 'negative' && 'bg-destructive/10 text-destructive',
+        tone === 'neutral' && 'bg-secondary text-secondary-foreground'
+      )}
+    >
+      {formatPercentage(metric.changePct)}
+    </span>
+  )
+}
+
 function computeRecommendations(data: DashboardSummary): string[] {
   const recs: string[] = []
-  const { overview, budgets, expensesByCategory, previousPeriod } = data
+  const { overview, budgets, expensesByCategory, comparison } = data
+
+  if (comparison.totalBalance.change < 0) {
+    recs.push(
+      `Ending balance is lower than ${data.previousPeriod.label}. Review the outflows that pulled the account down.`
+    )
+  }
 
   if (overview.totalIncome > 0) {
     const savingsRate = (overview.netCashFlow / overview.totalIncome) * 100
     if (savingsRate < 0) {
       recs.push(
-        `You're spending more than you earn this period. Expenses exceeded income by ${Math.abs(savingsRate).toFixed(1)}%.`
+        `You're spending more than you earn in ${data.period.label}. Expenses exceeded income by ${Math.abs(savingsRate).toFixed(1)}%.`
       )
     } else if (savingsRate < 20) {
       recs.push(
-        `Savings rate is ${savingsRate.toFixed(1)}% — consider targeting 20%+ to build a stronger financial cushion.`
+        `Savings rate is ${savingsRate.toFixed(1)}%. Consider targeting 20%+ to build a stronger buffer.`
       )
     }
   }
 
-  const overBudget = budgets.filter((b) => b.utilizationRate > 1)
+  const overBudget = budgets.filter((budget) => budget.utilizationRate > 1)
   if (overBudget.length > 0) {
     recs.push(
-      `${overBudget.length} budget ${overBudget.length === 1 ? 'category is' : 'categories are'} over limit: ${overBudget.map((b) => b.category.name).join(', ')}.`
+      `${overBudget.length} budget ${overBudget.length === 1 ? 'category is' : 'categories are'} over limit: ${overBudget.map((budget) => budget.category.name).join(', ')}.`
     )
   }
 
   const nearBudget = budgets.filter(
-    (b) => b.utilizationRate >= 0.8 && b.utilizationRate <= 1
+    (budget) => budget.utilizationRate >= 0.8 && budget.utilizationRate <= 1
   )
   if (nearBudget.length > 0) {
     recs.push(
-      `${nearBudget.map((b) => b.category.name).join(', ')} ${nearBudget.length === 1 ? 'is' : 'are'} close to their budget limits (≥80%).`
+      `${nearBudget.map((budget) => budget.category.name).join(', ')} ${nearBudget.length === 1 ? 'is' : 'are'} close to budget limits.`
     )
   }
 
@@ -178,32 +279,29 @@ function computeRecommendations(data: DashboardSummary): string[] {
     const pct = (top.amount / overview.totalExpenses) * 100
     if (pct > 40) {
       recs.push(
-        `"${top.name}" accounts for ${pct.toFixed(1)}% of all expenses — review whether this aligns with your goals.`
+        `${top.name} represents ${pct.toFixed(1)}% of spending. That category is dominating the period.`
       )
     }
   }
 
-  if (previousPeriod.totalExpenses > 0 && overview.totalExpenses > 0) {
-    const changePct =
-      ((overview.totalExpenses - previousPeriod.totalExpenses) /
-        previousPeriod.totalExpenses) *
-      100
-    if (changePct > 20) {
-      recs.push(
-        `Expenses grew ${changePct.toFixed(1)}% vs last period — consider reviewing discretionary spending.`
-      )
-    }
+  if (
+    comparison.totalExpenses.changePct !== null &&
+    comparison.totalExpenses.changePct > 20
+  ) {
+    recs.push(
+      `Expenses increased ${comparison.totalExpenses.changePct.toFixed(0)}% versus ${data.previousPeriod.label}. Check discretionary transactions first.`
+    )
   }
 
   if (overview.totalIncome === 0) {
     recs.push(
-      'No income recorded this period. Add income transactions to get a full cash-flow picture.'
+      'No income recorded in this period. Add income transactions to get a complete trend.'
     )
   }
 
   if (recs.length === 0) {
     recs.push(
-      'Looking healthy! Keep tracking consistently to spot patterns early.'
+      'This account is trending in a healthy direction. Keep tracking consistently.'
     )
   }
 
@@ -221,17 +319,10 @@ function DashboardPage() {
   const [selectedAccountId, setSelectedAccountId] = useState(
     getStoredDashboardAccountId
   )
-
-  const periodOptions = useMemo(() => buildPeriodOptions(), [])
-  const now = new Date()
-  const defaultPeriodKey = `${now.getMonth() + 1}-${now.getFullYear()}`
-  const [selectedPeriodKey, setSelectedPeriodKey] = useState(defaultPeriodKey)
-
-  const selectedPeriod = useMemo(
-    () =>
-      periodOptions.find((p) => `${p.month}-${p.year}` === selectedPeriodKey) ??
-      periodOptions[0],
-    [periodOptions, selectedPeriodKey]
+  const [selectedPreset, setSelectedPreset] =
+    useState<DashboardPresetOption>('thisMonth')
+  const [compareBy, setCompareBy] = useState<DashboardCompareByOption>(
+    getDefaultCompareByForPreset('thisMonth')
   )
 
   const refreshCountRef = useRef(0)
@@ -244,7 +335,12 @@ function DashboardPage() {
   }, [isAuthenticated, isSessionLoading, navigate])
 
   const loadData = useCallback(
-    async (accountId: string, month: number, year: number, silent = false) => {
+    async (
+      accountId: string,
+      preset: DashboardPresetOption,
+      nextCompareBy: DashboardCompareByOption,
+      silent = false
+    ) => {
       if (!isAuthenticated) return
       if (!silent) setIsLoading(true)
       else setIsRefreshing(true)
@@ -254,8 +350,8 @@ function DashboardPage() {
         const storedId = accountId || getStoredDashboardAccountId()
         const summary = await getDashboardSummary({
           accountId: storedId || undefined,
-          month,
-          year,
+          preset,
+          compareBy: nextCompareBy,
         })
 
         setData(summary)
@@ -280,20 +376,13 @@ function DashboardPage() {
 
   useEffect(() => {
     if (!isAuthenticated) return
-    void loadData(selectedAccountId, selectedPeriod.month, selectedPeriod.year)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, selectedAccountId, selectedPeriodKey])
+    void loadData(selectedAccountId, selectedPreset, compareBy)
+  }, [compareBy, isAuthenticated, loadData, selectedAccountId, selectedPreset])
 
   useEffect(() => {
     if (refreshTick === 0) return
-    void loadData(
-      selectedAccountId,
-      selectedPeriod.month,
-      selectedPeriod.year,
-      true
-    )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshTick])
+    void loadData(selectedAccountId, selectedPreset, compareBy, true)
+  }, [compareBy, loadData, refreshTick, selectedAccountId, selectedPreset])
 
   const handleRefresh = () => {
     refreshCountRef.current += 1
@@ -305,23 +394,34 @@ function DashboardPage() {
     storeDashboardAccountId(value)
   }
 
+  const handlePresetChange = (value: string) => {
+    const nextPreset = value as DashboardPresetOption
+    setSelectedPreset(nextPreset)
+    setCompareBy(getDefaultCompareByForPreset(nextPreset))
+  }
+
   const selectedCurrency = data?.selectedAccount?.currency ?? 'GHS'
+  const activePeriodLabel =
+    data?.period.label ?? getPresetLabel(selectedPreset) ?? 'Period'
+  const previousPeriodLabel = data?.previousPeriod.label ?? 'Previous period'
+  const cadenceLabel =
+    getCompareByLabel(data?.period.compareBy ?? compareBy) ?? 'Weekly'
 
   const cashFlowChartData = useMemo(
     () =>
-      (data?.dailyCashFlow ?? []).map((d) => ({
-        date: d.date.slice(5),
-        income: d.income,
-        expenses: d.expenses,
+      (data?.dailyCashFlow ?? []).map((entry) => ({
+        label: entry.label,
+        income: entry.income,
+        expenses: entry.expenses,
       })),
     [data]
   )
 
   const balanceTrendData = useMemo(
     () =>
-      (data?.balanceTrend ?? []).map((d) => ({
-        date: d.date.slice(5),
-        balance: d.balance,
+      (data?.balanceTrend ?? []).map((entry) => ({
+        label: entry.label,
+        balance: entry.balance,
       })),
     [data]
   )
@@ -339,21 +439,35 @@ function DashboardPage() {
 
   const periodComparisonData = useMemo(() => {
     if (!data) return []
+
     return [
       {
+        label: 'Balance',
+        current: data.comparison.totalBalance.current,
+        previous: data.comparison.totalBalance.previous,
+        metric: data.comparison.totalBalance,
+        inverse: false,
+      },
+      {
         label: 'Income',
-        current: data.overview.totalIncome,
-        previous: data.previousPeriod.totalIncome,
+        current: data.comparison.totalIncome.current,
+        previous: data.comparison.totalIncome.previous,
+        metric: data.comparison.totalIncome,
+        inverse: false,
       },
       {
         label: 'Expenses',
-        current: data.overview.totalExpenses,
-        previous: data.previousPeriod.totalExpenses,
+        current: data.comparison.totalExpenses.current,
+        previous: data.comparison.totalExpenses.previous,
+        metric: data.comparison.totalExpenses,
+        inverse: true,
       },
       {
         label: 'Net',
-        current: data.overview.netCashFlow,
-        previous: data.previousPeriod.netCashFlow,
+        current: data.comparison.netCashFlow.current,
+        previous: data.comparison.netCashFlow.previous,
+        metric: data.comparison.netCashFlow,
+        inverse: false,
       },
     ]
   }, [data])
@@ -375,98 +489,162 @@ function DashboardPage() {
     [data]
   )
 
+  const summaryMetrics = useMemo(() => {
+    if (!data) return []
+
+    return [
+      {
+        key: 'balance',
+        title: 'Ending balance',
+        value: data.comparison.totalBalance.current,
+        metric: data.comparison.totalBalance,
+        inverse: false,
+      },
+      {
+        key: 'income',
+        title: 'Income',
+        value: data.comparison.totalIncome.current,
+        metric: data.comparison.totalIncome,
+        inverse: false,
+      },
+      {
+        key: 'expenses',
+        title: 'Expenses',
+        value: data.comparison.totalExpenses.current,
+        metric: data.comparison.totalExpenses,
+        inverse: true,
+      },
+      {
+        key: 'net',
+        title: 'Net cash flow',
+        value: data.comparison.netCashFlow.current,
+        metric: data.comparison.netCashFlow,
+        inverse: false,
+      },
+    ]
+  }, [data])
+
   const recommendations = useMemo(
     () => (data ? computeRecommendations(data) : []),
     [data]
   )
 
-  const prevMonthLabel = data
-    ? `${MONTH_LABELS[data.previousPeriod.month - 1]} ${data.previousPeriod.year}`
-    : 'prev period'
+  const hasLiveBalanceDelta =
+    data?.selectedAccount &&
+    Math.abs(
+      data.selectedAccount.liveCurrentBalance -
+        data.selectedAccount.currentBalance
+    ) > 0.009
 
   return (
     <main className="w-full px-4 py-8 lg:px-8 xl:px-10">
-      {/* Header */}
       <div className="mb-8 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <Badge variant="secondary" className="mb-3">
             Account dashboard
           </Badge>
           <h1 className="display-title text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-            One account at a time, with cleaner money context
+            See whether the account is improving or slipping
           </h1>
           <p className="mt-3 max-w-3xl text-base leading-7 text-muted-foreground">
-            Focus on the selected account so balances, movement, and category
-            pressure stay tied to the money bucket you are actually reviewing.
+            Compare today, weekly, monthly, or yearly performance with a prior
+            period so the trend answers whether you have more money than before.
           </p>
         </div>
 
-        <Card className="w-full max-w-xl">
-          <CardContent className="grid gap-4 p-6 md:grid-cols-[1fr_1fr_auto] md:items-end">
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">Account</p>
-              <Select
-                value={selectedAccountId}
-                onValueChange={handleAccountChange}
-                disabled={isLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose account" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(data?.accounts ?? []).map((account) => (
-                    <SelectItem key={account.id} value={account.id}>
-                      {account.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <Card className="w-full max-w-2xl">
+          <CardContent className="space-y-4 p-6">
+            <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-foreground">Account</p>
+                <Select
+                  value={selectedAccountId}
+                  onValueChange={handleAccountChange}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose account" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(data?.accounts ?? []).map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">Period</p>
-              <Select
-                value={selectedPeriodKey}
-                onValueChange={setSelectedPeriodKey}
-                disabled={isLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {periodOptions.map((p) => (
-                    <SelectItem
-                      key={`${p.month}-${p.year}`}
-                      value={`${p.month}-${p.year}`}
+              <div className="flex flex-wrap gap-2 md:justify-end">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleRefresh}
+                  disabled={isLoading || isRefreshing}
+                  title="Refresh dashboard"
+                >
+                  <RefreshCw
+                    className={cn('h-4 w-4', isRefreshing && 'animate-spin')}
+                  />
+                </Button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      Configure
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-64">
+                    <DropdownMenuLabel>Range preset</DropdownMenuLabel>
+                    <DropdownMenuRadioGroup
+                      value={selectedPreset}
+                      onValueChange={handlePresetChange}
                     >
-                      {p.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                      {DASHBOARD_PRESET_OPTIONS.map((option) => (
+                        <DropdownMenuRadioItem
+                          key={option.value}
+                          value={option.value}
+                        >
+                          {option.label}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>Trend cadence</DropdownMenuLabel>
+                    <DropdownMenuRadioGroup
+                      value={compareBy}
+                      onValueChange={(value) =>
+                        setCompareBy(value as DashboardCompareByOption)
+                      }
+                    >
+                      {COMPARE_BY_OPTIONS.map((option) => (
+                        <DropdownMenuRadioItem
+                          key={option.value}
+                          value={option.value}
+                        >
+                          {option.label}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <Button asChild variant="outline">
+                  <Link to="/settings/accounts">Manage</Link>
+                </Button>
+              </div>
             </div>
 
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleRefresh}
-                disabled={isLoading || isRefreshing}
-                title="Refresh dashboard"
-              >
-                <RefreshCw
-                  className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
-                />
-              </Button>
-              <Button asChild variant="outline">
-                <Link to="/settings/accounts">Manage</Link>
-              </Button>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <Badge variant="outline">{activePeriodLabel}</Badge>
+              <Badge variant="outline">{cadenceLabel} trend</Badge>
+              <span>Compared with {previousPeriodLabel}</span>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Body */}
       {isLoading ? (
         <DashboardLoadingState />
       ) : error ? (
@@ -477,7 +655,6 @@ function DashboardPage() {
       ) : data ? (
         data.selectedAccount ? (
           <div className="space-y-6">
-            {/* Account banner */}
             <Card className="overflow-hidden">
               <CardContent className="flex flex-col gap-4 p-6 lg:flex-row lg:items-center lg:justify-between">
                 <div>
@@ -488,10 +665,19 @@ function DashboardPage() {
                     {data.selectedAccount.type.replaceAll('_', ' ')} ·{' '}
                     {data.selectedAccount.currency}
                   </p>
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <ComparisonPill metric={data.comparison.totalBalance} />
+                    <p className="text-sm text-muted-foreground">
+                      {getDeltaMessage(
+                        getDeltaTone(data.comparison.totalBalance.change),
+                        data.comparison.totalBalance.changePct
+                      )}
+                    </p>
+                  </div>
                 </div>
                 <div className="text-left lg:text-right">
                   <p className="text-sm text-muted-foreground">
-                    Current balance
+                    Ending balance for {activePeriodLabel}
                   </p>
                   <p className="text-4xl font-semibold text-foreground">
                     {formatCurrency(
@@ -500,17 +686,64 @@ function DashboardPage() {
                     )}
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Opening{' '}
+                    Started at{' '}
                     {formatCurrency(
-                      data.selectedAccount.openingBalance,
+                      data.selectedAccount.periodStartBalance,
                       data.selectedAccount.currency
                     )}
                   </p>
+                  {hasLiveBalanceDelta ? (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Live now{' '}
+                      {formatCurrency(
+                        data.selectedAccount.liveCurrentBalance,
+                        data.selectedAccount.currency
+                      )}
+                    </p>
+                  ) : null}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Recommendations */}
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {summaryMetrics.map((metric) => {
+                const tone = getDeltaTone(metric.metric.change, metric.inverse)
+
+                return (
+                  <Card key={metric.key}>
+                    <CardHeader className="space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <CardDescription>{metric.title}</CardDescription>
+                          <CardTitle className="mt-2 text-3xl text-foreground">
+                            {formatCurrency(metric.value, selectedCurrency)}
+                          </CardTitle>
+                        </div>
+                        <ComparisonPill
+                          metric={metric.metric}
+                          inverse={metric.inverse}
+                        />
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        {tone === 'positive' ? (
+                          <ArrowUpRight className="h-4 w-4 text-[rgb(21,128,61)] dark:text-[rgb(74,222,128)]" />
+                        ) : tone === 'negative' ? (
+                          <ArrowDownRight className="h-4 w-4 text-destructive" />
+                        ) : null}
+                        <span>
+                          {formatCurrency(
+                            metric.metric.change,
+                            selectedCurrency
+                          )}{' '}
+                          vs {previousPeriodLabel}
+                        </span>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                )
+              })}
+            </div>
+
             {recommendations.length > 0 && (
               <Card>
                 <CardHeader className="flex flex-row items-center gap-2 pb-3">
@@ -520,7 +753,7 @@ function DashboardPage() {
                   <div>
                     <CardTitle>Recommendations</CardTitle>
                     <CardDescription>
-                      Auto-generated insights for this period
+                      Trend-driven insights for {activePeriodLabel}
                     </CardDescription>
                   </div>
                 </CardHeader>
@@ -540,14 +773,19 @@ function DashboardPage() {
               </Card>
             )}
 
-            {/* Row 1: Cash Flow + Expense Structure */}
             <div className="grid gap-6 xl:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Cash Flow</CardTitle>
-                  <CardDescription>
-                    Daily income vs expenses for the selected period
-                  </CardDescription>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <CardTitle>Cash Flow</CardTitle>
+                      <CardDescription>
+                        {cadenceLabel} income vs expenses for{' '}
+                        {activePeriodLabel}
+                      </CardDescription>
+                    </div>
+                    <ComparisonPill metric={data.comparison.netCashFlow} />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {cashFlowChartData.length === 0 ? (
@@ -567,7 +805,7 @@ function DashboardPage() {
                             vertical={false}
                           />
                           <XAxis
-                            dataKey="date"
+                            dataKey="label"
                             stroke="var(--muted-foreground)"
                             tickLine={false}
                             axisLine={false}
@@ -603,10 +841,18 @@ function DashboardPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Expense Structure</CardTitle>
-                  <CardDescription>
-                    Spending by category this period
-                  </CardDescription>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <CardTitle>Expense Structure</CardTitle>
+                      <CardDescription>
+                        Spending by category for {activePeriodLabel}
+                      </CardDescription>
+                    </div>
+                    <ComparisonPill
+                      metric={data.comparison.totalExpenses}
+                      inverse
+                    />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {expenseChartData.length === 0 ? (
@@ -670,14 +916,19 @@ function DashboardPage() {
               </Card>
             </div>
 
-            {/* Row 2: Balance Trend + Period Comparison */}
             <div className="grid gap-6 xl:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Balance Trend</CardTitle>
-                  <CardDescription>
-                    Running balance through the selected period
-                  </CardDescription>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <CardTitle>Balance Trend</CardTitle>
+                      <CardDescription>
+                        {cadenceLabel} ending balance through{' '}
+                        {activePeriodLabel}
+                      </CardDescription>
+                    </div>
+                    <ComparisonPill metric={data.comparison.totalBalance} />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {balanceTrendData.length === 0 ? (
@@ -717,7 +968,7 @@ function DashboardPage() {
                             vertical={false}
                           />
                           <XAxis
-                            dataKey="date"
+                            dataKey="label"
                             stroke="var(--muted-foreground)"
                             tickLine={false}
                             axisLine={false}
@@ -750,10 +1001,10 @@ function DashboardPage() {
                 <CardHeader>
                   <CardTitle>Period Comparison</CardTitle>
                   <CardDescription>
-                    Current period vs {prevMonthLabel}
+                    {activePeriodLabel} vs {previousPeriodLabel}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                   <ChartContainer>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
@@ -780,40 +1031,66 @@ function DashboardPage() {
                           tickLine={false}
                           axisLine={false}
                           tick={{ fontSize: 12 }}
-                          width={64}
+                          width={72}
                         />
                         <Tooltip
-                          formatter={(v: unknown) =>
-                            formatCurrency(Number(v), selectedCurrency)
+                          formatter={(value: unknown) =>
+                            formatCurrency(Number(value), selectedCurrency)
                           }
                         />
                         <Legend />
                         <Bar
                           dataKey="current"
-                          name="This period"
+                          name={activePeriodLabel}
                           fill="var(--primary)"
                           radius={[0, 3, 3, 0]}
                         />
                         <Bar
                           dataKey="previous"
-                          name={prevMonthLabel}
+                          name={previousPeriodLabel}
                           fill="var(--secondary-strong)"
                           radius={[0, 3, 3, 0]}
                         />
                       </BarChart>
                     </ResponsiveContainer>
                   </ChartContainer>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {periodComparisonData.map((item) => (
+                      <div
+                        key={item.label}
+                        className="rounded-xl border border-border bg-card px-4 py-3"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-medium text-foreground">
+                            {item.label}
+                          </p>
+                          <ComparisonPill
+                            metric={item.metric}
+                            inverse={item.inverse}
+                          />
+                        </div>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          {formatCurrency(item.current, selectedCurrency)} now
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {formatCurrency(item.previous, selectedCurrency)} in{' '}
+                          {previousPeriodLabel}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Row 3: Balance by Accounts + Budget Utilization */}
             <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
               <Card>
                 <CardHeader>
                   <CardTitle>Balance by Accounts</CardTitle>
                   <CardDescription>
-                    Current balance across all active accounts
+                    Ending balance across active accounts for{' '}
+                    {activePeriodLabel}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -853,12 +1130,12 @@ function DashboardPage() {
                           />
                           <Tooltip
                             formatter={(
-                              v: unknown,
+                              value: unknown,
                               _name: unknown,
                               props: { payload?: { currency?: string } }
                             ) =>
                               formatCurrency(
-                                Number(v),
+                                Number(value),
                                 props.payload?.currency ?? selectedCurrency
                               )
                             }
@@ -886,13 +1163,13 @@ function DashboardPage() {
                 <CardHeader>
                   <CardTitle>Budget Utilization</CardTitle>
                   <CardDescription>
-                    Category pressure this period
+                    Category pressure for {activePeriodLabel}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-5">
                   {data.budgets.length === 0 ? (
                     <Alert>
-                      <AlertTitle>No budgets this month</AlertTitle>
+                      <AlertTitle>No budgets in range</AlertTitle>
                       <AlertDescription>
                         Create a budget to compare planned vs actual spending.
                       </AlertDescription>
@@ -903,6 +1180,7 @@ function DashboardPage() {
                         Math.round(budget.utilizationRate * 100),
                         100
                       )
+
                       return (
                         <div key={budget.id} className="space-y-2">
                           <div className="flex items-center justify-between gap-3">
@@ -940,13 +1218,13 @@ function DashboardPage() {
               </Card>
             </div>
 
-            {/* Tabs */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Last Records Overview</CardTitle>
                   <CardDescription>
-                    Latest activity for {data.selectedAccount.name} this period.
+                    Latest activity for {data.selectedAccount.name} in{' '}
+                    {activePeriodLabel}.
                   </CardDescription>
                 </div>
                 <Button asChild variant="ghost" size="sm">
