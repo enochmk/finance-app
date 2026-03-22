@@ -515,9 +515,9 @@ class DashboardService {
       };
     }
 
-    const selectedAccount = filters.accountId
-      ? accounts.find((account) => account.id === filters.accountId)
-      : accounts[0];
+    const selectedAccount =
+      accounts.find((account) => account.id === filters.accountId) ??
+      accounts[0];
 
     if (!selectedAccount) {
       throw createHttpError(404, 'Selected account not found');
