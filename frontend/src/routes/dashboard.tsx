@@ -1,13 +1,4 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import {
-  AlertTriangle,
-  ArrowDownRight,
-  ArrowRight,
-  ArrowUpRight,
-  Lightbulb,
-  RefreshCw,
-  SlidersHorizontal,
-} from 'lucide-react'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Area,

@@ -1,3 +1,40 @@
+import {
+  Building2,
+  CreditCard,
+  Heart,
+  PiggyBank,
+  Smartphone,
+  Wallet,
+} from 'lucide-react'
+
+export const ACCOUNT_ICON_OPTIONS = [
+  { value: 'Building2', label: 'Building' },
+  { value: 'PiggyBank', label: 'Piggy Bank' },
+  { value: 'Heart', label: 'Heart' },
+  { value: 'CreditCard', label: 'Credit Card' },
+  { value: 'Smartphone', label: 'Smartphone' },
+  { value: 'Wallet', label: 'Wallet' },
+] as const
+
+export function getAccountIcon(iconName?: string | null) {
+  switch (iconName) {
+    case 'Building2':
+      return Building2
+    case 'PiggyBank':
+      return PiggyBank
+    case 'Heart':
+      return Heart
+    case 'CreditCard':
+      return CreditCard
+    case 'Smartphone':
+      return Smartphone
+    case 'Wallet':
+      return Wallet
+    default:
+      return Building2
+  }
+}
+
 export const ACCOUNT_TYPE_OPTIONS = [
   { value: 'CASH', label: 'Cash' },
   { value: 'CHECKING', label: 'Checking' },
