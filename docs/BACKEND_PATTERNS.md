@@ -1,80 +1,150 @@
-# Backend Directory Pattern
+# Backend Patterns
 
-The goal is a **clear, feature‑centric layout** with a couple of shared service/middleware folders. Use this as a template for new projects or to guide an automated agent.
+This document describes the preferred backend feature structure and coding style for `backend/src/`.
 
-## 📁 Top‑level folders
+## Feature Layout
 
-```
-src/
-  features/
-  middlewares/
-  services/
-  …(other top‑level modules, e.g. db/, libs/ etc.)
-```
+Create new backend work under `src/features/<feature>/` when it belongs to a specific domain.
 
-## 🔹 `features/` – one folder per domain area
+- `<feature>.schema.ts`: Zod request schemas and exported inferred request types
+- `<feature>.middleware.ts`: request-scoped checks that must happen before controller or service business logic
+- `<feature>.controller.ts`: thin HTTP handlers that map typed requests to service calls
+- `<feature>.service.ts`: business logic and persistence
+- `<feature>.routes.ts`: Express router wiring
 
-Each feature lives in its own sub‑directory under `features`. Inside a feature you can expect the usual pieces:
+## Schemas And Request Types
 
-```
-features/
-  <featureName>/
-    <featureName>.controller.ts
-    <featureName>.service.ts
-    <featureName>.schema.ts
-    <featureName>.middleware.ts
-    <featureName>.routes.ts
-```
+Define request schemas with explicit `params`, `query`, and `body` keys so validation and controller typing stay aligned.
 
-> **Example**
-> `features/payment/payment.controller.ts`
-> `features/payment/payment.service.ts`
-> …
+```ts
+export const listTransactionsSchema = z.object({
+  params: z.object({}),
+  query: z.object({
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+  }),
+  body: z.object({}).optional(),
+})
 
-This groups all related code together and makes it easy for the agent to scaffold or locate items:
-
-- `*.controller.ts` – HTTP handlers
-- `*.service.ts` – business logic, data access
-- `*.schema.ts` – validation or Prisma/ORM schema for that feature
-- `*.middleware.ts` – any request-level middleware specific to that feature
-- `*.routes.ts` – Express/Koa/Routing‑logic wiring for the feature
-
-## 🔹 `middlewares/` – shared, cross‑cutting middleware
-
-```
-middlewares/
-  audit-log.middleware.ts
-  auth.middleware.ts
-  error-handler.middleware.ts
-  …
+export type ListTransactionsQuery = z.infer<
+  typeof listTransactionsSchema
+>['query']
 ```
 
-Use this for pieces that are **not bound to a single feature** but apply across routes.
+Use type names that describe the request segment they represent.
 
-## 🔹 `services/` – globally used domain services
+- `*Query` for query-string input
+- `*Body` for JSON body input
+- `*Params` for route params
 
+## Controllers
+
+Controllers should stay thin and typed.
+
+- Use arrow-function class fields so routes can pass handlers directly without `.bind(controller)`
+- Type `Request` with the inferred schema types used by that handler
+- Read validated values directly from `req.params`, `req.query`, and `req.body`
+- Leave domain rules and data access to services or feature middleware
+
+```ts
+type ListTransactionsRequest = Request<
+  Record<string, never>,
+  unknown,
+  Record<string, never>,
+  ListTransactionsQuery
+>
+
+class TransactionsController {
+  list = async (
+    req: ListTransactionsRequest,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const transactions = await transactionsService.list(req.user!.id, req.query)
+
+      return res.status(200).json({
+        data: transactions,
+        count: transactions.length,
+      })
+    } catch (error) {
+      return next(error)
+    }
+  }
+}
 ```
-services/
-  email.service.ts
-  …
+
+## Routes
+
+Routes should compose middleware in the order the request is processed.
+
+1. authentication
+2. schema validation
+3. feature-specific guard middleware
+4. controller handler
+
+Because controllers use arrow methods, pass them directly.
+
+```ts
+transactionsRoutes.post(
+  '/',
+  resourceValidator(createTransactionSchema),
+  validateCreateTransactionOwnership,
+  transactionsController.create
+)
 ```
 
-Keep external‑API wrappers or long‑lived singleton logic here.
+## Middleware-First Guards
 
----
+Move repeated preconditions out of services when they are request-scoped guards.
 
-## ✅ How an agent should use the pattern
+Good candidates:
 
-1. **When creating a new feature:**
-   - make `features/<name>` directory
-   - generate the five files above with appropriate stub content.
+- ownership checks
+- resource existence checks
+- merged validation for partial updates
+- request-specific authorization rules
 
-2. **When needing shared logic:**
-   - look in `middlewares/` for request filters
-   - look in `services/` for reusable service clients
+This keeps service entry points focused on the main business action.
 
-3. **Searching:**
-   - feature code is always under `features/*`
-   - file names end with `.controller`, `.service`, etc.
+```ts
+export const validateUpdateTransactionOwnership = async (
+  req: UpdateTransactionRequest,
+  _res: Response,
+  next: NextFunction
+) => {
+  try {
+    const ownershipData = await transactionsService.resolveUpdateOwnershipValidationData(
+      req.params.id,
+      req.user!.id,
+      req.body
+    )
 
-Feel free to copy/paste this into any project's README or architecture notes to keep layouts consistent and tooling predictable.
+    await transactionsService.validateOwnership(ownershipData)
+
+    return next()
+  } catch (error) {
+    return next(error)
+  }
+}
+```
+
+## Services
+
+Services should use arrow-function methods as well.
+
+- Keep public service methods straightforward and action-oriented
+- Assume route middleware already handled request-specific guards when that pattern applies
+- Keep reusable domain helpers inside the service when multiple middleware or service methods need them
+- Throw structured HTTP errors for expected failures
+
+## Comments
+
+Prefer self-explanatory naming first. Add short comments only when behavior is not obvious from the code itself.
+
+Good examples:
+
+- why a partial update must merge persisted data before validation
+- why a query uses a non-obvious sort order
+- why a value must be normalized before persistence
+
+Avoid comments that only restate the next line.

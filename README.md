@@ -41,30 +41,24 @@ track expenses and income, and analyze transactions with export support.
 
 2. Install dependencies:
    ```bash
-   npm install
-   # or yarn
-   ```
+    npm install
+    ```
+   This installs the root dev helper and lets `npm run dev` start both apps together.
 
 3. Create a `.env` file based on `.env.example` and configure your
    database URL and other secrets.
 
 4. Run database migrations:
    ```bash
-   npx prisma migrate dev
-   ```
+    npm --prefix backend exec prisma migrate dev
+    ```
 
 5. Start the development server:
    ```bash
-   npm run dev
-   ```
-
-### Running the Frontend
-
-If the frontend is separate or served by the same node server, ensure
-your React app can start with:
-```bash
-npm run dev
-```
+    npm run dev
+    ```
+   This starts the backend on port `4000` and the frontend on port `3000`.
+   If you need a different frontend origin for local development, set `FRONTEND_ORIGINS` in `backend/.env`.
 
 The UI should be available at `http://localhost:3000` (or the port
 specified).

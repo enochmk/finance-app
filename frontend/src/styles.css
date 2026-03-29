@@ -1,0 +1,300 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import 'tailwindcss';
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+}
+
+/*
+ * Single-source semantic color palette.
+ * All raw color values live in :root / [data-theme="dark"] below.
+ * This @theme inline block exposes each one as a Tailwind utility so you can
+ * write `bg-primary`, `text-primary-foreground`, `border-border`, etc.
+ * To change a color, update ONLY the :root / [data-theme="dark"] section.
+ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-strong: var(--primary-strong);
+  --color-secondary: var(--secondary);
+  --color-secondary-strong: var(--secondary-strong);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-strong: var(--destructive-strong);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted-foreground: var(--sidebar-muted-foreground);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+}
+
+:root {
+  --background: #f3f7f5;
+  --foreground: #17313a;
+  --muted-foreground: #5f7278;
+  --card: rgba(255, 255, 255, 0.78);
+  --card-foreground: #17313a;
+  --popover: rgba(255, 255, 255, 0.95);
+  --popover-foreground: #17313a;
+  --primary: #176b6c;
+  --primary-strong: #135457;
+  --primary-foreground: #f7fffd;
+  --primary-soft: rgba(23, 107, 108, 0.12);
+  --secondary: rgba(23, 49, 58, 0.08);
+  --secondary-strong: rgba(23, 49, 58, 0.14);
+  --secondary-foreground: #17313a;
+  --accent: rgba(23, 107, 108, 0.08);
+  --accent-foreground: #17313a;
+  --border: rgba(23, 49, 58, 0.12);
+  --input: rgba(23, 49, 58, 0.16);
+  --ring: rgba(23, 107, 108, 0.32);
+  --destructive: #dc2626;
+  --destructive-strong: #b91c1c;
+  --sidebar: rgba(10, 32, 39, 0.94);
+  --sidebar-foreground: #e3f7f3;
+  --sidebar-muted-foreground: #93b8b3;
+  --sidebar-primary: linear-gradient(135deg, #2bb8ad, #20878a);
+  --sidebar-primary-foreground: #effffb;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #f4fffd;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --hero-a: rgba(43, 184, 173, 0.22);
+  --hero-b: rgba(32, 135, 138, 0.16);
+}
+
+:root[data-theme='dark'] {
+  --background: #09161d;
+  --foreground: #d8f4ef;
+  --muted-foreground: #96b8b2;
+  --card: rgba(10, 28, 36, 0.82);
+  --card-foreground: #d8f4ef;
+  --popover: rgba(9, 25, 33, 0.98);
+  --popover-foreground: #d8f4ef;
+  --primary: #49d2c7;
+  --primary-strong: #2eb8af;
+  --primary-foreground: #052124;
+  --primary-soft: rgba(73, 210, 199, 0.14);
+  --secondary: rgba(216, 244, 239, 0.08);
+  --secondary-strong: rgba(216, 244, 239, 0.14);
+  --secondary-foreground: #d8f4ef;
+  --accent: rgba(73, 210, 199, 0.1);
+  --accent-foreground: #efffff;
+  --border: rgba(216, 244, 239, 0.12);
+  --input: rgba(216, 244, 239, 0.16);
+  --ring: rgba(73, 210, 199, 0.28);
+  --destructive: #ef4444;
+  --destructive-strong: #dc2626;
+  --sidebar: rgba(4, 18, 24, 0.98);
+  --sidebar-foreground: #e8fffb;
+  --sidebar-muted-foreground: #8fb6b1;
+  --sidebar-primary: linear-gradient(135deg, #49d2c7, #2ea7a0);
+  --sidebar-primary-foreground: #082427;
+  --sidebar-accent: rgba(255, 255, 255, 0.06);
+  --sidebar-accent-foreground: #efffff;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --hero-a: rgba(96, 215, 207, 0.18);
+  --hero-b: rgba(110, 200, 154, 0.12);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --background: #09161d;
+    --foreground: #d8f4ef;
+    --muted-foreground: #96b8b2;
+    --card: rgba(10, 28, 36, 0.82);
+    --card-foreground: #d8f4ef;
+    --popover: rgba(9, 25, 33, 0.98);
+    --popover-foreground: #d8f4ef;
+    --primary: #49d2c7;
+    --primary-strong: #2eb8af;
+    --primary-foreground: #052124;
+    --primary-soft: rgba(73, 210, 199, 0.14);
+    --secondary: rgba(216, 244, 239, 0.08);
+    --secondary-strong: rgba(216, 244, 239, 0.14);
+    --secondary-foreground: #d8f4ef;
+    --accent: rgba(73, 210, 199, 0.1);
+    --accent-foreground: #efffff;
+    --border: rgba(216, 244, 239, 0.12);
+    --input: rgba(216, 244, 239, 0.16);
+    --ring: rgba(73, 210, 199, 0.28);
+    --destructive: #ef4444;
+    --destructive-strong: #dc2626;
+    --sidebar: rgba(4, 18, 24, 0.98);
+    --sidebar-foreground: #e8fffb;
+    --sidebar-muted-foreground: #8fb6b1;
+    --sidebar-primary: linear-gradient(135deg, #49d2c7, #2ea7a0);
+    --sidebar-primary-foreground: #082427;
+    --sidebar-accent: rgba(255, 255, 255, 0.06);
+    --sidebar-accent-foreground: #efffff;
+    --sidebar-border: rgba(255, 255, 255, 0.06);
+    --hero-a: rgba(96, 215, 207, 0.18);
+    --hero-b: rgba(110, 200, 154, 0.12);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  background-color: var(--background);
+  background:
+    radial-gradient(1100px 620px at -8% -10%, var(--hero-a), transparent 58%),
+    radial-gradient(1050px 620px at 112% -12%, var(--hero-b), transparent 62%),
+    radial-gradient(
+      720px 380px at 50% 115%,
+      rgba(79, 184, 178, 0.1),
+      transparent 68%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--background) 72%, white) 0%,
+      color-mix(in oklab, var(--background) 88%, black 12%) 100%
+    );
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.28;
+  background:
+    radial-gradient(
+      circle at 20% 15%,
+      rgba(255, 255, 255, 0.8),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 78% 26%,
+      rgba(79, 184, 178, 0.2),
+      transparent 42%
+    ),
+    radial-gradient(circle at 42% 82%, rgba(47, 106, 74, 0.14), transparent 36%);
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.14;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(circle at 50% 30%, black, transparent 78%);
+}
+
+/* Base link styles live in @layer base so Tailwind utility classes always win */
+@layer base {
+  :where(a):not([data-slot='button']) {
+    color: var(--primary);
+    text-decoration-color: rgba(23, 107, 108, 0.35);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+  }
+
+  :where(a):not([data-slot='button']):hover {
+    color: var(--primary-strong);
+  }
+}
+
+code {
+  font-size: 0.9em;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--card) 88%, white 12%);
+  border-radius: 7px;
+  padding: 2px 7px;
+}
+
+pre code {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+  color: inherit;
+}
+
+.display-title {
+  font-family: 'Fraunces', Georgia, serif;
+}
+
+button,
+a {
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+
+.island-kicker {
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 0.69rem;
+  color: var(--muted-foreground);
+}
+
+.sidebar-nav-active {
+  background-image: var(--sidebar-primary);
+  background-color: rgba(43, 184, 173, 0.16);
+  color: var(--sidebar-primary-foreground) !important;
+  text-decoration: none;
+}
+
+.sidebar-nav-active:hover,
+.sidebar-nav-active:visited {
+  color: var(--sidebar-primary-foreground) !important;
+}
+
+.sidebar-nav-active svg {
+  color: inherit;
+}
+
+.rise-in {
+  animation: rise-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
