@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Area,
@@ -14,6 +14,15 @@ import {
   YAxis,
 } from 'recharts'
 import { toast } from 'sonner'
+import {
+  AlertTriangle,
+  ArrowDownRight,
+  ArrowRight,
+  ArrowUpRight,
+  Lightbulb,
+  RefreshCw,
+  SlidersHorizontal,
+} from 'lucide-react'
 
 import { useSession } from '#/components/session-provider'
 import { getDashboardSummary, type DashboardSummary } from '#/lib/api'
