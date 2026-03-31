@@ -4,6 +4,10 @@ import jwt, { type Secret, type SignOptions } from 'jsonwebtoken';
 
 import prisma from '../../libs/prisma';
 import env from '../../env';
+import {
+  DEFAULT_CATEGORIES,
+  DEFAULT_ONBOARDING_ACCOUNTS,
+} from '../workspace/default-workspace';
 import type { LoginBody, RegisterBody } from './auth.schema';
 
 class AuthService {
@@ -19,13 +23,58 @@ class AuthService {
 
     const passwordHash = await bcrypt.hash(data.password, env.BCRYPT_ROUNDS);
 
-    const user = await prisma.user.create({
-      data: {
-        email: data.email.toLowerCase(),
-        passwordHash,
-        name: data.name,
-        currency: data.currency ?? 'GHS',
-      },
+    const user = await prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          email: data.email.toLowerCase(),
+          passwordHash,
+          name: data.name,
+          currency: data.currency ?? 'GHS',
+        },
+      });
+
+      await Promise.all(
+        DEFAULT_CATEGORIES.map((category) =>
+          tx.category.upsert({
+            where: {
+              userId_type_name: {
+                userId: createdUser.id,
+                type: category.type,
+                name: category.name,
+              },
+            },
+            update: {
+              color: category.color,
+              isSystem: true,
+              isArchived: false,
+            },
+            create: {
+              userId: createdUser.id,
+              name: category.name,
+              type: category.type,
+              color: category.color,
+              isSystem: true,
+              isArchived: false,
+            },
+          })
+        )
+      );
+
+      await tx.account.createMany({
+        data: DEFAULT_ONBOARDING_ACCOUNTS.map((account) => ({
+          userId: createdUser.id,
+          name: account.name,
+          type: account.type,
+          currency: createdUser.currency,
+          color: account.color,
+          icon: account.icon,
+          openingBalance: account.openingBalance,
+          currentBalance: account.openingBalance,
+          isArchived: false,
+        })),
+      });
+
+      return createdUser;
     });
 
     return this.buildAuthResponse(user);

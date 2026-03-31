@@ -1,6 +1,13 @@
 {
   "name": "finance-web-app",
   "private": true,
+  "author": "Enoch Klufio",
+  "keywords": [
+    "finance manager",
+    "budget",
+    "expense tracker",
+    "personal finance"
+  ],
   "scripts": {
     "dev": "concurrently -n backend,frontend -c blue,green \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
     "backend": "npm --prefix backend run dev",

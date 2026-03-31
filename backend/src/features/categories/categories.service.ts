@@ -1,6 +1,7 @@
 import createHttpError from 'http-errors';
 
 import prisma from '../../libs/prisma';
+import { DEFAULT_CATEGORIES } from '../workspace/default-workspace';
 import { ensureRequiredSystemCategories } from './system-categories';
 import type {
   CreateCategoryBody,
@@ -10,7 +11,7 @@ import type {
 
 class CategoriesService {
   list = async (userId: string, filters: ListCategoriesQuery) => {
-    await ensureRequiredSystemCategories(userId);
+    await this.ensureStarterCategories(userId);
 
     return prisma.category.findMany({
       where: {
@@ -23,99 +24,7 @@ class CategoriesService {
   };
 
   seedDefaults = async (userId: string) => {
-    const defaultCategories = [
-      {
-        name: 'Food & Drinks',
-        type: 'EXPENSE',
-        color: '#b45309',
-      },
-      {
-        name: 'Shopping',
-        type: 'EXPENSE',
-        color: '#176b6c',
-      },
-      {
-        name: 'Housing',
-        type: 'EXPENSE',
-        color: '#9a3412',
-      },
-      {
-        name: 'Transportation',
-        type: 'EXPENSE',
-        color: '#f59e0b',
-      },
-      {
-        name: 'Vehicle',
-        type: 'EXPENSE',
-        color: '#475569',
-      },
-      {
-        name: 'Life & Entertainment',
-        type: 'EXPENSE',
-        color: '#be185d',
-      },
-      {
-        name: 'Communications, PC',
-        type: 'EXPENSE',
-        color: '#0f766e',
-      },
-      {
-        name: 'Financial Expenses',
-        type: 'EXPENSE',
-        color: '#7c3aed',
-      },
-      {
-        name: 'Investments',
-        type: 'EXPENSE',
-        color: '#1d4ed8',
-      },
-      {
-        name: 'Income',
-        type: 'INCOME',
-        color: '#15803d',
-      },
-      {
-        name: 'Transfer',
-        type: 'EXPENSE',
-        color: '#0f766e',
-      },
-      {
-        name: 'Unknown',
-        type: 'EXPENSE',
-        color: '#dc2626',
-      },
-      {
-        name: 'Unknown',
-        type: 'INCOME',
-        color: '#2563eb',
-      },
-    ] as const;
-
-    await Promise.all(
-      defaultCategories.map((category) =>
-        prisma.category.upsert({
-          where: {
-            userId_type_name: {
-              userId,
-              type: category.type,
-              name: category.name,
-            },
-          },
-          update: {
-            color: category.color,
-            isSystem: true,
-          },
-          create: {
-            userId,
-            name: category.name,
-            type: category.type,
-            color: category.color,
-            isSystem: true,
-            isArchived: false,
-          },
-        })
-      )
-    );
+    await this.ensureStarterCategories(userId);
 
     return this.list(userId, {});
   };
@@ -184,6 +93,37 @@ class CategoriesService {
     }
 
     return category;
+  };
+
+  private ensureStarterCategories = async (userId: string) => {
+    await ensureRequiredSystemCategories(userId);
+
+    await Promise.all(
+      DEFAULT_CATEGORIES.map((category) =>
+        prisma.category.upsert({
+          where: {
+            userId_type_name: {
+              userId,
+              type: category.type,
+              name: category.name,
+            },
+          },
+          update: {
+            color: category.color,
+            isSystem: true,
+            isArchived: false,
+          },
+          create: {
+            userId,
+            name: category.name,
+            type: category.type,
+            color: category.color,
+            isSystem: true,
+            isArchived: false,
+          },
+        })
+      )
+    );
   };
 }
 
