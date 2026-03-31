@@ -68,6 +68,13 @@ export const RECURRING_STATUS_OPTIONS = [
   { value: 'COMPLETED', label: 'Completed' },
 ] as const
 
+export function getCurrencySymbol(
+  shortcode: string,
+  currencies: { shortcode: string; symbol: string }[]
+) {
+  return currencies.find((c) => c.shortcode === shortcode)?.symbol ?? '₵'
+}
+
 export function formatCurrency(value: number | string, currency = 'USD') {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',

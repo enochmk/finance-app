@@ -1,6 +1,13 @@
 export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000/api/v1'
 
+export type Currency = {
+  id: string
+  name: string
+  shortcode: string
+  symbol: string
+}
+
 export type AuthUser = {
   id: string
   email: string
@@ -544,6 +551,37 @@ export async function updateTransaction(
 
 export async function deleteTransaction(id: string) {
   return request<Transaction>(`/transactions/${id}`, {
+    method: 'DELETE',
+  })
+}
+
+export async function getCurrencies() {
+  return request<Currency[]>('/currencies')
+}
+
+export async function createCurrency(payload: {
+  name: string
+  shortcode: string
+  symbol: string
+}) {
+  return request<Currency>('/currencies', {
+    method: 'POST',
+    body: payload,
+  })
+}
+
+export async function updateCurrency(
+  id: string,
+  payload: { name?: string; symbol?: string }
+) {
+  return request<Currency>(`/currencies/${id}`, {
+    method: 'PATCH',
+    body: payload,
+  })
+}
+
+export async function deleteCurrency(id: string) {
+  return request<Currency>(`/currencies/${id}`, {
     method: 'DELETE',
   })
 }

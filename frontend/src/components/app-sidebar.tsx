@@ -3,6 +3,7 @@ import {
   ChevronLeft,
   ChevronDown,
   ChevronsUpDown,
+  CircleDollarSign,
   DollarSign,
   FolderTree,
   Landmark,
@@ -42,6 +43,7 @@ const navigationItems = [
 const settingsItems = [
   { to: '/settings/accounts', label: 'Accounts', icon: Landmark },
   { to: '/settings/categories', label: 'Categories', icon: FolderTree },
+  { to: '/settings/currencies', label: 'Currencies', icon: CircleDollarSign },
   { to: '/settings/reset', label: 'Reset workspace', icon: RotateCcw },
 ] as const
 

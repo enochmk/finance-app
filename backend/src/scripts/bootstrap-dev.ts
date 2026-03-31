@@ -10,6 +10,7 @@ import {
   TransactionType,
 } from '../../generated/prisma/enums';
 import { getLogger } from '../libs/logger';
+import { ensureCurrencies } from '../libs/currencies';
 
 const logger = getLogger('BootstrapDev');
 
@@ -75,6 +76,12 @@ export async function bootstrapDevData() {
     return;
   }
 
+  await ensureCurrencies();
+
+  const ghsCurrency = await prisma.currency.findUniqueOrThrow({
+    where: { shortcode: 'GHS' },
+  });
+
   const passwordHash = await bcrypt.hash(
     env.DEV_SEED_USER_PASSWORD,
     env.BCRYPT_ROUNDS
@@ -85,13 +92,13 @@ export async function bootstrapDevData() {
     update: {
       name: env.DEV_SEED_USER_NAME,
       passwordHash,
-      currency: 'GHS',
+      currency: ghsCurrency.shortcode,
     },
     create: {
       email: env.DEV_SEED_USER_EMAIL,
       name: env.DEV_SEED_USER_NAME,
       passwordHash,
-      currency: 'GHS',
+      currency: ghsCurrency.shortcode,
     },
   });
 
@@ -114,7 +121,7 @@ export async function bootstrapDevData() {
       {
         name: 'Bank',
         type: AccountType.CHECKING,
-        currency: 'GHS',
+        currency: ghsCurrency.shortcode,
         color: '#176b6c',
         icon: 'Building2',
         openingBalance: 6200,
@@ -124,7 +131,7 @@ export async function bootstrapDevData() {
         name: 'Savings',
         categoryName: 'Transfer',
         type: AccountType.SAVINGS,
-        currency: 'GHS',
+        currency: ghsCurrency.shortcode,
         color: '#1d4ed8',
         icon: 'PiggyBank',
         openingBalance: 14500,
@@ -134,7 +141,7 @@ export async function bootstrapDevData() {
         name: 'Wedding',
         categoryName: 'Transfer',
         type: AccountType.SAVINGS,
-        currency: 'GHS',
+        currency: ghsCurrency.shortcode,
         color: '#be185d',
         icon: 'Heart',
         openingBalance: 3200,
@@ -143,7 +150,7 @@ export async function bootstrapDevData() {
       {
         name: 'Mobile Money',
         type: AccountType.CASH,
-        currency: 'GHS',
+        currency: ghsCurrency.shortcode,
         color: '#15803d',
         icon: 'Smartphone',
         openingBalance: 900,
@@ -152,7 +159,7 @@ export async function bootstrapDevData() {
       {
         name: 'Subscription',
         type: AccountType.CASH,
-        currency: 'GHS',
+        currency: ghsCurrency.shortcode,
         color: '#7c3aed',
         icon: 'CreditCard',
         openingBalance: 200,

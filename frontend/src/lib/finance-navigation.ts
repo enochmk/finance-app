@@ -1,4 +1,9 @@
-import { FolderTree, Landmark, type LucideIcon } from 'lucide-react'
+import {
+  CircleDollarSign,
+  FolderTree,
+  Landmark,
+  type LucideIcon,
+} from 'lucide-react'
 
 export type WorkspaceLink = {
   to: string
@@ -20,5 +25,11 @@ export const financeSectionLinks: WorkspaceLink[] = [
     label: 'Categories',
     description: 'Income and expense buckets for classification.',
     icon: FolderTree,
+  },
+  {
+    to: '/settings/currencies',
+    label: 'Currencies',
+    description: 'Manage available currencies with their shortcode and symbol.',
+    icon: CircleDollarSign,
   },
 ] as const

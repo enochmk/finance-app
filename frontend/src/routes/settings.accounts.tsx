@@ -72,6 +72,7 @@ import {
   deleteAccount,
   updateAccount,
   type Account,
+  type Currency,
 } from '#/lib/api'
 import {
   ACCOUNT_TYPE_OPTIONS,
@@ -126,11 +127,7 @@ const accountTypeValues = ACCOUNT_TYPE_OPTIONS.map(
 const accountSchema = z.object({
   name: z.string().trim().min(1, 'Account name is required').max(120),
   type: z.enum(accountTypeValues),
-  currency: z
-    .string()
-    .trim()
-    .length(3, 'Use a 3-letter currency')
-    .transform((value) => value.toUpperCase()),
+  currency: z.string().trim().min(1, 'Select a currency'),
   color: z.string().trim().min(1, 'Color is required').max(32),
   icon: z.string().trim().max(32).optional(),
   openingBalance: z.coerce.number().finite(),
@@ -206,7 +203,7 @@ function compareValues(
 function AccountsPage() {
   const { isAuthenticated } = useSession()
   const { isLoading: isSessionLoading } = useProtectedRoute()
-  const { accounts, error, isLoading, refreshAll } =
+  const { accounts, currencies, error, isLoading, refreshAll } =
     useFinanceWorkspaceData(isAuthenticated)
   const { create } = useSearch({ from: '/settings/accounts' })
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -736,7 +733,7 @@ function AccountsPage() {
             onSubmit={createForm.handleSubmit(handleCreateAccount)}
             className="space-y-4"
           >
-            <AccountFormFields form={createForm} />
+            <AccountFormFields form={createForm} currencies={currencies} />
             <DialogFooter>
               <Button
                 type="button"
@@ -776,6 +773,7 @@ function AccountsPage() {
                 editingAccount.hasCurrentBalanceOverride
               }
               setEditingAccount={setEditingAccount}
+              currencies={currencies}
             />
 
             <DialogFooter>
@@ -925,8 +923,10 @@ function AccountsPage() {
 
 function AccountFormFields({
   form,
+  currencies,
 }: {
   form: ReturnType<typeof useForm<AccountFormValues>>
+  currencies: Currency[]
 }) {
   return (
     <>
@@ -951,15 +951,20 @@ function AccountFormFields({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Currency</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  maxLength={3}
-                  onChange={(event) =>
-                    field.onChange(event.target.value.toUpperCase())
-                  }
-                />
-              </FormControl>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {currencies.map((c) => (
+                    <SelectItem key={c.shortcode} value={c.shortcode}>
+                      {c.symbol} {c.name} ({c.shortcode})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
@@ -1099,11 +1104,13 @@ function AccountEditFields({
   values,
   hasCurrentBalanceOverride,
   setEditingAccount,
+  currencies,
 }: {
   account: Account
   values: AccountEditValues
   hasCurrentBalanceOverride: boolean
   setEditingAccount: Dispatch<SetStateAction<EditAccountState | null>>
+  currencies: Currency[]
 }) {
   function updateField<Key extends keyof AccountEditValues>(
     field: Key,
@@ -1172,14 +1179,21 @@ function AccountEditFields({
           >
             Currency
           </label>
-          <Input
-            id="edit-account-currency"
-            maxLength={3}
+          <Select
             value={values.currency}
-            onChange={(event) =>
-              updateField('currency', event.target.value.toUpperCase())
-            }
-          />
+            onValueChange={(value) => updateField('currency', value)}
+          >
+            <SelectTrigger id="edit-account-currency">
+              <SelectValue placeholder="Select currency" />
+            </SelectTrigger>
+            <SelectContent>
+              {currencies.map((c) => (
+                <SelectItem key={c.shortcode} value={c.shortcode}>
+                  {c.symbol} {c.name} ({c.shortcode})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

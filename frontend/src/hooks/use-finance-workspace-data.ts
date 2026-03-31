@@ -4,10 +4,12 @@ import {
   getAccounts,
   getBudgets,
   getCategories,
+  getCurrencies,
   getTransactions,
   type Account,
   type Budget,
   type Category,
+  type Currency,
   type Transaction,
 } from '#/lib/api'
 
@@ -16,6 +18,7 @@ type FinanceWorkspaceData = {
   categories: Category[]
   budgets: Budget[]
   transactions: Transaction[]
+  currencies: Currency[]
 }
 
 const EMPTY_DATA: FinanceWorkspaceData = {
@@ -23,6 +26,7 @@ const EMPTY_DATA: FinanceWorkspaceData = {
   categories: [],
   budgets: [],
   transactions: [],
+  currencies: [],
 }
 
 function sortCategoriesForWorkspace(categories: Category[]) {
@@ -45,18 +49,21 @@ export function useFinanceWorkspaceData(enabled: boolean) {
   const [error, setError] = useState<string | null>(null)
 
   const refreshAll = useCallback(async () => {
-    const [accounts, categories, budgets, transactions] = await Promise.all([
-      getAccounts(),
-      getCategories(),
-      getBudgets(),
-      getTransactions(),
-    ])
+    const [accounts, categories, budgets, transactions, currencies] =
+      await Promise.all([
+        getAccounts(),
+        getCategories(),
+        getBudgets(),
+        getTransactions(),
+        getCurrencies(),
+      ])
 
     setData({
       accounts,
       categories: sortCategoriesForWorkspace(categories),
       budgets,
       transactions,
+      currencies,
     })
     setError(null)
   }, [])
@@ -73,9 +80,14 @@ export function useFinanceWorkspaceData(enabled: boolean) {
       try {
         setIsLoading(true)
 
-        const [accounts, categories, budgets, transactions] = await Promise.all(
-          [getAccounts(), getCategories(), getBudgets(), getTransactions()]
-        )
+        const [accounts, categories, budgets, transactions, currencies] =
+          await Promise.all([
+            getAccounts(),
+            getCategories(),
+            getBudgets(),
+            getTransactions(),
+            getCurrencies(),
+          ])
 
         if (!cancelled) {
           setData({
@@ -83,6 +95,7 @@ export function useFinanceWorkspaceData(enabled: boolean) {
             categories: sortCategoriesForWorkspace(categories),
             budgets,
             transactions,
+            currencies,
           })
           setError(null)
         }

@@ -1,5 +1,5 @@
 import { createFileRoute, useSearch } from '@tanstack/react-router'
-import { DollarSign, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import {
   useCallback,
   useEffect,
@@ -48,6 +48,7 @@ import {
 } from '#/lib/api'
 import {
   getDateRangeForFilter,
+  getCurrencySymbol,
   paginateItems,
   toDateTimeLocalValue,
 } from '#/lib/finance'
@@ -63,7 +64,7 @@ export const Route = createFileRoute('/transactions')({
 function TransactionsPage() {
   const { isAuthenticated } = useSession()
   const { isLoading: isSessionLoading } = useProtectedRoute()
-  const { accounts, categories, transactions, error, refreshAll } =
+  const { accounts, categories, transactions, currencies, error, refreshAll } =
     useFinanceWorkspaceData(isAuthenticated)
   const { create } = useSearch({ from: '/transactions' })
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -563,6 +564,26 @@ function TransactionsPage() {
     keyboardTransaction,
   ])
 
+  const currencySymbol = getCurrencySymbol(
+    selectedFilterAccount?.currency ?? 'GHS',
+    currencies
+  )
+
+  const CurrencyIcon = useMemo(
+    () =>
+      function CurrencyIcon({ className }: { className?: string }) {
+        return (
+          <span
+            className={className}
+            style={{ fontSize: 'inherit', lineHeight: 1, fontWeight: 700 }}
+          >
+            {currencySymbol}
+          </span>
+        )
+      },
+    [currencySymbol]
+  )
+
   if (!isAuthenticated && !isSessionLoading) {
     return null
   }
@@ -572,7 +593,7 @@ function TransactionsPage() {
       badge="Finance workspace"
       title="Transactions"
       description="Capture credits, debits, and transfers with enough context to track where money moved and how it was entered."
-      icon={DollarSign}
+      icon={CurrencyIcon}
       actions={
         <Button onClick={() => setIsCreateOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />

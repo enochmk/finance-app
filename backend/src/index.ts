@@ -4,6 +4,7 @@ import './env';
 import env from './env';
 import { getLogger } from './libs/logger';
 import prisma from './libs/prisma';
+import { ensureCurrencies } from './libs/currencies';
 import { createApp } from './app';
 // import { bootstrapDevData } from './scripts/bootstrap-dev';
 
@@ -26,6 +27,9 @@ const shutdown = async (signal: string) => {
 
 server.on('listening', () => {
   logger.info(`Server listening in mode: '${NODE_ENV}' on port: ${PORT}`);
+  void ensureCurrencies().catch((err) => {
+    logger.error('Failed to seed default currencies', { err });
+  });
 });
 
 server.on('error', async (err) => {

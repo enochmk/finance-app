@@ -10,7 +10,7 @@ type CrudPageShellProps = {
   actions?: ReactNode
   navigation?: ReactNode
   children: ReactNode
-  icon?: LucideIcon
+  icon?: LucideIcon | React.ComponentType<{ className?: string }>
 }
 
 export function CrudPageShell({
