@@ -112,7 +112,7 @@ export function getDeltaMessage(
 
 export function computeRecommendations(data: DashboardSummary): string[] {
   const recs: string[] = []
-  const { overview, budgets, expensesByCategory, comparison } = data
+  const { overview, expensesByCategory, comparison } = data
 
   if (comparison.totalBalance.change < 0) {
     recs.push(
@@ -131,22 +131,6 @@ export function computeRecommendations(data: DashboardSummary): string[] {
         `Savings rate is ${savingsRate.toFixed(1)}%. Consider targeting 20%+ to build a stronger buffer.`
       )
     }
-  }
-
-  const overBudget = budgets.filter((budget) => budget.utilizationRate > 1)
-  if (overBudget.length > 0) {
-    recs.push(
-      `${overBudget.length} budget ${overBudget.length === 1 ? 'category is' : 'categories are'} over limit: ${overBudget.map((budget) => budget.category.name).join(', ')}.`
-    )
-  }
-
-  const nearBudget = budgets.filter(
-    (budget) => budget.utilizationRate >= 0.8 && budget.utilizationRate <= 1
-  )
-  if (nearBudget.length > 0) {
-    recs.push(
-      `${nearBudget.map((budget) => budget.category.name).join(', ')} ${nearBudget.length === 1 ? 'is' : 'are'} close to budget limits.`
-    )
   }
 
   if (expensesByCategory.length > 0 && overview.totalExpenses > 0) {

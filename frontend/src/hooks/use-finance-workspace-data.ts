@@ -2,12 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 
 import {
   getAccounts,
-  getBudgets,
   getCategories,
   getCurrencies,
   getTransactions,
   type Account,
-  type Budget,
   type Category,
   type Currency,
   type Transaction,
@@ -16,7 +14,6 @@ import {
 type FinanceWorkspaceData = {
   accounts: Account[]
   categories: Category[]
-  budgets: Budget[]
   transactions: Transaction[]
   currencies: Currency[]
 }
@@ -24,7 +21,6 @@ type FinanceWorkspaceData = {
 const EMPTY_DATA: FinanceWorkspaceData = {
   accounts: [],
   categories: [],
-  budgets: [],
   transactions: [],
   currencies: [],
 }
@@ -49,19 +45,16 @@ export function useFinanceWorkspaceData(enabled: boolean) {
   const [error, setError] = useState<string | null>(null)
 
   const refreshAll = useCallback(async () => {
-    const [accounts, categories, budgets, transactions, currencies] =
-      await Promise.all([
-        getAccounts(),
-        getCategories(),
-        getBudgets(),
-        getTransactions(),
-        getCurrencies(),
-      ])
+    const [accounts, categories, transactions, currencies] = await Promise.all([
+      getAccounts(),
+      getCategories(),
+      getTransactions(),
+      getCurrencies(),
+    ])
 
     setData({
       accounts,
       categories: sortCategoriesForWorkspace(categories),
-      budgets,
       transactions,
       currencies,
     })
@@ -80,11 +73,10 @@ export function useFinanceWorkspaceData(enabled: boolean) {
       try {
         setIsLoading(true)
 
-        const [accounts, categories, budgets, transactions, currencies] =
+        const [accounts, categories, transactions, currencies] =
           await Promise.all([
             getAccounts(),
             getCategories(),
-            getBudgets(),
             getTransactions(),
             getCurrencies(),
           ])
@@ -93,7 +85,6 @@ export function useFinanceWorkspaceData(enabled: boolean) {
           setData({
             accounts,
             categories: sortCategoriesForWorkspace(categories),
-            budgets,
             transactions,
             currencies,
           })

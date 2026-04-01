@@ -46,7 +46,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '#/components/ui/dropdown-menu'
-import { Progress } from '#/components/ui/progress'
 import {
   Select,
   SelectContent,
@@ -237,7 +236,7 @@ function ComparisonPill({
 
 function computeRecommendations(data: DashboardSummary): string[] {
   const recs: string[] = []
-  const { overview, budgets, expensesByCategory, comparison } = data
+  const { overview, expensesByCategory, comparison } = data
 
   if (comparison.totalBalance.change < 0) {
     recs.push(
@@ -256,22 +255,6 @@ function computeRecommendations(data: DashboardSummary): string[] {
         `Savings rate is ${savingsRate.toFixed(1)}%. Consider targeting 20%+ to build a stronger buffer.`
       )
     }
-  }
-
-  const overBudget = budgets.filter((budget) => budget.utilizationRate > 1)
-  if (overBudget.length > 0) {
-    recs.push(
-      `${overBudget.length} budget ${overBudget.length === 1 ? 'category is' : 'categories are'} over limit: ${overBudget.map((budget) => budget.category.name).join(', ')}.`
-    )
-  }
-
-  const nearBudget = budgets.filter(
-    (budget) => budget.utilizationRate >= 0.8 && budget.utilizationRate <= 1
-  )
-  if (nearBudget.length > 0) {
-    recs.push(
-      `${nearBudget.map((budget) => budget.category.name).join(', ')} ${nearBudget.length === 1 ? 'is' : 'are'} close to budget limits.`
-    )
   }
 
   if (expensesByCategory.length > 0 && overview.totalExpenses > 0) {
@@ -1155,64 +1138,6 @@ function DashboardPage() {
                         </BarChart>
                       </ResponsiveContainer>
                     </ChartContainer>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Budget Utilization</CardTitle>
-                  <CardDescription>
-                    Category pressure for {activePeriodLabel}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  {data.budgets.length === 0 ? (
-                    <Alert>
-                      <AlertTitle>No budgets in range</AlertTitle>
-                      <AlertDescription>
-                        Create a budget to compare planned vs actual spending.
-                      </AlertDescription>
-                    </Alert>
-                  ) : (
-                    data.budgets.map((budget) => {
-                      const percent = Math.min(
-                        Math.round(budget.utilizationRate * 100),
-                        100
-                      )
-
-                      return (
-                        <div key={budget.id} className="space-y-2">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className="text-sm font-medium text-foreground">
-                                {budget.category.name}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {formatCurrency(budget.spent, selectedCurrency)}{' '}
-                                of{' '}
-                                {formatCurrency(
-                                  budget.amount,
-                                  selectedCurrency
-                                )}
-                              </p>
-                            </div>
-                            <Badge
-                              variant={
-                                percent >= 100
-                                  ? 'warning'
-                                  : percent >= 85
-                                    ? 'warning'
-                                    : 'default'
-                              }
-                            >
-                              {percent}%
-                            </Badge>
-                          </div>
-                          <Progress value={percent} />
-                        </div>
-                      )
-                    })
                   )}
                 </CardContent>
               </Card>

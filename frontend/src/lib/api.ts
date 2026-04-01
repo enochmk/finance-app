@@ -49,15 +49,6 @@ export type Category = {
   parent?: { id: string; name: string; color?: string | null } | null
 }
 
-export type Budget = {
-  id: string
-  amount: string | number
-  month: number
-  year: number
-  notes?: string | null
-  category: Category
-}
-
 export type Transaction = {
   id: string
   type: string
@@ -105,7 +96,6 @@ export type DashboardSummary = {
     totalExpenses: number
     totalTransfers: number
     netCashFlow: number
-    totalBudgeted: number
   }
   accounts: Array<{
     id: string
@@ -116,22 +106,6 @@ export type DashboardSummary = {
     currentBalance: number
     liveCurrentBalance: number
     openingBalance: number
-  }>
-  budgets: Array<{
-    id: string
-    month: number
-    year: number
-    amount: number
-    spent: number
-    remaining: number
-    utilizationRate: number
-    category: {
-      id: string
-      name: string
-      type: string
-      color: string | null
-      icon: string | null
-    }
   }>
   recentTransactions: Array<{
     id: string
@@ -469,45 +443,6 @@ export async function seedDefaultCategories() {
 
 export async function deleteCategory(id: string) {
   return request<Category>(`/categories/${id}`, {
-    method: 'DELETE',
-  })
-}
-
-export async function getBudgets() {
-  return request<Budget[]>('/budgets')
-}
-
-export async function createBudget(payload: {
-  categoryId: string
-  amount: number
-  month: number
-  year: number
-  notes?: string
-}) {
-  return request<Budget>('/budgets', {
-    method: 'POST',
-    body: payload,
-  })
-}
-
-export async function updateBudget(
-  id: string,
-  payload: {
-    categoryId?: string
-    amount?: number
-    month?: number
-    year?: number
-    notes?: string
-  }
-) {
-  return request<Budget>(`/budgets/${id}`, {
-    method: 'PATCH',
-    body: payload,
-  })
-}
-
-export async function deleteBudget(id: string) {
-  return request<Budget>(`/budgets/${id}`, {
     method: 'DELETE',
   })
 }

@@ -300,59 +300,6 @@ function calculatePercentChange(current: number, previous: number) {
   return ((current - previous) / Math.abs(previous)) * 100;
 }
 
-function getMonthsInRange(start: Date, end: Date) {
-  const months: Array<{ month: number; year: number; start: Date; end: Date }> =
-    [];
-  let cursor = new Date(
-    Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1)
-  );
-
-  while (cursor < end) {
-    const monthStart = new Date(cursor);
-    const monthEnd = new Date(
-      Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1)
-    );
-
-    months.push({
-      month: monthStart.getUTCMonth() + 1,
-      year: monthStart.getUTCFullYear(),
-      start: monthStart,
-      end: monthEnd,
-    });
-
-    cursor = monthEnd;
-  }
-
-  return months;
-}
-
-function getOverlapRatio(
-  periodStart: Date,
-  periodEnd: Date,
-  monthStart: Date,
-  monthEnd: Date
-) {
-  const overlapStart = new Date(
-    Math.max(periodStart.getTime(), monthStart.getTime())
-  );
-  const overlapEnd = new Date(
-    Math.min(periodEnd.getTime(), monthEnd.getTime())
-  );
-
-  if (overlapEnd <= overlapStart) {
-    return 0;
-  }
-
-  const overlapDays = daysBetween(overlapStart, overlapEnd);
-  const monthDays = daysBetween(monthStart, monthEnd);
-
-  if (monthDays === 0) {
-    return 0;
-  }
-
-  return overlapDays / monthDays;
-}
-
 function buildTrendSeries(
   periodStart: Date,
   periodEnd: Date,
@@ -484,10 +431,8 @@ class DashboardService {
           totalExpenses: 0,
           totalTransfers: 0,
           netCashFlow: 0,
-          totalBudgeted: 0,
         },
         accounts: [],
-        budgets: [],
         recentTransactions: [],
         expensesByCategory: [],
         incomesByCategory: [],
@@ -523,10 +468,8 @@ class DashboardService {
     }
 
     const accountIds = accounts.map((account) => account.id);
-    const budgetMonths = getMonthsInRange(period.start, period.end);
 
     const [
-      budgets,
       recentTransactions,
       transactionGroups,
       spendingByCategory,
@@ -536,19 +479,6 @@ class DashboardService {
       allCategories,
       futureTransactions,
     ] = await Promise.all([
-      prisma.budget.findMany({
-        where: {
-          userId,
-          OR: budgetMonths.map((month) => ({
-            month: month.month,
-            year: month.year,
-          })),
-        },
-        include: {
-          category: true,
-        },
-        orderBy: [{ createdAt: 'desc' }],
-      }),
       prisma.transaction.findMany({
         where: {
           userId,
@@ -722,106 +652,12 @@ class DashboardService {
     const totalBalance =
       accountBalancesAtPeriodEnd.get(selectedAccount.id) ?? 0;
 
-    const totalBudgeted = budgets.reduce((sum, budget) => {
-      const matchingMonth = budgetMonths.find(
-        (month) => month.month === budget.month && month.year === budget.year
-      );
-
-      if (!matchingMonth) {
-        return sum;
-      }
-
-      return (
-        sum +
-        toNumber(budget.amount) *
-          getOverlapRatio(
-            period.start,
-            period.end,
-            matchingMonth.start,
-            matchingMonth.end
-          )
-      );
-    }, 0);
-
     const spendingMap = new Map(
       spendingByCategory.map((item) => [
         item.categoryId,
         toNumber(item._sum.amount),
       ])
     );
-
-    const budgetAggregates = budgets.reduce(
-      (acc, budget) => {
-        const matchingMonth = budgetMonths.find(
-          (month) => month.month === budget.month && month.year === budget.year
-        );
-
-        if (!matchingMonth) {
-          return acc;
-        }
-
-        const scaledAmount =
-          toNumber(budget.amount) *
-          getOverlapRatio(
-            period.start,
-            period.end,
-            matchingMonth.start,
-            matchingMonth.end
-          );
-
-        const existing = acc.get(budget.categoryId) ?? {
-          id: budget.id,
-          month: budget.month,
-          year: budget.year,
-          amount: 0,
-          category: {
-            id: budget.category.id,
-            name: budget.category.name,
-            type: budget.category.type,
-            color: budget.category.color,
-            icon: budget.category.icon,
-          },
-        };
-
-        acc.set(budget.categoryId, {
-          ...existing,
-          amount: existing.amount + scaledAmount,
-        });
-
-        return acc;
-      },
-      new Map<
-        string,
-        {
-          id: string;
-          month: number;
-          year: number;
-          amount: number;
-          category: {
-            id: string;
-            name: string;
-            type: string;
-            color: string | null;
-            icon: string | null;
-          };
-        }
-      >()
-    );
-
-    const budgetsWithUsage = [...budgetAggregates.values()].map((budget) => {
-      const spent = spendingMap.get(budget.category.id) ?? 0;
-
-      return {
-        id: budget.id,
-        month: budget.month,
-        year: budget.year,
-        amount: Math.round(budget.amount * 100) / 100,
-        spent,
-        remaining: Math.round((budget.amount - spent) * 100) / 100,
-        utilizationRate: budget.amount > 0 ? spent / budget.amount : 0,
-        category: budget.category,
-      };
-    });
 
     const categoryMap = new Map(
       allCategories.map((category) => [
@@ -926,7 +762,6 @@ class DashboardService {
         totalExpenses: totalsByType.EXPENSE,
         totalTransfers: totalsByType.TRANSFER,
         netCashFlow: totalsByType.INCOME - totalsByType.EXPENSE,
-        totalBudgeted: Math.round(totalBudgeted * 100) / 100,
       },
       accounts: accounts.map((account) => ({
         id: account.id,
@@ -939,7 +774,6 @@ class DashboardService {
         liveCurrentBalance: toNumber(account.currentBalance),
         openingBalance: toNumber(account.openingBalance),
       })),
-      budgets: budgetsWithUsage,
       recentTransactions,
       expensesByCategory,
       incomesByCategory,

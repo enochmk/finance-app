@@ -2,7 +2,6 @@ import { Router } from 'express';
 
 import accountsRoutes from './features/accounts/accounts.routes';
 import authRoutes from './features/auth/auth.routes';
-import budgetsRoutes from './features/budgets/budgets.routes';
 import categoriesRoutes from './features/categories/categories.routes';
 import currenciesRoutes from './features/currencies/currencies.routes';
 import dashboardRoutes from './features/dashboard/dashboard.routes';
@@ -21,7 +20,6 @@ apiRoutes.use('/currencies', currenciesRoutes);
 apiRoutes.use('/transactions', transactionsRoutes);
 apiRoutes.use('/dashboard', dashboardRoutes);
 apiRoutes.use('/reports', reportsRoutes);
-apiRoutes.use('/budgets', budgetsRoutes);
 apiRoutes.use('/workspace', workspaceRoutes);
 
 export default apiRoutes;
