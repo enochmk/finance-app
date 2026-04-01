@@ -13,7 +13,11 @@ import {
   SelectValue,
 } from '#/components/ui/select'
 import type { Account, Category, Transaction } from '#/lib/api'
-import { TRANSACTION_TYPE_OPTIONS } from '#/lib/finance'
+import {
+  formatAmountInput,
+  parseAmountInput,
+  TRANSACTION_TYPE_OPTIONS,
+} from '#/lib/finance'
 
 export interface EditTransactionValues {
   accountId: string
@@ -142,9 +146,15 @@ export function EditTransactionDialog({
           </Select>
 
           <Input
-            type="number"
-            value={values.amount}
-            onChange={(e) => onChange({ ...values, amount: e.target.value })}
+            type="text"
+            inputMode="decimal"
+            value={formatAmountInput(values.amount)}
+            onChange={(e) => {
+              const raw = parseAmountInput(e.target.value)
+              if (raw === '' || /^\d*\.?\d*$/.test(raw)) {
+                onChange({ ...values, amount: raw })
+              }
+            }}
           />
         </div>
 

@@ -76,9 +76,11 @@ import {
 } from '#/lib/api'
 import {
   ACCOUNT_TYPE_OPTIONS,
+  formatAmountInput,
   formatCurrency,
   formatShortDate,
   paginateItems,
+  parseAmountInput,
 } from '#/lib/finance'
 
 function getAccountIcon(iconName?: string | null) {
@@ -1045,9 +1047,15 @@ function AccountFormFields({
             <FormLabel>Opening balance</FormLabel>
             <FormControl>
               <Input
-                type="number"
-                value={String(field.value ?? 0)}
-                onChange={(event) => field.onChange(event.target.value)}
+                type="text"
+                inputMode="decimal"
+                value={formatAmountInput(field.value ?? 0)}
+                onChange={(event) => {
+                  const raw = parseAmountInput(event.target.value)
+                  if (raw === '' || /^\d*\.?\d*$/.test(raw)) {
+                    field.onChange(raw)
+                  }
+                }}
               />
             </FormControl>
             <FormDescription>
@@ -1240,11 +1248,15 @@ function AccountEditFields({
           </label>
           <Input
             id="edit-account-opening"
-            type="number"
-            value={String(values.openingBalance)}
-            onChange={(event) =>
-              updateField('openingBalance', Number(event.target.value))
-            }
+            type="text"
+            inputMode="decimal"
+            value={formatAmountInput(values.openingBalance)}
+            onChange={(event) => {
+              const raw = parseAmountInput(event.target.value)
+              if (raw === '' || /^\d*\.?\d*$/.test(raw)) {
+                updateField('openingBalance', Number(raw) || 0)
+              }
+            }}
           />
         </div>
         <div className="space-y-2">
@@ -1288,11 +1300,15 @@ function AccountEditFields({
           </div>
           <Input
             id="edit-account-current"
-            type="number"
-            value={String(values.currentBalance)}
-            onChange={(event) =>
-              updateField('currentBalance', Number(event.target.value))
-            }
+            type="text"
+            inputMode="decimal"
+            value={formatAmountInput(values.currentBalance)}
+            onChange={(event) => {
+              const raw = parseAmountInput(event.target.value)
+              if (raw === '' || /^\d*\.?\d*$/.test(raw)) {
+                updateField('currentBalance', Number(raw) || 0)
+              }
+            }}
           />
           <p className="text-xs text-[var(--muted-foreground)]">
             If this differs from the tracked balance, an Unknown-category

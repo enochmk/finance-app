@@ -36,7 +36,12 @@ import {
   SelectValue,
 } from '#/components/ui/select'
 import type { Account, Category } from '#/lib/api'
-import { formatCurrency, TRANSACTION_TYPE_OPTIONS } from '#/lib/finance'
+import {
+  formatAmountInput,
+  formatCurrency,
+  parseAmountInput,
+  TRANSACTION_TYPE_OPTIONS,
+} from '#/lib/finance'
 
 import { getDarkColor, getAccountIcon } from './helpers'
 
@@ -45,9 +50,10 @@ export const transactionSchema = z.object({
   categoryId: z.string().optional(),
   transferAccountId: z.string().optional(),
   type: z.enum(['INCOME', 'EXPENSE', 'TRANSFER']),
-  amount: z.coerce
-    .number()
-    .positive('Transaction amount must be greater than zero'),
+  amount: z.string().refine((v) => {
+    const n = Number(v)
+    return !isNaN(n) && n > 0
+  }, 'Transaction amount must be greater than zero'),
   description: z.string().trim().min(1, 'Description is required').max(255),
   transactionDate: z.string().min(1, 'Transaction date is required'),
 })
@@ -184,12 +190,16 @@ export function CreateTransactionDialog({
                             : 'GH₵'}
                         </span>
                         <input
-                          type="number"
-                          min="0"
-                          step="0.01"
+                          type="text"
+                          inputMode="decimal"
                           autoFocus
-                          value={String(field.value ?? 0)}
-                          onChange={(e) => field.onChange(e.target.value)}
+                          value={formatAmountInput(field.value ?? '')}
+                          onChange={(e) => {
+                            const raw = parseAmountInput(e.target.value)
+                            if (raw === '' || /^\d*\.?\d*$/.test(raw)) {
+                              field.onChange(raw)
+                            }
+                          }}
                           onFocus={(e) => e.target.select()}
                           className="w-full bg-transparent border-none shadow-none outline-none text-center text-5xl font-bold text-white placeholder-white/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />

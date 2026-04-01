@@ -83,6 +83,30 @@ export function formatCurrency(value: number | string, currency = 'USD') {
   }).format(Number(value))
 }
 
+/**
+ * Formats a raw amount string/number for display in an input field.
+ * Adds thousand-separator commas while preserving decimal digits and trailing dot.
+ * Returns empty string for empty/zero-ish input.
+ */
+export function formatAmountInput(value: string | number): string {
+  const str = String(value ?? '').replace(/,/g, '')
+  if (!str) return ''
+  const [int, dec] = str.split('.')
+  const intNum = parseInt(int || '0', 10)
+  const formattedInt = isNaN(intNum) ? '' : intNum.toLocaleString('en-US')
+  return dec !== undefined ? `${formattedInt}.${dec}` : formattedInt
+}
+
+/**
+ * Parses a display-formatted amount string (may contain commas) into a clean
+ * numeric string. Strips commas and removes leading zeros before a non-zero digit.
+ */
+export function parseAmountInput(display: string): string {
+  const stripped = display.replace(/,/g, '')
+  // Remove leading zeros before a non-zero digit (e.g. "007" → "7"), but keep "0" and "0." intact
+  return stripped.replace(/^0+(?=\d[^.]|[1-9])/, '')
+}
+
 export function getTransactionTypeLabel(type: string) {
   if (type === 'INCOME') {
     return 'Credit'

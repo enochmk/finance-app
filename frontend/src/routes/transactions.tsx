@@ -105,7 +105,7 @@ function TransactionsPage() {
       categoryId: '',
       transferAccountId: '',
       type: 'EXPENSE',
-      amount: 0,
+      amount: '',
       description: '',
       transactionDate: toDateTimeLocalValue(),
     },
@@ -364,7 +364,7 @@ function TransactionsPage() {
             ? values.transferAccountId || undefined
             : undefined,
         type: values.type,
-        amount: values.amount,
+        amount: Number(values.amount),
         description: values.description,
         transactionDate: new Date(values.transactionDate).toISOString(),
       })
@@ -374,7 +374,7 @@ function TransactionsPage() {
         categoryId: '',
         transferAccountId: '',
         type: 'EXPENSE',
-        amount: 0,
+        amount: '',
         description: '',
         transactionDate: toDateTimeLocalValue(),
       })
