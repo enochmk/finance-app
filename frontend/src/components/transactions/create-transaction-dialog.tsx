@@ -303,7 +303,7 @@ export function CreateTransactionDialog({
                     </FormItem>
                   )}
                 />
-                {watchedType === 'TRANSFER' ? (
+                {watchedType === 'TRANSFER' && (
                   <FormField
                     control={form.control}
                     name="transferAccountId"
@@ -342,29 +342,31 @@ export function CreateTransactionDialog({
                       </FormItem>
                     )}
                   />
-                ) : (
-                  <FormField
-                    control={form.control}
-                    name="categoryId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          <FileText className="inline mr-2 h-4 w-4" />
-                          Category
-                        </FormLabel>
-                        <FormControl>
-                          <CategoryPicker
-                            value={field.value || ''}
-                            onValueChange={field.onChange}
-                            categories={filteredCategories}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 )}
               </div>
+
+              {watchedType !== 'TRANSFER' && (
+                <FormField
+                  control={form.control}
+                  name="categoryId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        <FileText className="inline mr-2 h-4 w-4" />
+                        Category
+                      </FormLabel>
+                      <FormControl>
+                        <CategoryPicker
+                          value={field.value || ''}
+                          onValueChange={field.onChange}
+                          categories={filteredCategories}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <FormField
                 control={form.control}

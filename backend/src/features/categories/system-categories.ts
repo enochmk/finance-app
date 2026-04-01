@@ -33,13 +33,8 @@ export async function ensureSystemCategory(
   const existing = await prisma.category.findFirst({
     where:
       key === 'TRANSFER'
-        ? { userId, name: definition.name, isSystem: true, parentId: null }
-        : {
-            userId,
-            name: definition.name,
-            type: definition.type,
-            parentId: null,
-          },
+        ? { userId, name: definition.name, isSystem: true }
+        : { userId, name: definition.name, type: definition.type },
   });
 
   if (existing) {
@@ -62,7 +57,6 @@ export async function ensureSystemCategory(
       type: definition.type,
       color: definition.color,
       icon: definition.icon,
-      parentId: null,
       isSystem: true,
       isArchived: false,
     },

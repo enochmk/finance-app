@@ -1,6 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { Check, ChevronDown, Search } from 'lucide-react'
+import {
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Search,
+} from 'lucide-react'
 
 import { cn } from '#/lib/utils'
 import type { Category } from '#/lib/api'
@@ -13,6 +19,8 @@ interface CategoryPickerProps {
   disabled?: boolean
 }
 
+type View = 'parents' | 'children'
+
 export function CategoryPicker({
   value,
   onValueChange,
@@ -21,6 +29,8 @@ export function CategoryPicker({
   disabled = false,
 }: CategoryPickerProps) {
   const [open, setOpen] = useState(false)
+  const [view, setView] = useState<View>('parents')
+  const [activeParent, setActiveParent] = useState<Category | null>(null)
   const [search, setSearch] = useState('')
   const triggerRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -39,6 +49,8 @@ export function CategoryPicker({
       requestAnimationFrame(() => searchRef.current?.focus())
     } else {
       setSearch('')
+      setView('parents')
+      setActiveParent(null)
     }
   }, [open, updateRect])
 
@@ -57,23 +69,28 @@ export function CategoryPicker({
     return () => document.removeEventListener('pointerdown', handlePointerDown)
   }, [open])
 
-  // Close on Escape
+  // Close on Escape; go back on Escape when in children view
   useEffect(() => {
     if (!open) return
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
-        setOpen(false)
-        triggerRef.current?.focus()
+        if (view === 'children') {
+          setView('parents')
+          setActiveParent(null)
+        } else {
+          setOpen(false)
+          triggerRef.current?.focus()
+        }
       }
     }
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
-  }, [open])
+  }, [open, view])
 
   const available = categories.filter((c) => !c.isArchived)
   const lowerSearch = search.toLowerCase().trim()
 
-  // Hierarchical data
+  // Build hierarchical maps
   const parents = available.filter((c) => !c.parentId)
   const childMap = new Map<string, Category[]>()
   available
@@ -84,19 +101,50 @@ export function CategoryPicker({
       childMap.set(c.parentId!, arr)
     })
 
-  // Flat filtered list for search mode
+  // Flat filtered list for search mode — includes parent breadcrumb for children
   const flatFiltered = lowerSearch
-    ? available.filter((c) => c.name.toLowerCase().includes(lowerSearch))
+    ? available.filter((c) => {
+        const nameMatch = c.name.toLowerCase().includes(lowerSearch)
+        const parentName = c.parentId
+          ? (available.find((p) => p.id === c.parentId)?.name ?? '')
+          : ''
+        return nameMatch || parentName.toLowerCase().includes(lowerSearch)
+      })
     : []
 
+  // Resolve display label for the trigger button
   const selected = available.find((c) => c.id === value)
-  const selectedLabel = selected
-    ? `${selected.icon ? `${selected.icon} ` : ''}${selected.name}`
-    : null
+  const selectedLabel = (() => {
+    if (!selected) return null
+    const icon = selected.icon ? `${selected.icon} ` : ''
+    if (selected.parentId) {
+      const parentName =
+        selected.parent?.name ??
+        available.find((p) => p.id === selected.parentId)?.name ??
+        ''
+      return `${icon}${parentName} › ${selected.name}`
+    }
+    return `${icon}${selected.name}`
+  })()
 
   function handleSelect(id: string) {
     onValueChange(id)
     setOpen(false)
+  }
+
+  function handleParentClick(parent: Category) {
+    const children = childMap.get(parent.id) ?? []
+    if (children.length === 0) {
+      handleSelect(parent.id)
+    } else {
+      setActiveParent(parent)
+      setView('children')
+    }
+  }
+
+  function handleBack() {
+    setView('parents')
+    setActiveParent(null)
   }
 
   const dropdownStyle: React.CSSProperties = triggerRect
@@ -104,10 +152,12 @@ export function CategoryPicker({
         position: 'fixed',
         top: triggerRect.bottom + 4,
         left: triggerRect.left,
-        width: triggerRect.width,
+        width: Math.max(triggerRect.width, 240),
         zIndex: 9999,
       }
     : { position: 'fixed', top: 0, left: 0, width: 0, zIndex: 9999 }
+
+  const isSearching = lowerSearch.length > 0
 
   return (
     <>
@@ -143,7 +193,7 @@ export function CategoryPicker({
             style={dropdownStyle}
             className="overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md"
           >
-            {/* Search input */}
+            {/* Search input — always visible */}
             <div className="flex items-center border-b border-border px-3 py-1.5">
               <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
               <input
@@ -156,92 +206,163 @@ export function CategoryPicker({
               />
             </div>
 
+            {/* Children view header */}
+            {!isSearching && view === 'children' && activeParent && (
+              <div className="flex items-center border-b border-border">
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">
+                    {activeParent.icon ? `${activeParent.icon} ` : ''}
+                    {activeParent.name}
+                  </span>
+                </button>
+              </div>
+            )}
+
             {/* Category list */}
-            <div className="max-h-52 overflow-y-auto p-1">
-              {lowerSearch ? (
+            <div className="max-h-56 overflow-y-auto p-1">
+              {isSearching ? (
+                /* ── Search results ── */
                 flatFiltered.length > 0 ? (
-                  flatFiltered.map((cat) => (
-                    <CategoryOption
-                      key={cat.id}
-                      cat={cat}
-                      isSelected={value === cat.id}
-                      isChild={Boolean(cat.parentId)}
-                      onSelect={handleSelect}
-                    />
-                  ))
+                  flatFiltered.map((cat) => {
+                    const parentName = cat.parentId
+                      ? (available.find((p) => p.id === cat.parentId)?.name ??
+                        '')
+                      : null
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        role="option"
+                        aria-selected={value === cat.id}
+                        onClick={() => handleSelect(cat.id)}
+                        className={cn(
+                          'relative flex w-full items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground',
+                          value === cat.id && 'bg-accent text-accent-foreground'
+                        )}
+                      >
+                        <span className="flex-1 truncate text-left">
+                          {parentName ? (
+                            <>
+                              <span className="text-muted-foreground">
+                                {parentName} ›{' '}
+                              </span>
+                              {cat.icon ? `${cat.icon} ` : ''}
+                              {cat.name}
+                            </>
+                          ) : (
+                            <>
+                              {cat.icon ? `${cat.icon} ` : ''}
+                              {cat.name}
+                            </>
+                          )}
+                        </span>
+                        {value === cat.id && (
+                          <Check className="ml-1 h-4 w-4 shrink-0" />
+                        )}
+                      </button>
+                    )
+                  })
                 ) : (
                   <p className="py-5 text-center text-sm text-muted-foreground">
                     No results for &ldquo;{search}&rdquo;
                   </p>
                 )
-              ) : parents.length > 0 ? (
-                parents.map((parent) => (
-                  <div key={parent.id}>
-                    <CategoryOption
-                      cat={parent}
-                      isSelected={value === parent.id}
-                      isChild={false}
-                      onSelect={handleSelect}
-                    />
-                    {(childMap.get(parent.id) ?? []).map((child) => (
-                      <CategoryOption
-                        key={child.id}
-                        cat={child}
-                        isSelected={value === child.id}
-                        isChild={true}
-                        onSelect={handleSelect}
-                      />
-                    ))}
-                  </div>
-                ))
+              ) : view === 'parents' ? (
+                /* ── Parents view ── */
+                parents.length > 0 ? (
+                  parents.map((parent) => {
+                    const children = childMap.get(parent.id) ?? []
+                    const hasChildren = children.length > 0
+                    return (
+                      <button
+                        key={parent.id}
+                        type="button"
+                        role="option"
+                        aria-selected={value === parent.id}
+                        onClick={() => handleParentClick(parent)}
+                        className={cn(
+                          'relative flex w-full items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground',
+                          value === parent.id &&
+                            'bg-accent text-accent-foreground'
+                        )}
+                      >
+                        <span className="flex-1 truncate text-left">
+                          {parent.icon ? `${parent.icon} ` : ''}
+                          {parent.name}
+                        </span>
+                        {!hasChildren && value === parent.id && (
+                          <Check className="ml-1 h-4 w-4 shrink-0" />
+                        )}
+                        {hasChildren && (
+                          <ChevronRight className="ml-1 h-4 w-4 shrink-0 opacity-50" />
+                        )}
+                      </button>
+                    )
+                  })
+                ) : (
+                  <p className="py-5 text-center text-sm text-muted-foreground">
+                    No categories available
+                  </p>
+                )
               ) : (
-                <p className="py-5 text-center text-sm text-muted-foreground">
-                  No categories available
-                </p>
+                /* ── Children view ── */
+                activeParent && (
+                  <>
+                    {/* "Use parent directly" row */}
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={value === activeParent.id}
+                      onClick={() => handleSelect(activeParent.id)}
+                      className={cn(
+                        'relative flex w-full items-center rounded-sm px-2 py-1.5 text-sm italic text-muted-foreground outline-none hover:bg-accent hover:text-accent-foreground',
+                        value === activeParent.id &&
+                          'bg-accent text-accent-foreground'
+                      )}
+                    >
+                      <span className="flex-1 truncate text-left">
+                        Use &ldquo;{activeParent.name}&rdquo; directly
+                      </span>
+                      {value === activeParent.id && (
+                        <Check className="ml-1 h-4 w-4 shrink-0" />
+                      )}
+                    </button>
+
+                    {/* Children */}
+                    {(childMap.get(activeParent.id) ?? []).map((child) => (
+                      <button
+                        key={child.id}
+                        type="button"
+                        role="option"
+                        aria-selected={value === child.id}
+                        onClick={() => handleSelect(child.id)}
+                        className={cn(
+                          'relative flex w-full items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground',
+                          value === child.id &&
+                            'bg-accent text-accent-foreground'
+                        )}
+                      >
+                        <span className="flex-1 truncate text-left">
+                          {child.icon ? `${child.icon} ` : ''}
+                          {child.name}
+                        </span>
+                        {value === child.id && (
+                          <Check className="ml-1 h-4 w-4 shrink-0" />
+                        )}
+                      </button>
+                    ))}
+                  </>
+                )
               )}
             </div>
           </div>,
           document.body
         )}
     </>
-  )
-}
-
-interface CategoryOptionProps {
-  cat: Category
-  isSelected: boolean
-  isChild: boolean
-  onSelect: (id: string) => void
-}
-
-function CategoryOption({
-  cat,
-  isSelected,
-  isChild,
-  onSelect,
-}: CategoryOptionProps) {
-  return (
-    <button
-      type="button"
-      role="option"
-      aria-selected={isSelected}
-      onClick={() => onSelect(cat.id)}
-      className={cn(
-        'relative flex w-full items-center rounded-sm py-1.5 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground',
-        isChild ? 'pl-7' : 'pl-2',
-        isSelected && 'bg-accent text-accent-foreground'
-      )}
-    >
-      {isChild && (
-        <span className="absolute left-2.5 text-xs text-muted-foreground">
-          ↳
-        </span>
-      )}
-      <span className="flex-1 truncate text-left">
-        {cat.icon ? `${cat.icon} ` : ''}
-        {cat.name}
-      </span>
-      {isSelected && <Check className="ml-1 h-4 w-4 shrink-0" />}
-    </button>
   )
 }

@@ -37,6 +37,31 @@ function getBalanceDelta(
 }
 
 class TransactionsService {
+  /**
+   * Resolve a user-selected category ID to the correct categoryId/subCategoryId
+   * pair. The category picker can return either a Category.id or a SubCategory.id.
+   * When it's a SubCategory, we map it to (parent categoryId, subCategoryId).
+   */
+  private resolveCategory = async (
+    selectedId: string | undefined
+  ): Promise<{
+    categoryId: string | undefined;
+    subCategoryId: string | undefined;
+  }> => {
+    if (!selectedId) return { categoryId: undefined, subCategoryId: undefined };
+
+    const sub = await prisma.subCategory.findUnique({
+      where: { id: selectedId },
+      select: { id: true, categoryId: true },
+    });
+
+    if (sub) {
+      return { categoryId: sub.categoryId, subCategoryId: sub.id };
+    }
+
+    return { categoryId: selectedId, subCategoryId: undefined };
+  };
+
   list = async (userId: string, filters: ListTransactionsQuery) => {
     await backfillTransferCategory(userId);
 
@@ -57,6 +82,7 @@ class TransactionsService {
       include: {
         account: true,
         category: true,
+        subCategory: true,
         transferAccount: true,
       },
       orderBy: [{ transactionDate: 'desc' }, { createdAt: 'desc' }],
@@ -71,13 +97,22 @@ class TransactionsService {
         ? await ensureSystemCategory(userId, 'TRANSFER')
         : null;
 
+    const resolved =
+      data.type !== 'TRANSFER'
+        ? await this.resolveCategory(data.categoryId)
+        : null;
+
     return prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.create({
         data: {
           userId,
           accountId: data.accountId,
           categoryId:
-            data.type === 'TRANSFER' ? transferCategory?.id : data.categoryId,
+            data.type === 'TRANSFER'
+              ? transferCategory?.id
+              : resolved?.categoryId,
+          subCategoryId:
+            data.type !== 'TRANSFER' ? resolved?.subCategoryId : undefined,
           type: data.type,
           amount: data.amount,
           description: data.description ?? '',
@@ -113,6 +148,7 @@ class TransactionsService {
         include: {
           account: true,
           category: true,
+          subCategory: true,
           transferAccount: true,
         },
       });
@@ -121,13 +157,18 @@ class TransactionsService {
 
   update = async (id: string, userId: string, data: UpdateTransactionBody) => {
     const existingTransaction = await this.ensureOwnedTransaction(id, userId);
+    const nextType = data.type ?? existingTransaction.type;
     const transferCategory =
-      (data.type ?? existingTransaction.type) === 'TRANSFER'
+      nextType === 'TRANSFER'
         ? await ensureSystemCategory(userId, 'TRANSFER')
+        : null;
+    const resolved =
+      nextType !== 'TRANSFER'
+        ? await this.resolveCategory(data.categoryId)
         : null;
 
     const nextAccountId = data.accountId ?? existingTransaction.accountId;
-    const nextType = data.type ?? existingTransaction.type;
+
     const nextTransferAccountId =
       data.transferAccountId === undefined
         ? (existingTransaction.transferAccountId ?? undefined)
@@ -187,7 +228,11 @@ class TransactionsService {
         data: {
           accountId: data.accountId,
           categoryId:
-            nextType === 'TRANSFER' ? transferCategory?.id : data.categoryId,
+            nextType === 'TRANSFER'
+              ? transferCategory?.id
+              : resolved?.categoryId,
+          subCategoryId:
+            nextType !== 'TRANSFER' ? resolved?.subCategoryId : null,
           type: data.type,
           amount: data.amount,
           description: data.description,
@@ -205,6 +250,7 @@ class TransactionsService {
         include: {
           account: true,
           category: true,
+          subCategory: true,
           transferAccount: true,
         },
       });

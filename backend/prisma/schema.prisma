@@ -94,7 +94,6 @@ model Account {
 model Category {
   id                    String                 @id @default(uuid())
   userId                String
-  parentId              String?
   name                  String
   type                  CategoryType
   color                 String?
@@ -102,8 +101,7 @@ model Category {
   isSystem              Boolean                @default(false)
   isArchived            Boolean                @default(false)
   user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent                Category?              @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  subCategories         Category[]             @relation("CategoryHierarchy")
+  subCategories         SubCategory[]
   budgets               Budget[]
   recurringTransactions RecurringTransaction[]
   transactions          Transaction[]
@@ -111,8 +109,22 @@ model Category {
   updatedAt             DateTime               @updatedAt
 
   @@index([userId, type])
-  @@index([userId, parentId])
-  @@index([parentId])
+}
+
+model SubCategory {
+  id                    String                 @id @default(uuid())
+  categoryId            String
+  name                  String
+  icon                  String?
+  isSystem              Boolean                @default(false)
+  isArchived            Boolean                @default(false)
+  category              Category               @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  transactions          Transaction[]
+  recurringTransactions RecurringTransaction[]
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  @@index([categoryId])
 }
 
 model Transaction {
@@ -120,6 +132,7 @@ model Transaction {
   userId            String
   accountId         String
   categoryId        String?
+  subCategoryId     String?
   type              TransactionType
   amount            Decimal         @db.Decimal(14, 2)
   description       String
@@ -130,6 +143,7 @@ model Transaction {
   user              User            @relation("UserTransactions", fields: [userId], references: [id], onDelete: Cascade)
   account           Account         @relation("PrimaryAccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
   category          Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  subCategory       SubCategory?    @relation(fields: [subCategoryId], references: [id], onDelete: SetNull)
   transferAccount   Account?        @relation("TransferDestinationAccount", fields: [transferAccountId], references: [id], onDelete: SetNull)
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
@@ -137,6 +151,7 @@ model Transaction {
   @@index([userId, transactionDate])
   @@index([accountId, transactionDate])
   @@index([categoryId])
+  @@index([subCategoryId])
   @@index([transferAccountId])
 }
 
@@ -162,6 +177,7 @@ model RecurringTransaction {
   userId            String
   accountId         String
   categoryId        String?
+  subCategoryId     String?
   transferAccountId String?
   type              TransactionType
   amount            Decimal                    @db.Decimal(14, 2)
@@ -180,6 +196,7 @@ model RecurringTransaction {
   user              User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
   account           Account                    @relation("RecurringPrimaryAccount", fields: [accountId], references: [id], onDelete: Cascade)
   category          Category?                  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  subCategory       SubCategory?               @relation(fields: [subCategoryId], references: [id], onDelete: SetNull)
   transferAccount   Account?                   @relation("RecurringTransferAccount", fields: [transferAccountId], references: [id], onDelete: SetNull)
   createdAt         DateTime                   @default(now())
   updatedAt         DateTime                   @updatedAt
@@ -187,5 +204,6 @@ model RecurringTransaction {
   @@index([userId, status, nextRunAt])
   @@index([accountId])
   @@index([categoryId])
+  @@index([subCategoryId])
   @@index([transferAccountId])
 }
