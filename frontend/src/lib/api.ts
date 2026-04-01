@@ -45,6 +45,8 @@ export type Category = {
   icon?: string | null
   isSystem: boolean
   isArchived: boolean
+  parentId?: string | null
+  parent?: { id: string; name: string; color?: string | null } | null
 }
 
 export type Budget = {
@@ -433,6 +435,7 @@ export async function createCategory(payload: {
   type: string
   color?: string
   icon?: string
+  parentId?: string | null
   isArchived?: boolean
 }) {
   return request<Category>('/categories', {
@@ -448,6 +451,7 @@ export async function updateCategory(
     type?: string
     color?: string
     icon?: string
+    parentId?: string | null
     isArchived?: boolean
   }
 ) {
@@ -518,7 +522,7 @@ export async function createTransaction(payload: {
   transferAccountId?: string
   type: string
   amount: number
-  description: string
+  description?: string
   notes?: string
   transactionDate: string
   externalReference?: string

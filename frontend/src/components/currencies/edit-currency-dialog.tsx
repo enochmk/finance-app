@@ -76,9 +76,9 @@ export function EditCurrencyDialog({
             onSubmit={form.handleSubmit(handleSubmit)}
             className="space-y-4"
           >
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--secondary)]/40 px-4 py-3 text-sm text-[var(--muted-foreground)]">
+            <div className="rounded-2xl border border-border bg-(--secondary)/40 px-4 py-3 text-sm text-muted-foreground">
               Shortcode:{' '}
-              <span className="font-mono font-semibold text-[var(--foreground)]">
+              <span className="font-mono font-semibold text-foreground">
                 {currency.shortcode}
               </span>
             </div>

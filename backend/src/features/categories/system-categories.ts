@@ -5,7 +5,7 @@ type SystemCategoryKey = 'TRANSFER' | 'UNKNOWN_EXPENSE' | 'UNKNOWN_INCOME';
 const SYSTEM_CATEGORY_DEFINITIONS = {
   TRANSFER: {
     name: 'Transfer',
-    type: 'EXPENSE',
+    type: 'TRANSFER',
     color: '#0f766e',
     icon: '↔️',
   },
@@ -29,26 +29,40 @@ export async function ensureSystemCategory(
 ) {
   const definition = SYSTEM_CATEGORY_DEFINITIONS[key];
 
-  return prisma.category.upsert({
-    where: {
-      userId_type_name: {
-        userId,
+  // For TRANSFER, match by name only — handles migration from old EXPENSE type
+  const existing = await prisma.category.findFirst({
+    where:
+      key === 'TRANSFER'
+        ? { userId, name: definition.name, isSystem: true, parentId: null }
+        : {
+            userId,
+            name: definition.name,
+            type: definition.type,
+            parentId: null,
+          },
+  });
+
+  if (existing) {
+    return prisma.category.update({
+      where: { id: existing.id },
+      data: {
         type: definition.type,
-        name: definition.name,
+        color: definition.color,
+        icon: definition.icon,
+        isSystem: true,
+        isArchived: false,
       },
-    },
-    update: {
-      color: definition.color,
-      icon: definition.icon,
-      isSystem: true,
-      isArchived: false,
-    },
-    create: {
+    });
+  }
+
+  return prisma.category.create({
+    data: {
       userId,
       name: definition.name,
       type: definition.type,
       color: definition.color,
       icon: definition.icon,
+      parentId: null,
       isSystem: true,
       isArchived: false,
     },

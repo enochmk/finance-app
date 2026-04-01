@@ -290,22 +290,23 @@ export async function bootstrapDevData() {
         icon: '📁',
         isArchived: true,
       },
-    ].map((category) =>
-      prisma.category.upsert({
-        where: {
-          userId_type_name: {
-            userId: user.id,
-            type: category.type,
-            name: category.name,
+    ].map(async (category) => {
+      const existing = await prisma.category.findFirst({
+        where: { userId: user.id, name: category.name, type: category.type },
+      });
+      if (existing) {
+        return prisma.category.update({
+          where: { id: existing.id },
+          data: {
+            color: category.color,
+            icon: category.icon,
+            isSystem: category.name !== 'Archived Legacy',
+            isArchived: category.isArchived ?? false,
           },
-        },
-        update: {
-          color: category.color,
-          icon: category.icon,
-          isSystem: category.name !== 'Archived Legacy',
-          isArchived: category.isArchived ?? false,
-        },
-        create: {
+        });
+      }
+      return prisma.category.create({
+        data: {
           userId: user.id,
           name: category.name,
           type: category.type,
@@ -314,8 +315,8 @@ export async function bootstrapDevData() {
           isSystem: category.name !== 'Archived Legacy',
           isArchived: category.isArchived ?? false,
         },
-      })
-    )
+      });
+    })
   );
 
   const categoryMap = new Map(

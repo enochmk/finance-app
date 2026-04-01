@@ -14,10 +14,13 @@ import {
 } from '#/components/ui/select'
 import type { Account, Category, Transaction } from '#/lib/api'
 import {
+  categoryTypeForTransaction,
   formatAmountInput,
   parseAmountInput,
   TRANSACTION_TYPE_OPTIONS,
 } from '#/lib/finance'
+
+import { CategoryPicker } from './category-picker'
 
 export interface EditTransactionValues {
   accountId: string
@@ -40,6 +43,16 @@ interface EditTransactionDialogProps {
   categories: Category[]
 }
 
+function buildHierarchy(
+  categories: Category[],
+  forType: string,
+  currentId?: string
+) {
+  return categories.filter(
+    (c) => c.type === forType && (!c.isArchived || c.id === currentId)
+  )
+}
+
 export function EditTransactionDialog({
   transaction,
   values,
@@ -50,6 +63,11 @@ export function EditTransactionDialog({
   transferAccountOptions,
   categories,
 }: EditTransactionDialogProps) {
+  const categoryType = categoryTypeForTransaction(values.type)
+  const filteredCategories = categoryType
+    ? buildHierarchy(categories, categoryType, values.categoryId)
+    : []
+
   return (
     <CrudDialogShell
       open={Boolean(transaction)}
@@ -95,28 +113,13 @@ export function EditTransactionDialog({
               </SelectContent>
             </Select>
           ) : (
-            <Select
-              value={values.categoryId}
+            <CategoryPicker
+              value={values.categoryId || ''}
               onValueChange={(value) =>
                 onChange({ ...values, categoryId: value })
               }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories
-                  .filter(
-                    (category) =>
-                      !category.isArchived || category.id === values.categoryId
-                  )
-                  .map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+              categories={filteredCategories}
+            />
           )}
         </div>
 

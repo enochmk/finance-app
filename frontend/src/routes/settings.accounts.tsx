@@ -479,7 +479,7 @@ function AccountsPage() {
                   Search accounts
                 </label>
                 <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="account-search"
                     placeholder="Name, type, currency, institution"
@@ -632,7 +632,7 @@ function AccountsPage() {
                   }}
                   onClick={() => setViewingAccount(account)}
                 >
-                  <TableCell className="font-mono text-sm text-[var(--muted-foreground)]">
+                  <TableCell className="font-mono text-sm text-muted-foreground">
                     {(currentPage - 1) * 8 + index + 1}
                   </TableCell>
                   <TableCell>
@@ -640,16 +640,16 @@ function AccountsPage() {
                       {(() => {
                         const IconComponent = getAccountIcon(account.icon)
                         return (
-                          <IconComponent className="h-4 w-4 flex-shrink-0 text-[var(--muted-foreground)]" />
+                          <IconComponent className="h-4 w-4 shrink-0 text-muted-foreground" />
                         )
                       })()}
                       <div>
-                        <p className="font-medium text-[var(--foreground)]">
+                        <p className="font-medium text-foreground">
                           {account.name}
                         </p>
                         {(account.institutionName ||
                           account.accountNumberMasked) && (
-                          <p className="text-xs text-[var(--muted-foreground)]">
+                          <p className="text-xs text-muted-foreground">
                             {account.institutionName ||
                               account.accountNumberMasked}
                           </p>
@@ -762,7 +762,7 @@ function AccountsPage() {
       >
         {editingAccount ? (
           <form onSubmit={submitEditAccount} className="space-y-4">
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--secondary)]/40 px-4 py-3 text-sm text-[var(--muted-foreground)]">
+            <div className="rounded-2xl border border-border bg-(--secondary)/40 px-4 py-3 text-sm text-muted-foreground">
               Changing the opening balance shifts the derived balance without
               touching history. If you also set the actual current balance, the
               app records the unexplained difference as an automatic transaction
@@ -807,19 +807,19 @@ function AccountsPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="text-sm font-medium">Name</label>
-                <p className="text-sm text-[var(--muted-foreground)]">
+                <p className="text-sm text-muted-foreground">
                   {viewingAccount.name}
                 </p>
               </div>
               <div>
                 <label className="text-sm font-medium">Type</label>
-                <p className="text-sm text-[var(--muted-foreground)]">
+                <p className="text-sm text-muted-foreground">
                   {viewingAccount.type.replaceAll('_', ' ')}
                 </p>
               </div>
               <div>
                 <label className="text-sm font-medium">Currency</label>
-                <p className="text-sm text-[var(--muted-foreground)]">
+                <p className="text-sm text-muted-foreground">
                   {viewingAccount.currency}
                 </p>
               </div>
@@ -830,7 +830,7 @@ function AccountsPage() {
                     const IconComponent = getAccountIcon(viewingAccount.icon)
                     return <IconComponent className="h-4 w-4" />
                   })()}
-                  <p className="text-sm text-[var(--muted-foreground)]">
+                  <p className="text-sm text-muted-foreground">
                     {ACCOUNT_ICON_OPTIONS.find(
                       (option) => option.value === viewingAccount.icon
                     )?.label || 'Building'}
@@ -839,7 +839,7 @@ function AccountsPage() {
               </div>
               <div>
                 <label className="text-sm font-medium">Opening Balance</label>
-                <p className="text-sm text-[var(--muted-foreground)]">
+                <p className="text-sm text-muted-foreground">
                   {formatCurrency(
                     viewingAccount.openingBalance,
                     viewingAccount.currency
@@ -848,7 +848,7 @@ function AccountsPage() {
               </div>
               <div>
                 <label className="text-sm font-medium">Current Balance</label>
-                <p className="text-sm text-[var(--muted-foreground)]">
+                <p className="text-sm text-muted-foreground">
                   {formatCurrency(
                     viewingAccount.currentBalance,
                     viewingAccount.currency
@@ -857,7 +857,7 @@ function AccountsPage() {
               </div>
               <div>
                 <label className="text-sm font-medium">Status</label>
-                <p className="text-sm text-[var(--muted-foreground)]">
+                <p className="text-sm text-muted-foreground">
                   {viewingAccount.isArchived ? 'Disabled' : 'Enabled'}
                 </p>
               </div>
@@ -865,12 +865,12 @@ function AccountsPage() {
                 <label className="text-sm font-medium">Color</label>
                 <div className="flex items-center gap-2">
                   <span
-                    className="inline-flex h-4 w-4 rounded-full border border-[var(--border)]"
+                    className="inline-flex h-4 w-4 rounded-full border border-border"
                     style={{
                       backgroundColor: viewingAccount.color ?? '#176b6c',
                     }}
                   />
-                  <p className="text-sm text-[var(--muted-foreground)]">
+                  <p className="text-sm text-muted-foreground">
                     {viewingAccount.color ?? '#176b6c'}
                   </p>
                 </div>
@@ -884,12 +884,12 @@ function AccountsPage() {
                 </label>
                 <div className="space-y-1">
                   {viewingAccount.institutionName && (
-                    <p className="text-sm text-[var(--muted-foreground)]">
+                    <p className="text-sm text-muted-foreground">
                       Institution: {viewingAccount.institutionName}
                     </p>
                   )}
                   {viewingAccount.accountNumberMasked && (
-                    <p className="text-sm text-[var(--muted-foreground)]">
+                    <p className="text-sm text-muted-foreground">
                       Account: {viewingAccount.accountNumberMasked}
                     </p>
                   )}
@@ -1310,7 +1310,7 @@ function AccountEditFields({
               }
             }}
           />
-          <p className="text-xs text-[var(--muted-foreground)]">
+          <p className="text-xs text-muted-foreground">
             If this differs from the tracked balance, an Unknown-category
             transaction is created automatically.
           </p>
@@ -1370,11 +1370,11 @@ function SortableHead({
       <button
         type="button"
         onClick={onClick}
-        className="inline-flex items-center gap-1 text-left font-medium text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
+        className="inline-flex items-center gap-1 text-left font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
         {label}
         <ArrowUpDown
-          className={isActive ? 'h-4 w-4 text-[var(--foreground)]' : 'h-4 w-4'}
+          className={isActive ? 'h-4 w-4 text-foreground' : 'h-4 w-4'}
         />
         {isActive ? <span className="sr-only">sorted {direction}</span> : null}
       </button>

@@ -1,7 +1,7 @@
 import createHttpError from 'http-errors';
 
 import prisma from '../../libs/prisma';
-import { DEFAULT_CATEGORIES } from '../workspace/default-workspace';
+import { DEFAULT_CATEGORIES_TREE } from '../workspace/default-workspace';
 import { ensureRequiredSystemCategories } from './system-categories';
 import type {
   CreateCategoryBody,
@@ -19,7 +19,12 @@ class CategoriesService {
         type: filters.type,
         isArchived: filters.isArchived,
       },
-      orderBy: [{ type: 'asc' }, { name: 'asc' }],
+      include: {
+        parent: {
+          select: { id: true, name: true, color: true },
+        },
+      },
+      orderBy: [{ type: 'asc' }, { parentId: 'asc' }, { name: 'asc' }],
     });
   };
 
@@ -30,6 +35,10 @@ class CategoriesService {
   };
 
   create = async (userId: string, data: CreateCategoryBody) => {
+    if (data.parentId) {
+      await this.ensureOwnedCategory(data.parentId, userId);
+    }
+
     return prisma.category.create({
       data: {
         userId,
@@ -37,14 +46,24 @@ class CategoriesService {
         type: data.type,
         color: data.color,
         icon: data.icon,
+        parentId: data.parentId ?? null,
         isSystem: data.isSystem ?? false,
         isArchived: data.isArchived ?? false,
+      },
+      include: {
+        parent: {
+          select: { id: true, name: true, color: true },
+        },
       },
     });
   };
 
   update = async (id: string, userId: string, data: UpdateCategoryBody) => {
     await this.ensureOwnedCategory(id, userId);
+
+    if (data.parentId) {
+      await this.ensureOwnedCategory(data.parentId, userId);
+    }
 
     return prisma.category.update({
       where: { id },
@@ -53,8 +72,14 @@ class CategoriesService {
         type: data.type,
         color: data.color,
         icon: data.icon,
+        parentId: data.parentId,
         isSystem: data.isSystem,
         isArchived: data.isArchived,
+      },
+      include: {
+        parent: {
+          select: { id: true, name: true, color: true },
+        },
       },
     });
   };
@@ -95,35 +120,70 @@ class CategoriesService {
     return category;
   };
 
+  private findOrCreateCategory = async (data: {
+    userId: string;
+    name: string;
+    type: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+    color: string;
+    parentId: string | null;
+  }) => {
+    const existing = await prisma.category.findFirst({
+      where: {
+        userId: data.userId,
+        name: data.name,
+        type: data.type,
+        parentId: data.parentId,
+      },
+      select: { id: true },
+    });
+
+    if (existing) {
+      await prisma.category.update({
+        where: { id: existing.id },
+        data: { color: data.color, isSystem: true, isArchived: false },
+      });
+      return existing.id;
+    }
+
+    const created = await prisma.category.create({
+      data: {
+        userId: data.userId,
+        name: data.name,
+        type: data.type,
+        color: data.color,
+        parentId: data.parentId,
+        isSystem: true,
+        isArchived: false,
+      },
+      select: { id: true },
+    });
+    return created.id;
+  };
+
   private ensureStarterCategories = async (userId: string) => {
     await ensureRequiredSystemCategories(userId);
 
-    await Promise.all(
-      DEFAULT_CATEGORIES.map((category) =>
-        prisma.category.upsert({
-          where: {
-            userId_type_name: {
-              userId,
-              type: category.type,
-              name: category.name,
-            },
-          },
-          update: {
-            color: category.color,
-            isSystem: true,
-            isArchived: false,
-          },
-          create: {
+    for (const parentDef of DEFAULT_CATEGORIES_TREE) {
+      const parentId = await this.findOrCreateCategory({
+        userId,
+        name: parentDef.name,
+        type: parentDef.type,
+        color: parentDef.color,
+        parentId: null,
+      });
+
+      await Promise.all(
+        parentDef.children.map((child) =>
+          this.findOrCreateCategory({
             userId,
-            name: category.name,
-            type: category.type,
-            color: category.color,
-            isSystem: true,
-            isArchived: false,
-          },
-        })
-      )
-    );
+            name: child.name,
+            type: parentDef.type,
+            color: child.color,
+            parentId,
+          })
+        )
+      );
+    }
   };
 }
 

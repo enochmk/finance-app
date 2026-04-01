@@ -1,12 +1,13 @@
 import { z } from 'zod';
 
-const categoryTypeSchema = z.enum(['INCOME', 'EXPENSE']);
+const categoryTypeSchema = z.enum(['INCOME', 'EXPENSE', 'TRANSFER']);
 
 const categoryBodySchema = z.object({
   name: z.string().trim().min(1).max(80),
   type: categoryTypeSchema,
   color: z.string().trim().max(32).optional(),
   icon: z.string().trim().max(64).optional(),
+  parentId: z.string().uuid().nullable().optional(),
   isSystem: z.boolean().optional(),
   isArchived: z.boolean().optional(),
 });

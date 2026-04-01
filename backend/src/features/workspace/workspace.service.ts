@@ -1,5 +1,5 @@
 import prisma from '../../libs/prisma';
-import { DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES } from './default-workspace';
+import { DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES_TREE } from './default-workspace';
 
 class WorkspaceService {
   resetAll = async (userId: string) => {
@@ -16,32 +16,18 @@ class WorkspaceService {
         where: { userId },
       });
 
-      await Promise.all(
-        DEFAULT_CATEGORIES.map((category) =>
-          tx.category.upsert({
-            where: {
-              userId_type_name: {
-                userId,
-                type: category.type,
-                name: category.name,
-              },
-            },
-            update: {
-              color: category.color,
-              isSystem: true,
-              isArchived: false,
-            },
-            create: {
-              userId,
-              name: category.name,
-              type: category.type,
-              color: category.color,
-              isSystem: true,
-              isArchived: false,
-            },
-          })
-        )
-      );
+      await tx.category.createMany({
+        data: DEFAULT_CATEGORIES_TREE.map((category) => ({
+          userId,
+          name: category.name,
+          type: category.type,
+          color: category.color,
+          isSystem: true,
+          isArchived: false,
+          parentId: null,
+        })),
+        skipDuplicates: true,
+      });
 
       await tx.account.createMany({
         data: DEFAULT_ACCOUNTS.map((account) => ({

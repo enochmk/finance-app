@@ -45,9 +45,19 @@ export const ACCOUNT_TYPE_OPTIONS = [
 ] as const
 
 export const CATEGORY_TYPE_OPTIONS = [
-  { value: 'INCOME', label: 'Income' },
-  { value: 'EXPENSE', label: 'Expense' },
+  { value: 'INCOME', label: 'Credit' },
+  { value: 'EXPENSE', label: 'Debit' },
+  { value: 'TRANSFER', label: 'Transfer' },
 ] as const
+
+/** Maps a transaction type to the matching category type value. */
+export function categoryTypeForTransaction(
+  transactionType: string
+): string | null {
+  if (transactionType === 'INCOME') return 'INCOME'
+  if (transactionType === 'EXPENSE') return 'EXPENSE'
+  return null // TRANSFER uses a system category; no user selection needed
+}
 
 export const TRANSACTION_TYPE_OPTIONS = [
   { value: 'INCOME', label: 'Credit' },

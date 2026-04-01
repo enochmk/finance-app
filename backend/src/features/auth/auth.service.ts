@@ -5,7 +5,7 @@ import jwt, { type Secret, type SignOptions } from 'jsonwebtoken';
 import prisma from '../../libs/prisma';
 import env from '../../env';
 import {
-  DEFAULT_CATEGORIES,
+  DEFAULT_CATEGORIES_TREE,
   DEFAULT_ONBOARDING_ACCOUNTS,
 } from '../workspace/default-workspace';
 import type { LoginBody, RegisterBody } from './auth.schema';
@@ -33,32 +33,18 @@ class AuthService {
         },
       });
 
-      await Promise.all(
-        DEFAULT_CATEGORIES.map((category) =>
-          tx.category.upsert({
-            where: {
-              userId_type_name: {
-                userId: createdUser.id,
-                type: category.type,
-                name: category.name,
-              },
-            },
-            update: {
-              color: category.color,
-              isSystem: true,
-              isArchived: false,
-            },
-            create: {
-              userId: createdUser.id,
-              name: category.name,
-              type: category.type,
-              color: category.color,
-              isSystem: true,
-              isArchived: false,
-            },
-          })
-        )
-      );
+      await tx.category.createMany({
+        data: DEFAULT_CATEGORIES_TREE.map((category) => ({
+          userId: createdUser.id,
+          name: category.name,
+          type: category.type,
+          color: category.color,
+          isSystem: true,
+          isArchived: false,
+          parentId: null,
+        })),
+        skipDuplicates: true,
+      });
 
       await tx.account.createMany({
         data: DEFAULT_ONBOARDING_ACCOUNTS.map((account) => ({

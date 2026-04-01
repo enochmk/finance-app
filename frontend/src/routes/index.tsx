@@ -73,7 +73,7 @@ function App() {
                     variant="outline"
                     className="border-white/20 bg-white/6 text-white hover:bg-white/12"
                   >
-                    <Link to="/about">Explore the project</Link>
+                    <Link to="/dashboard">Explore the project</Link>
                   </Button>
                 </>
               )}

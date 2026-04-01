@@ -16,7 +16,7 @@ const transactionBodyFields = {
   categoryId: z.string().uuid('categoryId must be a valid UUID').optional(),
   type: transactionTypeSchema,
   amount: decimalAmountSchema,
-  description: z.string().trim().min(1).max(255),
+  description: z.string().trim().max(255).optional(),
   notes: z.string().trim().max(2000).optional(),
   transactionDate: isoDateSchema,
   transferAccountId: z

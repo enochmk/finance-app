@@ -71,7 +71,7 @@ export function CurrencyTable({
             Search currencies
           </label>
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="currency-search"
               placeholder="Name, shortcode, or symbol"
@@ -126,12 +126,12 @@ export function CurrencyTable({
         <TableBody>
           {pageItems.map((currency, index) => (
             <TableRow key={currency.id}>
-              <TableCell className="font-mono text-sm text-[var(--muted-foreground)]">
+              <TableCell className="font-mono text-sm text-muted-foreground">
                 {(currentPage - 1) * 10 + index + 1}
               </TableCell>
               <TableCell className="font-medium">{currency.name}</TableCell>
               <TableCell>
-                <span className="rounded bg-[var(--secondary)] px-2 py-0.5 font-mono text-sm">
+                <span className="rounded bg-secondary px-2 py-0.5 font-mono text-sm">
                   {currency.shortcode}
                 </span>
               </TableCell>
@@ -186,7 +186,7 @@ function SortableHead({
       <button
         type="button"
         onClick={() => onSort(field)}
-        className="inline-flex items-center gap-1 text-left font-medium text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
+        className="inline-flex items-center gap-1 text-left font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
         {label}
         <ArrowUpDown

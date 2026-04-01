@@ -83,7 +83,7 @@ function FormLabel({
 
   return (
     <Label
-      className={cn(error && 'text-[var(--destructive)]', className)}
+      className={cn(error && 'text-destructive', className)}
       htmlFor={formItemId}
       {...props}
     />
@@ -112,7 +112,7 @@ function FormDescription({ className, ...props }: React.ComponentProps<'p'>) {
   return (
     <p
       id={formDescriptionId}
-      className={cn('text-sm text-[var(--muted-foreground)]', className)}
+      className={cn('text-sm text-muted-foreground', className)}
       {...props}
     />
   )
@@ -129,7 +129,7 @@ function FormMessage({ className, ...props }: React.ComponentProps<'p'>) {
   return (
     <p
       id={formMessageId}
-      className={cn('text-sm font-medium text-[var(--destructive)]', className)}
+      className={cn('text-sm font-medium text-destructive', className)}
       {...props}
     >
       {body}

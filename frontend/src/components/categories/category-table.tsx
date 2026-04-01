@@ -122,7 +122,7 @@ export function CategoryTable({
               Search categories
             </label>
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="category-search"
                 placeholder="Name or type"
@@ -246,6 +246,13 @@ export function CategoryTable({
               direction={sortDirection}
             />
             <SortableHead
+              label="Type"
+              onClick={() => onSort('type')}
+              isActive={sortField === 'type'}
+              direction={sortDirection}
+            />
+            <TableHead>Parent</TableHead>
+            <SortableHead
               label="Status"
               onClick={() => onSort('status')}
               isActive={sortField === 'status'}
@@ -265,7 +272,7 @@ export function CategoryTable({
               }}
               onClick={() => onView(category)}
             >
-              <TableCell className="font-mono text-sm text-[var(--muted-foreground)]">
+              <TableCell className="font-mono text-sm text-muted-foreground">
                 {(currentPage - 1) * pageSize + index + 1}
               </TableCell>
               <TableCell>
@@ -277,6 +284,26 @@ export function CategoryTable({
                   )}
                   <span className="font-medium">{category.name}</span>
                 </div>
+              </TableCell>
+              <TableCell>
+                <Badge variant="outline" className="font-medium">
+                  {category.type === 'INCOME'
+                    ? 'Credit'
+                    : category.type === 'EXPENSE'
+                      ? 'Debit'
+                      : 'Transfer'}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                {category.parent ? (
+                  <span className="text-sm text-muted-foreground">
+                    {category.parent.name}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground opacity-40">
+                    —
+                  </span>
+                )}
               </TableCell>
               <TableCell>
                 <Badge
@@ -341,11 +368,11 @@ function SortableHead({
       <button
         type="button"
         onClick={onClick}
-        className="inline-flex items-center gap-1 text-left font-medium text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
+        className="inline-flex items-center gap-1 text-left font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
         {label}
         <ArrowUpDown
-          className={isActive ? 'h-4 w-4 text-[var(--foreground)]' : 'h-4 w-4'}
+          className={isActive ? 'h-4 w-4 text-foreground' : 'h-4 w-4'}
         />
         {isActive ? <span className="sr-only">sorted {direction}</span> : null}
       </button>

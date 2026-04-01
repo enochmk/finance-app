@@ -19,6 +19,7 @@ enum AccountType {
 enum CategoryType {
   INCOME
   EXPENSE
+  TRANSFER
 }
 
 enum TransactionType {
@@ -93,6 +94,7 @@ model Account {
 model Category {
   id                    String                 @id @default(uuid())
   userId                String
+  parentId              String?
   name                  String
   type                  CategoryType
   color                 String?
@@ -100,14 +102,17 @@ model Category {
   isSystem              Boolean                @default(false)
   isArchived            Boolean                @default(false)
   user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent                Category?              @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  subCategories         Category[]             @relation("CategoryHierarchy")
   budgets               Budget[]
   recurringTransactions RecurringTransaction[]
   transactions          Transaction[]
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
 
-  @@unique([userId, type, name])
   @@index([userId, type])
+  @@index([userId, parentId])
+  @@index([parentId])
 }
 
 model Transaction {

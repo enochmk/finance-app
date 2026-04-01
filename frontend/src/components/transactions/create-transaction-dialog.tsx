@@ -37,12 +37,14 @@ import {
 } from '#/components/ui/select'
 import type { Account, Category } from '#/lib/api'
 import {
+  categoryTypeForTransaction,
   formatAmountInput,
   formatCurrency,
   parseAmountInput,
   TRANSACTION_TYPE_OPTIONS,
 } from '#/lib/finance'
 
+import { CategoryPicker } from './category-picker'
 import { getDarkColor, getAccountIcon } from './helpers'
 
 export const transactionSchema = z.object({
@@ -54,7 +56,7 @@ export const transactionSchema = z.object({
     const n = Number(v)
     return !isNaN(n) && n > 0
   }, 'Transaction amount must be greater than zero'),
-  description: z.string().trim().min(1, 'Description is required').max(255),
+  description: z.string().trim().max(255).optional(),
   transactionDate: z.string().min(1, 'Transaction date is required'),
 })
 
@@ -77,6 +79,10 @@ interface CreateTransactionDialogProps {
   watchedType: string
 }
 
+function buildHierarchy(categories: Category[], forType: string) {
+  return categories.filter((c) => c.type === forType && !c.isArchived)
+}
+
 export function CreateTransactionDialog({
   open,
   onOpenChange,
@@ -88,6 +94,11 @@ export function CreateTransactionDialog({
   balanceProjection,
   watchedType,
 }: CreateTransactionDialogProps) {
+  const categoryType = categoryTypeForTransaction(watchedType)
+  const filteredCategories = categoryType
+    ? buildHierarchy(categories, categoryType)
+    : []
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="p-0 overflow-hidden max-w-lg">
@@ -128,7 +139,10 @@ export function CreateTransactionDialog({
                             <button
                               key={option.value}
                               type="button"
-                              onClick={() => field.onChange(option.value)}
+                              onClick={() => {
+                                field.onChange(option.value)
+                                form.setValue('categoryId', '')
+                              }}
                               className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
                                 isSelected
                                   ? selectedColor
@@ -339,26 +353,11 @@ export function CreateTransactionDialog({
                           Category
                         </FormLabel>
                         <FormControl>
-                          <Select
+                          <CategoryPicker
                             value={field.value || ''}
                             onValueChange={field.onChange}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {categories
-                                .filter((category) => !category.isArchived)
-                                .map((category) => (
-                                  <SelectItem
-                                    key={category.id}
-                                    value={category.id}
-                                  >
-                                    {category.name}
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
+                            categories={filteredCategories}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -392,6 +391,9 @@ export function CreateTransactionDialog({
                     <FormLabel>
                       <FileText className="inline mr-2 h-4 w-4" />
                       Description
+                      <span className="ml-1 text-xs font-normal text-muted-foreground">
+                        (optional)
+                      </span>
                     </FormLabel>
                     <FormControl>
                       <Input {...field} />

@@ -1,5 +1,5 @@
 import { createFileRoute, useSearch } from '@tanstack/react-router'
-import { Plus, Tag, Trash2 } from 'lucide-react'
+import { Plus, Tag } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -182,10 +182,12 @@ function CategoriesPage() {
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}
         onSuccess={refreshAll}
+        categories={categories}
       />
 
       <EditCategoryDialog
         category={editingCategory}
+        categories={categories}
         onClose={() => setEditingCategory(null)}
         onSuccess={refreshAll}
       />

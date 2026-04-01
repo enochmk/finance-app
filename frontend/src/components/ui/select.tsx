@@ -15,7 +15,7 @@ function SelectTrigger({
   return (
     <SelectPrimitive.Trigger
       className={cn(
-        'flex h-10 w-full items-center justify-between rounded-md border border-[var(--input)] bg-[var(--card)] px-3 py-2 text-sm shadow-sm outline-none focus:ring-2 focus:ring-[var(--ring)]',
+        'flex h-10 w-full items-center justify-between rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm outline-none focus:ring-2 focus:ring-ring',
         className
       )}
       {...props}
@@ -37,7 +37,7 @@ function SelectContent({
     <SelectPrimitive.Portal>
       <SelectPrimitive.Content
         className={cn(
-          'z-50 min-w-[8rem] overflow-hidden rounded-md border border-[var(--border)] bg-[var(--popover)] text-[var(--popover-foreground)] shadow-md',
+          'z-50 min-w-32 overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-md',
           className
         )}
         {...props}
@@ -50,6 +50,20 @@ function SelectContent({
   )
 }
 
+const SelectGroup = SelectPrimitive.Group
+
+function SelectLabel({
+  className,
+  ...props
+}: React.ComponentProps<typeof SelectPrimitive.Label>) {
+  return (
+    <SelectPrimitive.Label
+      className={cn('py-1.5 pr-2 pl-8 text-sm font-semibold', className)}
+      {...props}
+    />
+  )
+}
+
 function SelectItem({
   className,
   children,
@@ -58,7 +72,7 @@ function SelectItem({
   return (
     <SelectPrimitive.Item
       className={cn(
-        'relative flex w-full cursor-default select-none items-center rounded-sm py-2 pr-8 pl-2 text-sm outline-none focus:bg-[var(--accent)] focus:text-[var(--accent-foreground)]',
+        'relative flex w-full cursor-default select-none items-center rounded-sm py-2 pr-8 pl-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground',
         className
       )}
       {...props}
@@ -73,4 +87,12 @@ function SelectItem({
   )
 }
 
-export { Select, SelectValue, SelectTrigger, SelectContent, SelectItem }
+export {
+  Select,
+  SelectValue,
+  SelectTrigger,
+  SelectContent,
+  SelectGroup,
+  SelectLabel,
+  SelectItem,
+}

@@ -80,7 +80,7 @@ class TransactionsService {
             data.type === 'TRANSFER' ? transferCategory?.id : data.categoryId,
           type: data.type,
           amount: data.amount,
-          description: data.description,
+          description: data.description ?? '',
           notes: data.notes,
           transactionDate: new Date(data.transactionDate),
           transferAccountId: data.transferAccountId,
@@ -259,7 +259,7 @@ class TransactionsService {
     );
 
     if (data.categoryId) {
-      await this.ensureOwnedCategory(data.categoryId, data.userId);
+      await this.ensureOwnedCategory(data.categoryId, data.userId, data.type);
     }
 
     if (data.type === 'TRANSFER') {
@@ -364,14 +364,27 @@ class TransactionsService {
     }
   };
 
-  private ensureOwnedCategory = async (id: string, userId: string) => {
+  private ensureOwnedCategory = async (
+    id: string,
+    userId: string,
+    transactionType?: 'INCOME' | 'EXPENSE' | 'TRANSFER'
+  ) => {
     const category = await prisma.category.findFirst({
       where: { id, userId },
-      select: { id: true },
+      select: { id: true, type: true },
     });
 
     if (!category) {
       throw createHttpError(404, 'Category not found');
+    }
+
+    if (transactionType && transactionType !== 'TRANSFER') {
+      if (category.type !== transactionType) {
+        throw createHttpError(
+          422,
+          `Category type '${category.type}' does not match transaction type '${transactionType}'`
+        );
+      }
     }
   };
 }
