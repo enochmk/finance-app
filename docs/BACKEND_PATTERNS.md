@@ -4,7 +4,7 @@ This document describes the preferred backend feature structure and coding style
 
 ## Feature Layout
 
-Create new backend work under `src/features/<feature>/` when it belongs to a specific domain.
+Create new backend work under `src/modules/<module>/` when it belongs to a specific domain.
 
 - `<feature>.schema.ts`: Zod request schemas and exported inferred request types
 - `<feature>.middleware.ts`: request-scoped checks that must happen before controller or service business logic

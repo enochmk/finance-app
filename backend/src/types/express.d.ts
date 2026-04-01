@@ -1,9 +1,9 @@
-import type { User } from '../../generated/prisma/client';
+import type { Users } from '../../generated/prisma/client';
 
 declare global {
   namespace Express {
     interface Request {
-      user?: Pick<User, 'id' | 'email' | 'name' | 'currency'>;
+      user?: Pick<Users, 'id' | 'email' | 'name' | 'currency'>;
     }
   }
 }

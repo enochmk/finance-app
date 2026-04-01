@@ -1,5 +1,6 @@
 import createHttpError from 'http-errors';
 
+import type { EntryType } from '../../libs/entry-type';
 import prisma from '../../libs/prisma';
 import { ensureSystemCategory } from '../categories/system-categories';
 import type {
@@ -9,7 +10,7 @@ import type {
 } from './accounts.schema';
 
 function getBalanceDelta(
-  type: 'INCOME' | 'EXPENSE' | 'TRANSFER',
+  type: EntryType,
   amount: number,
   direction: 'primary' | 'transfer'
 ) {
@@ -26,10 +27,9 @@ function getBalanceDelta(
 
 class AccountsService {
   list = async (userId: string, filters: ListAccountsQuery) => {
-    return prisma.account.findMany({
+    return prisma.accounts.findMany({
       where: {
         userId,
-        type: filters.type,
         isArchived: filters.isArchived,
       },
       orderBy: [
@@ -41,7 +41,7 @@ class AccountsService {
   };
 
   reorder = async (userId: string, orderedIds: string[]) => {
-    const accounts = await prisma.account.findMany({
+    const accounts = await prisma.accounts.findMany({
       where: { userId },
       select: { id: true },
     });
@@ -56,14 +56,14 @@ class AccountsService {
 
     await prisma.$transaction(
       orderedIds.map((id, index) =>
-        prisma.account.update({
+        prisma.accounts.update({
           where: { id },
           data: { position: index },
         })
       )
     );
 
-    return prisma.account.findMany({
+    return prisma.accounts.findMany({
       where: { userId },
       orderBy: [
         { isArchived: 'asc' },
@@ -74,11 +74,10 @@ class AccountsService {
   };
 
   create = async (userId: string, data: CreateAccountBody) => {
-    return prisma.account.create({
+    return prisma.accounts.create({
       data: {
         userId,
         name: data.name,
-        type: data.type,
         currency: data.currency ?? 'GHS',
         color: data.color ?? '#176b6c',
         icon: data.icon,
@@ -114,11 +113,10 @@ class AccountsService {
           );
 
     return prisma.$transaction(async (tx) => {
-      const account = await tx.account.update({
+      const account = await tx.accounts.update({
         where: { id },
         data: {
           name: data.name,
-          type: data.type,
           currency: data.currency,
           color: data.color,
           icon: data.icon,
@@ -135,7 +133,7 @@ class AccountsService {
       });
 
       if (adjustmentCategory && balanceAdjustmentDelta !== 0) {
-        await tx.transaction.create({
+        await tx.transactions.create({
           data: {
             userId,
             accountId: id,
@@ -158,18 +156,18 @@ class AccountsService {
     await this.ensureOwnedAccount(id, userId);
 
     return prisma.$transaction(async (tx) => {
-      await tx.transaction.deleteMany({
+      await tx.transactions.deleteMany({
         where: {
           userId,
           OR: [{ accountId: id }, { transferAccountId: id }],
         },
       });
 
-      const deletedAccount = await tx.account.delete({
+      const deletedAccount = await tx.accounts.delete({
         where: { id },
       });
 
-      const remainingAccounts = await tx.account.findMany({
+      const remainingAccounts = await tx.accounts.findMany({
         where: { userId },
         select: {
           id: true,
@@ -185,7 +183,7 @@ class AccountsService {
           ])
         );
 
-        const remainingTransactions = await tx.transaction.findMany({
+        const remainingTransactions = await tx.transactions.findMany({
           where: { userId },
           select: {
             accountId: true,
@@ -225,7 +223,7 @@ class AccountsService {
         }
 
         for (const account of remainingAccounts) {
-          await tx.account.update({
+          await tx.accounts.update({
             where: { id: account.id },
             data: {
               currentBalance:
@@ -241,7 +239,7 @@ class AccountsService {
   };
 
   private ensureOwnedAccount = async (id: string, userId: string) => {
-    const account = await prisma.account.findFirst({
+    const account = await prisma.accounts.findFirst({
       where: { id, userId },
       select: {
         id: true,

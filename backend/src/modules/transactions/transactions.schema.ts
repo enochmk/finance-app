@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const transactionTypeSchema = z.enum(['INCOME', 'EXPENSE', 'TRANSFER']);
+import { entryTypeSchema } from '../../libs/entry-type';
 
 const decimalAmountSchema = z
   .number()
@@ -14,7 +14,7 @@ const isoDateSchema = z
 const transactionBodyFields = {
   accountId: z.string().uuid('accountId must be a valid UUID'),
   categoryId: z.string().uuid('categoryId must be a valid UUID').optional(),
-  type: transactionTypeSchema,
+  type: entryTypeSchema,
   amount: decimalAmountSchema,
   description: z.string().trim().max(255).optional(),
   notes: z.string().trim().max(2000).optional(),
@@ -53,7 +53,7 @@ const updateTransactionBodySchema = z
   .object({
     accountId: transactionBodyFields.accountId.optional(),
     categoryId: transactionBodyFields.categoryId,
-    type: transactionTypeSchema.optional(),
+    type: entryTypeSchema.optional(),
     amount: decimalAmountSchema.optional(),
     description: transactionBodyFields.description.optional(),
     notes: transactionBodyFields.notes,
@@ -79,7 +79,7 @@ export const listTransactionsSchema = z.object({
   query: z.object({
     accountId: z.string().uuid('accountId must be a valid UUID').optional(),
     categoryId: z.string().uuid('categoryId must be a valid UUID').optional(),
-    type: transactionTypeSchema.optional(),
+    type: entryTypeSchema.optional(),
     from: isoDateSchema.optional(),
     to: isoDateSchema.optional(),
     limit: z.coerce.number().int().min(1).max(100).optional(),

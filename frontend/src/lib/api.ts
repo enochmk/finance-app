@@ -23,7 +23,6 @@ export type AuthResponse = {
 export type Account = {
   id: string
   name: string
-  type: string
   currency: string
   color?: string | null
   icon?: string | null
@@ -351,7 +350,6 @@ export async function getAccounts() {
 
 export async function createAccount(payload: {
   name: string
-  type: string
   currency?: string
   color?: string
   icon?: string
@@ -370,7 +368,6 @@ export async function updateAccount(
   id: string,
   payload: {
     name?: string
-    type?: string
     currency?: string
     color?: string
     icon?: string

@@ -11,7 +11,7 @@ const logger = getLogger('BackupTransactions');
 const TARGET_EMAIL = 'enochmk94@gmail.com';
 
 async function run() {
-  const user = await prisma.user.findUnique({
+  const user = await prisma.users.findUnique({
     where: { email: TARGET_EMAIL },
     select: { id: true, email: true, name: true },
   });
@@ -24,7 +24,7 @@ async function run() {
 
   logger.info(`Found user: ${user.name} (${user.email})`);
 
-  const transactions = await prisma.transaction.findMany({
+  const transactions = await prisma.transactions.findMany({
     where: { userId: user.id },
     orderBy: { transactionDate: 'asc' },
     select: {

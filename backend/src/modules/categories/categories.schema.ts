@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
-const categoryTypeSchema = z.enum(['INCOME', 'EXPENSE', 'TRANSFER']);
+import { entryTypeSchema } from '../../libs/entry-type';
 
 const categoryBodySchema = z.object({
   name: z.string().trim().min(1).max(80),
-  type: categoryTypeSchema,
+  type: entryTypeSchema,
   color: z.string().trim().max(32).optional(),
   icon: z.string().trim().max(64).optional(),
   parentId: z.string().uuid().nullable().optional(),
@@ -14,7 +14,7 @@ const categoryBodySchema = z.object({
 
 export const listCategoriesSchema = z.object({
   query: z.object({
-    type: categoryTypeSchema.optional(),
+    type: entryTypeSchema.optional(),
     isArchived: z.coerce.boolean().optional(),
   }),
   params: z.object({}),

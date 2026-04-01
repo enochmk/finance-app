@@ -35,15 +35,6 @@ export function getAccountIcon(iconName?: string | null) {
   }
 }
 
-export const ACCOUNT_TYPE_OPTIONS = [
-  { value: 'CASH', label: 'Cash' },
-  { value: 'CHECKING', label: 'Checking' },
-  { value: 'SAVINGS', label: 'Savings' },
-  { value: 'CREDIT_CARD', label: 'Credit card' },
-  { value: 'INVESTMENT', label: 'Investment' },
-  { value: 'LOAN', label: 'Loan' },
-] as const
-
 export const CATEGORY_TYPE_OPTIONS = [
   { value: 'INCOME', label: 'Credit' },
   { value: 'EXPENSE', label: 'Debit' },

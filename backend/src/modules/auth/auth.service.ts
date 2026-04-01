@@ -12,7 +12,7 @@ import type { LoginBody, RegisterBody } from './auth.schema';
 
 class AuthService {
   register = async (data: RegisterBody) => {
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { email: data.email.toLowerCase() },
       select: { id: true },
     });
@@ -24,7 +24,7 @@ class AuthService {
     const passwordHash = await bcrypt.hash(data.password, env.BCRYPT_ROUNDS);
 
     const user = await prisma.$transaction(async (tx) => {
-      const createdUser = await tx.user.create({
+      const createdUser = await tx.users.create({
         data: {
           email: data.email.toLowerCase(),
           passwordHash,
@@ -33,7 +33,7 @@ class AuthService {
         },
       });
 
-      await tx.category.createMany({
+      await tx.categories.createMany({
         data: DEFAULT_CATEGORIES_TREE.map((category) => ({
           userId: createdUser.id,
           name: category.name,
@@ -46,11 +46,10 @@ class AuthService {
         skipDuplicates: true,
       });
 
-      await tx.account.createMany({
+      await tx.accounts.createMany({
         data: DEFAULT_ONBOARDING_ACCOUNTS.map((account) => ({
           userId: createdUser.id,
           name: account.name,
-          type: account.type,
           currency: createdUser.currency,
           color: account.color,
           icon: account.icon,
@@ -67,7 +66,7 @@ class AuthService {
   };
 
   login = async (data: LoginBody) => {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { email: data.email.toLowerCase() },
     });
 

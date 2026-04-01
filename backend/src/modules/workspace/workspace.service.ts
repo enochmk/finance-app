@@ -4,17 +4,17 @@ import { DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES_TREE } from './default-workspace';
 class WorkspaceService {
   resetAll = async (userId: string) => {
     await prisma.$transaction(async (tx) => {
-      await tx.transaction.deleteMany({ where: { userId } });
-      await tx.account.deleteMany({ where: { userId } });
-      await tx.category.deleteMany({
+      await tx.transactions.deleteMany({ where: { userId } });
+      await tx.accounts.deleteMany({ where: { userId } });
+      await tx.categories.deleteMany({
         where: { userId, isSystem: false },
       });
 
-      await tx.category.deleteMany({
+      await tx.categories.deleteMany({
         where: { userId },
       });
 
-      await tx.category.createMany({
+      await tx.categories.createMany({
         data: DEFAULT_CATEGORIES_TREE.map((category) => ({
           userId,
           name: category.name,
@@ -27,11 +27,10 @@ class WorkspaceService {
         skipDuplicates: true,
       });
 
-      await tx.account.createMany({
+      await tx.accounts.createMany({
         data: DEFAULT_ACCOUNTS.map((account) => ({
           userId,
           name: account.name,
-          type: account.type,
           currency: 'GHS',
           color: account.color,
           icon: account.icon,

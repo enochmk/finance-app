@@ -75,7 +75,6 @@ import {
   type Currency,
 } from '#/lib/api'
 import {
-  ACCOUNT_TYPE_OPTIONS,
   formatAmountInput,
   formatCurrency,
   formatShortDate,
@@ -119,16 +118,8 @@ export const Route = createFileRoute('/settings/accounts')({
       : {},
 })
 
-const accountTypeValues = ACCOUNT_TYPE_OPTIONS.map(
-  (option) => option.value
-) as [
-  (typeof ACCOUNT_TYPE_OPTIONS)[number]['value'],
-  ...(typeof ACCOUNT_TYPE_OPTIONS)[number]['value'][],
-]
-
 const accountSchema = z.object({
   name: z.string().trim().min(1, 'Account name is required').max(120),
-  type: z.enum(accountTypeValues),
   currency: z.string().trim().min(1, 'Select a currency'),
   color: z.string().trim().min(1, 'Color is required').max(32),
   icon: z.string().trim().max(32).optional(),
@@ -144,7 +135,6 @@ type AccountEditValues = AccountFormValues & {
 type AccountStatusFilter = 'ALL' | 'ENABLED' | 'DISABLED'
 type AccountSortField =
   | 'name'
-  | 'type'
   | 'currency'
   | 'openingBalance'
   | 'currentBalance'
@@ -164,7 +154,6 @@ const editAccountSchema = accountSchema.extend({
 function getDefaultAccountValues(): AccountFormValues {
   return {
     name: '',
-    type: 'CHECKING',
     currency: 'GHS',
     color: '#176b6c',
     icon: '',
@@ -177,7 +166,6 @@ function getDefaultAccountValues(): AccountFormValues {
 function getAccountFormValues(account: Account): AccountEditValues {
   return {
     name: account.name,
-    type: account.type as AccountFormValues['type'],
     currency: account.currency,
     color: account.color ?? '#176b6c',
     icon: account.icon ?? '',
@@ -221,7 +209,6 @@ function AccountsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<AccountStatusFilter>('ALL')
-  const [typeFilter, setTypeFilter] = useState('ALL')
   const [sortField, setSortField] = useState<AccountSortField>('updatedAt')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
 
@@ -232,7 +219,7 @@ function AccountsPage() {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [search, statusFilter, typeFilter, sortField, sortDirection])
+  }, [search, statusFilter, sortField, sortDirection])
 
   const filteredAccounts = useMemo(() => {
     return accounts.filter((account) => {
@@ -241,7 +228,6 @@ function AccountsPage() {
         query.length === 0 ||
         account.name.toLowerCase().includes(query) ||
         account.currency.toLowerCase().includes(query) ||
-        account.type.replaceAll('_', ' ').toLowerCase().includes(query) ||
         (account.institutionName ?? '').toLowerCase().includes(query) ||
         (account.accountNumberMasked ?? '').toLowerCase().includes(query)
 
@@ -250,11 +236,9 @@ function AccountsPage() {
         (statusFilter === 'ENABLED' && !account.isArchived) ||
         (statusFilter === 'DISABLED' && account.isArchived)
 
-      const matchesType = typeFilter === 'ALL' || account.type === typeFilter
-
-      return matchesSearch && matchesStatus && matchesType
+      return matchesSearch && matchesStatus
     })
-  }, [accounts, search, statusFilter, typeFilter])
+  }, [accounts, search, statusFilter])
 
   const sortedAccounts = useMemo(() => {
     const items = [...filteredAccounts]
@@ -263,8 +247,6 @@ function AccountsPage() {
       switch (sortField) {
         case 'name':
           return compareValues(left.name, right.name, sortDirection)
-        case 'type':
-          return compareValues(left.type, right.type, sortDirection)
         case 'currency':
           return compareValues(left.currency, right.currency, sortDirection)
         case 'openingBalance':
@@ -298,7 +280,6 @@ function AccountsPage() {
     try {
       await createAccount({
         name: values.name,
-        type: values.type,
         currency: values.currency,
         color: values.color,
         icon: values.icon || undefined,
@@ -358,7 +339,6 @@ function AccountsPage() {
     try {
       await updateAccount(editingAccount.account.id, {
         name: result.data.name,
-        type: result.data.type,
         currency: result.data.currency,
         color: result.data.color,
         icon: result.data.icon || undefined,
@@ -482,7 +462,7 @@ function AccountsPage() {
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="account-search"
-                    placeholder="Name, type, currency, institution"
+                    placeholder="Name, currency, institution"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                     className="pl-9"
@@ -516,28 +496,6 @@ function AccountsPage() {
 
               <div className="flex flex-col gap-2">
                 <label
-                  htmlFor="account-type-filter"
-                  className="text-sm font-medium"
-                >
-                  Type
-                </label>
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger id="account-type-filter">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">All types</SelectItem>
-                    {ACCOUNT_TYPE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <label
                   htmlFor="account-sort-field"
                   className="text-sm font-medium"
                 >
@@ -555,7 +513,6 @@ function AccountsPage() {
                   <SelectContent>
                     <SelectItem value="updatedAt">Last updated</SelectItem>
                     <SelectItem value="name">Name</SelectItem>
-                    <SelectItem value="type">Type</SelectItem>
                     <SelectItem value="currency">Currency</SelectItem>
                     <SelectItem value="openingBalance">
                       Opening balance
@@ -812,12 +769,6 @@ function AccountsPage() {
                 </p>
               </div>
               <div>
-                <label className="text-sm font-medium">Type</label>
-                <p className="text-sm text-muted-foreground">
-                  {viewingAccount.type.replaceAll('_', ' ')}
-                </p>
-              </div>
-              <div>
                 <label className="text-sm font-medium">Currency</label>
                 <p className="text-sm text-muted-foreground">
                   {viewingAccount.currency}
@@ -988,31 +939,6 @@ function AccountFormFields({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <FormField
-          control={form.control}
-          name="type"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Type</FormLabel>
-              <FormControl>
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ACCOUNT_TYPE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
         <FormField
           control={form.control}
           name="icon"
@@ -1198,31 +1124,6 @@ function AccountEditFields({
               {currencies.map((c) => (
                 <SelectItem key={c.shortcode} value={c.shortcode}>
                   {c.symbol} {c.name} ({c.shortcode})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <label htmlFor="edit-account-type" className="text-sm font-medium">
-            Type
-          </label>
-          <Select
-            value={values.type}
-            onValueChange={(value) =>
-              updateField('type', value as AccountFormValues['type'])
-            }
-          >
-            <SelectTrigger id="edit-account-type">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {ACCOUNT_TYPE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -1,7 +1,9 @@
+import type { EntryType } from '../../libs/entry-type';
+
 type CategoryChild = { name: string; color: string };
 type CategoryParent = {
   name: string;
-  type: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+  type: EntryType;
   color: string;
   children: CategoryChild[];
 };
@@ -147,28 +149,24 @@ export const DEFAULT_CATEGORIES_TREE: CategoryParent[] = [
 export const DEFAULT_ACCOUNTS = [
   {
     name: 'Bank',
-    type: 'CHECKING' as const,
     color: '#1d4ed8',
     icon: 'Building2',
     openingBalance: 0,
   },
   {
     name: 'Savings',
-    type: 'SAVINGS' as const,
     color: '#15803d',
     icon: 'PiggyBank',
     openingBalance: 0,
   },
   {
     name: 'Mobile Money',
-    type: 'CHECKING' as const,
     color: '#f59e0b',
     icon: 'Smartphone',
     openingBalance: 0,
   },
   {
     name: 'Cash',
-    type: 'CASH' as const,
     color: '#7c3aed',
     icon: 'Wallet',
     openingBalance: 0,

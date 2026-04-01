@@ -30,7 +30,7 @@ export async function ensureSystemCategory(
   const definition = SYSTEM_CATEGORY_DEFINITIONS[key];
 
   // For TRANSFER, match by name only — handles migration from old EXPENSE type
-  const existing = await prisma.category.findFirst({
+  const existing = await prisma.categories.findFirst({
     where:
       key === 'TRANSFER'
         ? { userId, name: definition.name, isSystem: true }
@@ -38,7 +38,7 @@ export async function ensureSystemCategory(
   });
 
   if (existing) {
-    return prisma.category.update({
+    return prisma.categories.update({
       where: { id: existing.id },
       data: {
         type: definition.type,
@@ -50,7 +50,7 @@ export async function ensureSystemCategory(
     });
   }
 
-  return prisma.category.create({
+  return prisma.categories.create({
     data: {
       userId,
       name: definition.name,
@@ -81,7 +81,7 @@ export async function ensureRequiredSystemCategories(userId: string) {
 export async function backfillTransferCategory(userId: string) {
   const transferCategory = await ensureSystemCategory(userId, 'TRANSFER');
 
-  await prisma.transaction.updateMany({
+  await prisma.transactions.updateMany({
     where: {
       userId,
       type: 'TRANSFER',

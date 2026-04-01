@@ -7,7 +7,7 @@ import { getLogger } from '../../libs/logger';
 const logger = getLogger('CurrenciesController');
 
 export async function list(_req: Request, res: Response) {
-  const currencies = await prisma.currency.findMany({
+  const currencies = await prisma.currencies.findMany({
     orderBy: { name: 'asc' },
   });
 
@@ -23,7 +23,7 @@ export async function create(req: Request, res: Response) {
     symbol: string;
   };
 
-  const existing = await prisma.currency.findUnique({
+  const existing = await prisma.currencies.findUnique({
     where: { shortcode: shortcode.toUpperCase() },
   });
 
@@ -34,7 +34,7 @@ export async function create(req: Request, res: Response) {
     );
   }
 
-  const currency = await prisma.currency.create({
+  const currency = await prisma.currencies.create({
     data: { name, shortcode: shortcode.toUpperCase(), symbol },
   });
 
@@ -47,13 +47,13 @@ export async function update(req: Request, res: Response) {
   const { id } = req.params as { id: string };
   const { name, symbol } = req.body as { name?: string; symbol?: string };
 
-  const existing = await prisma.currency.findUnique({ where: { id } });
+  const existing = await prisma.currencies.findUnique({ where: { id } });
 
   if (!existing) {
     throw createHttpError(404, 'Currency not found');
   }
 
-  const currency = await prisma.currency.update({
+  const currency = await prisma.currencies.update({
     where: { id },
     data: {
       ...(name !== undefined ? { name } : {}),
@@ -69,13 +69,13 @@ export async function update(req: Request, res: Response) {
 export async function remove(req: Request, res: Response) {
   const { id } = req.params as { id: string };
 
-  const existing = await prisma.currency.findUnique({ where: { id } });
+  const existing = await prisma.currencies.findUnique({ where: { id } });
 
   if (!existing) {
     throw createHttpError(404, 'Currency not found');
   }
 
-  await prisma.currency.delete({ where: { id } });
+  await prisma.currencies.delete({ where: { id } });
 
   logger.info('Deleted currency', { shortcode: existing.shortcode });
 

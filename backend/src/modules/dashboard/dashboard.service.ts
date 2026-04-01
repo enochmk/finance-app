@@ -405,7 +405,7 @@ class DashboardService {
       period.start.getTime() - (period.end.getTime() - period.start.getTime())
     );
 
-    const accounts = await prisma.account.findMany({
+    const accounts = await prisma.accounts.findMany({
       where: {
         userId,
         isArchived: false,
@@ -479,7 +479,7 @@ class DashboardService {
       allCategories,
       futureTransactions,
     ] = await Promise.all([
-      prisma.transaction.findMany({
+      prisma.transactions.findMany({
         where: {
           userId,
           OR: [
@@ -499,7 +499,7 @@ class DashboardService {
         orderBy: [{ transactionDate: 'desc' }, { createdAt: 'desc' }],
         take: recentLimit,
       }),
-      prisma.transaction.groupBy({
+      prisma.transactions.groupBy({
         by: ['type'],
         where: {
           userId,
@@ -516,7 +516,7 @@ class DashboardService {
           amount: true,
         },
       }),
-      prisma.transaction.groupBy({
+      prisma.transactions.groupBy({
         by: ['categoryId'],
         where: {
           userId,
@@ -534,7 +534,7 @@ class DashboardService {
           amount: true,
         },
       }),
-      prisma.transaction.groupBy({
+      prisma.transactions.groupBy({
         by: ['categoryId'],
         where: {
           userId,
@@ -548,7 +548,7 @@ class DashboardService {
         },
         _sum: { amount: true },
       }),
-      prisma.transaction.findMany({
+      prisma.transactions.findMany({
         where: {
           userId,
           OR: [
@@ -569,7 +569,7 @@ class DashboardService {
         },
         orderBy: [{ transactionDate: 'asc' }],
       }),
-      prisma.transaction.groupBy({
+      prisma.transactions.groupBy({
         by: ['type'],
         where: {
           userId,
@@ -584,11 +584,11 @@ class DashboardService {
         },
         _sum: { amount: true },
       }),
-      prisma.category.findMany({
+      prisma.categories.findMany({
         where: { userId },
         select: { id: true, name: true, type: true, color: true, icon: true },
       }),
-      prisma.transaction.findMany({
+      prisma.transactions.findMany({
         where: {
           userId,
           OR: [
@@ -747,7 +747,6 @@ class DashboardService {
       selectedAccount: {
         id: selectedAccount.id,
         name: selectedAccount.name,
-        type: selectedAccount.type,
         currency: selectedAccount.currency,
         color: selectedAccount.color,
         icon: selectedAccount.icon,
@@ -766,7 +765,6 @@ class DashboardService {
       accounts: accounts.map((account) => ({
         id: account.id,
         name: account.name,
-        type: account.type,
         currency: account.currency,
         color: account.color,
         icon: account.icon,

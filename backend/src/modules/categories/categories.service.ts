@@ -1,5 +1,6 @@
 import createHttpError from 'http-errors';
 
+import type { EntryType } from '../../libs/entry-type';
 import prisma from '../../libs/prisma';
 import { DEFAULT_CATEGORIES_TREE } from '../workspace/default-workspace';
 import { ensureRequiredSystemCategories } from './system-categories';
@@ -31,7 +32,7 @@ class CategoriesService {
   ): Promise<CategoryResponse[]> => {
     await this.ensureStarterCategories(userId);
 
-    const parents = await prisma.category.findMany({
+    const parents = await prisma.categories.findMany({
       where: {
         userId,
         type: filters.type,
@@ -92,12 +93,12 @@ class CategoriesService {
     data: CreateCategoryBody
   ): Promise<CategoryResponse> => {
     if (data.parentId) {
-      const parent = await prisma.category.findFirst({
+      const parent = await prisma.categories.findFirst({
         where: { id: data.parentId, userId },
       });
       if (!parent) throw createHttpError(404, 'Parent category not found');
 
-      const sub = await prisma.subCategory.create({
+      const sub = await prisma.subCategories.create({
         data: {
           categoryId: data.parentId,
           name: data.name,
@@ -123,7 +124,7 @@ class CategoriesService {
       };
     }
 
-    const cat = await prisma.category.create({
+    const cat = await prisma.categories.create({
       data: {
         userId,
         name: data.name,
@@ -143,7 +144,7 @@ class CategoriesService {
     data: UpdateCategoryBody
   ): Promise<CategoryResponse> => {
     // Check if it's a SubCategory
-    const sub = await prisma.subCategory.findFirst({
+    const sub = await prisma.subCategories.findFirst({
       where: { id },
       include: { category: true },
     });
@@ -152,7 +153,7 @@ class CategoriesService {
       if (sub.category.userId !== userId)
         throw createHttpError(404, 'Category not found');
 
-      const updated = await prisma.subCategory.update({
+      const updated = await prisma.subCategories.update({
         where: { id },
         data: {
           name: data.name,
@@ -185,7 +186,7 @@ class CategoriesService {
 
     await this.ensureOwnedCategory(id, userId);
 
-    const cat = await prisma.category.update({
+    const cat = await prisma.categories.update({
       where: { id },
       data: {
         name: data.name,
@@ -201,7 +202,7 @@ class CategoriesService {
 
   remove = async (id: string, userId: string) => {
     // Check if it's a SubCategory
-    const sub = await prisma.subCategory.findFirst({
+    const sub = await prisma.subCategories.findFirst({
       where: { id },
       include: { category: { select: { userId: true } } },
     });
@@ -212,7 +213,7 @@ class CategoriesService {
       if (sub.isSystem)
         throw createHttpError(409, 'System categories cannot be deleted');
 
-      const usageCount = await prisma.transaction.count({
+      const usageCount = await prisma.transactions.count({
         where: { userId, subCategoryId: id },
       });
       if (usageCount > 0) {
@@ -221,14 +222,14 @@ class CategoriesService {
           'Category cannot be deleted while transactions reference it'
         );
       }
-      return prisma.subCategory.delete({ where: { id } });
+      return prisma.subCategories.delete({ where: { id } });
     }
 
     const category = await this.ensureOwnedCategory(id, userId);
     if (category.isSystem)
       throw createHttpError(409, 'System categories cannot be deleted');
 
-    const usageCount = await prisma.transaction.count({
+    const usageCount = await prisma.transactions.count({
       where: { userId, categoryId: id },
     });
     if (usageCount > 0) {
@@ -237,11 +238,11 @@ class CategoriesService {
         'Category cannot be deleted while transactions reference it'
       );
     }
-    return prisma.category.delete({ where: { id } });
+    return prisma.categories.delete({ where: { id } });
   };
 
   private ensureOwnedCategory = async (id: string, userId: string) => {
-    const category = await prisma.category.findFirst({
+    const category = await prisma.categories.findFirst({
       where: { id, userId },
       select: { id: true, isSystem: true },
     });
@@ -252,23 +253,23 @@ class CategoriesService {
   private findOrCreateCategory = async (data: {
     userId: string;
     name: string;
-    type: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+    type: EntryType;
     color: string;
     parentId: string | null;
   }): Promise<string> => {
     if (data.parentId) {
-      const existing = await prisma.subCategory.findFirst({
+      const existing = await prisma.subCategories.findFirst({
         where: { categoryId: data.parentId, name: data.name },
         select: { id: true },
       });
       if (existing) {
-        await prisma.subCategory.update({
+        await prisma.subCategories.update({
           where: { id: existing.id },
           data: { isSystem: true, isArchived: false },
         });
         return existing.id;
       }
-      const created = await prisma.subCategory.create({
+      const created = await prisma.subCategories.create({
         data: {
           categoryId: data.parentId,
           name: data.name,
@@ -280,18 +281,18 @@ class CategoriesService {
       return created.id;
     }
 
-    const existing = await prisma.category.findFirst({
+    const existing = await prisma.categories.findFirst({
       where: { userId: data.userId, name: data.name, type: data.type },
       select: { id: true },
     });
     if (existing) {
-      await prisma.category.update({
+      await prisma.categories.update({
         where: { id: existing.id },
         data: { color: data.color, isSystem: true, isArchived: false },
       });
       return existing.id;
     }
-    const created = await prisma.category.create({
+    const created = await prisma.categories.create({
       data: {
         userId: data.userId,
         name: data.name,

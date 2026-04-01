@@ -21,7 +21,9 @@ If any of them are added later, treat them as additional instructions and merge 
 
 - The repo now has a small root `package.json` for convenience dev scripts; app-specific npm commands still primarily run against `backend/` or `frontend/`.
 - Backend code is mostly in `backend/src/`, with shared middleware in `backend/src/middlewares/` and logging helpers in `backend/src/libs/`.
-- Backend architecture notes in `docs/BACKEND_PATTERNS.md` prefer feature folders like `src/features/<feature>/` with files such as `.controller.ts`, `.service.ts`, `.schema.ts`, `.middleware.ts`, and `.routes.ts`.
+- Backend architecture notes in `docs/BACKEND_PATTERNS.md` prefer module folders like `src/modules/<module>/` with files such as `.controller.ts`, `.service.ts`, `.schema.ts`, `.middleware.ts`, and `.routes.ts`.
+- Backend Prisma models use plural names so generated client delegates stay plural camelCase, e.g. `prisma.accounts`, `prisma.categories`, and `prisma.transactions`.
+- Backend database tables must use plural lowercase snake_case names, expressed in Prisma with `@@map(...)` and enum `@@map(...)` where needed.
 - Frontend routes live in `frontend/src/routes/`; shared UI lives in `frontend/src/components/`.
 - Frontend path aliases `#/*` and `@/*` both map to `frontend/src/*`, though current code mostly uses relative imports.
 
@@ -119,8 +121,18 @@ The project uses a single-source color palette defined in `frontend/src/styles.c
 - Use PascalCase for React components and component filenames, e.g. `Header.tsx`, `ThemeToggle.tsx`.
 - Use camelCase for variables, functions, and helpers.
 - Use UPPER_SNAKE_CASE for top-level configuration constants like `PORT`, `NODE_ENV`, and `GENERIC_ERROR`.
-- Use kebab-case for backend filenames, especially middleware and future feature modules.
-- Follow the suffix conventions in `docs/BACKEND_PATTERNS.md` for new backend feature files.
+- Use kebab-case for backend filenames, especially middleware and future module files.
+- Follow the suffix conventions in `docs/BACKEND_PATTERNS.md` for new backend module files.
+- Keep Prisma model names plural and PascalCase, while database table names remain plural lowercase snake_case via Prisma mapping.
+- When multiple enums or literal unions carry the same domain values, consolidate them under a shared domain name instead of duplicating them.
+
+## Backend Domain Rules
+
+- Always place backend domain code under `backend/src/modules/`; do not create or reintroduce `backend/src/features/`.
+- Treat `EntryType` as the shared income/expense/transfer domain enum across Prisma, request schemas, and backend services.
+- Prefer shared schema helpers such as `backend/src/libs/entry-type.ts` over repeating identical `z.enum(...)` declarations in multiple modules.
+- If a schema or API simplification removes legacy fields or tables, also clean up related backend/frontend types, seed data, and migrations in the same change when practical.
+- Keep refactors tidy: avoid leaving duplicate structures, stale imports, dead schema fields, or parallel old/new naming conventions behind.
 
 ## Types
 
@@ -151,7 +163,7 @@ The project uses a single-source color palette defined in `frontend/src/styles.c
 - Middleware order matters: keep security and parsing middleware before routes, and keep not-found/error middleware last.
 - API bootstrap currently lives in `backend/src/index.ts`.
 - Return JSON from API middleware and handlers consistently.
-- Prefer new domain work under `backend/src/features/`; keep shared cross-cutting middleware in `backend/src/middlewares/`.
+- Prefer new domain work under `backend/src/modules/`; keep shared cross-cutting middleware in `backend/src/middlewares/`.
 
 ## Frontend Implementation Notes
 
@@ -174,4 +186,5 @@ The project uses a single-source color palette defined in `frontend/src/styles.c
 - Confirm commands from `package.json` or config files before claiming they exist.
 - If a requested verification step is impossible because tooling is missing, say so clearly and name the missing tool.
 - Prefer minimal, focused changes that leave unrelated files untouched.
+- When a user states a repository convention explicitly, update these rules if the change establishes the new standard for future work.
 - Update this file when repository conventions or scripts materially change.

@@ -1,14 +1,14 @@
 import { Router } from 'express';
 
-import accountsRoutes from './features/accounts/accounts.routes';
-import authRoutes from './features/auth/auth.routes';
-import categoriesRoutes from './features/categories/categories.routes';
-import currenciesRoutes from './features/currencies/currencies.routes';
-import dashboardRoutes from './features/dashboard/dashboard.routes';
-import reportsRoutes from './features/reports/reports.routes';
-import transactionsRoutes from './features/transactions/transactions.routes';
-import healthRoutes from './features/health/health.routes';
-import workspaceRoutes from './features/workspace/workspace.routes';
+import healthRoutes from './modules/health/health.routes';
+import authRoutes from './modules/auth/auth.routes';
+import dashboardRoutes from './modules/dashboard/dashboard.routes';
+import accountsRoutes from './modules/accounts/accounts.routes';
+import categoriesRoutes from './modules/categories/categories.routes';
+import currenciesRoutes from './modules/currencies/currencies.routes';
+import reportsRoutes from './modules/reports/reports.routes';
+import transactionsRoutes from './modules/transactions/transactions.routes';
+import workspaceRoutes from './modules/workspace/workspace.routes';
 
 const apiRoutes = Router();
 

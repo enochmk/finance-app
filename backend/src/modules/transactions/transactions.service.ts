@@ -1,5 +1,6 @@
 import createHttpError from 'http-errors';
 
+import type { EntryType } from '../../libs/entry-type';
 import prisma from '../../libs/prisma';
 import {
   backfillTransferCategory,
@@ -21,7 +22,7 @@ export type TransactionOwnershipValidationData = {
 };
 
 function getBalanceDelta(
-  type: 'INCOME' | 'EXPENSE' | 'TRANSFER',
+  type: EntryType,
   amount: number,
   direction: 'primary' | 'transfer'
 ) {
@@ -50,7 +51,7 @@ class TransactionsService {
   }> => {
     if (!selectedId) return { categoryId: undefined, subCategoryId: undefined };
 
-    const sub = await prisma.subCategory.findUnique({
+    const sub = await prisma.subCategories.findUnique({
       where: { id: selectedId },
       select: { id: true, categoryId: true },
     });
@@ -65,7 +66,7 @@ class TransactionsService {
   list = async (userId: string, filters: ListTransactionsQuery) => {
     await backfillTransferCategory(userId);
 
-    return prisma.transaction.findMany({
+    return prisma.transactions.findMany({
       where: {
         userId,
         accountId: filters.accountId,
@@ -103,7 +104,7 @@ class TransactionsService {
         : null;
 
     return prisma.$transaction(async (tx) => {
-      const transaction = await tx.transaction.create({
+      const transaction = await tx.transactions.create({
         data: {
           userId,
           accountId: data.accountId,
@@ -123,7 +124,7 @@ class TransactionsService {
         },
       });
 
-      await tx.account.update({
+      await tx.accounts.update({
         where: { id: data.accountId },
         data: {
           currentBalance: {
@@ -133,7 +134,7 @@ class TransactionsService {
       });
 
       if (data.type === 'TRANSFER' && data.transferAccountId) {
-        await tx.account.update({
+        await tx.accounts.update({
           where: { id: data.transferAccountId },
           data: {
             currentBalance: {
@@ -143,7 +144,7 @@ class TransactionsService {
         });
       }
 
-      return tx.transaction.findUniqueOrThrow({
+      return tx.transactions.findUniqueOrThrow({
         where: { id: transaction.id },
         include: {
           account: true,
@@ -212,7 +213,7 @@ class TransactionsService {
 
       for (const [accountId, delta] of balanceAdjustments.entries()) {
         if (delta !== 0) {
-          await tx.account.update({
+          await tx.accounts.update({
             where: { id: accountId },
             data: {
               currentBalance: {
@@ -223,7 +224,7 @@ class TransactionsService {
         }
       }
 
-      await tx.transaction.update({
+      await tx.transactions.update({
         where: { id },
         data: {
           accountId: data.accountId,
@@ -245,7 +246,7 @@ class TransactionsService {
         },
       });
 
-      return tx.transaction.findUniqueOrThrow({
+      return tx.transactions.findUniqueOrThrow({
         where: { id },
         include: {
           account: true,
@@ -262,7 +263,7 @@ class TransactionsService {
     const amount = Number(existingTransaction.amount);
 
     return prisma.$transaction(async (tx) => {
-      await tx.account.update({
+      await tx.accounts.update({
         where: { id: existingTransaction.accountId },
         data: {
           currentBalance: {
@@ -276,7 +277,7 @@ class TransactionsService {
       });
 
       if (existingTransaction.transferAccountId) {
-        await tx.account.update({
+        await tx.accounts.update({
           where: { id: existingTransaction.transferAccountId },
           data: {
             currentBalance: {
@@ -290,7 +291,7 @@ class TransactionsService {
         });
       }
 
-      return tx.transaction.delete({
+      return tx.transactions.delete({
         where: { id },
       });
     });
@@ -366,7 +367,7 @@ class TransactionsService {
   };
 
   ensureOwnedTransaction = async (id: string, userId: string) => {
-    const transaction = await prisma.transaction.findFirst({
+    const transaction = await prisma.transactions.findFirst({
       where: { id, userId },
       select: {
         id: true,
@@ -396,7 +397,7 @@ class TransactionsService {
     label: 'account' | 'transfer account',
     allowArchived = false
   ) => {
-    const account = await prisma.account.findFirst({
+    const account = await prisma.accounts.findFirst({
       where: { id, userId },
       select: { id: true, isArchived: true },
     });
@@ -413,9 +414,9 @@ class TransactionsService {
   private ensureOwnedCategory = async (
     id: string,
     userId: string,
-    transactionType?: 'INCOME' | 'EXPENSE' | 'TRANSFER'
+    transactionType?: EntryType
   ) => {
-    const category = await prisma.category.findFirst({
+    const category = await prisma.categories.findFirst({
       where: { id, userId },
       select: { id: true, type: true },
     });

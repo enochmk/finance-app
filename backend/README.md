@@ -94,7 +94,7 @@ openssl rand -hex 32
 
 ## Project Layout
 
-- `src/features/`: Feature modules such as auth, accounts, transactions, reports, and workspace.
+- `src/modules/`: Domain modules such as auth, accounts, transactions, reports, and workspace.
 - `src/middlewares/`: Shared middleware including auth, validation, request logging, and error handling.
 - `src/libs/`: Shared services such as Prisma and logger setup.
 - `prisma/`: Prisma schema and migrations.

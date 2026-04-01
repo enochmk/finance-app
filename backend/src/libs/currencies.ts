@@ -13,7 +13,7 @@ const DEFAULT_CURRENCIES = [
 export async function ensureCurrencies() {
   await Promise.all(
     DEFAULT_CURRENCIES.map((currency) =>
-      prisma.currency.upsert({
+      prisma.currencies.upsert({
         where: { shortcode: currency.shortcode },
         update: { name: currency.name, symbol: currency.symbol },
         create: currency,

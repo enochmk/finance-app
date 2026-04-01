@@ -25,7 +25,7 @@ export default async function requireAuth(
     const token = authorization.replace('Bearer ', '').trim();
     const payload = jwt.verify(token, env.JWT_SECRET) as AuthPayload;
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: payload.sub },
       select: {
         id: true,

@@ -7,54 +7,44 @@ datasource db {
   provider = "postgresql"
 }
 
-enum AccountType {
-  CASH
-  CHECKING
-  SAVINGS
-  CREDIT_CARD
-  INVESTMENT
-  LOAN
-}
-
-enum CategoryType {
+enum EntryType {
   INCOME
   EXPENSE
   TRANSFER
+
+  @@map("entry_type")
 }
 
-enum TransactionType {
-  INCOME
-  EXPENSE
-  TRANSFER
-}
-
-model Currency {
+model Currencies {
   id        String   @id @default(uuid())
   name      String
   shortcode String   @unique
   symbol    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("currencies")
 }
 
-model User {
+model Users {
   id           String        @id @default(uuid())
   email        String        @unique
   passwordHash String
   name         String
   currency     String        @default("GHS")
-  accounts     Account[]
-  categories   Category[]
-  transactions Transaction[] @relation("UserTransactions")
+  accounts     Accounts[]
+  categories   Categories[]
+  transactions Transactions[] @relation("UserTransactions")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+
+  @@map("users")
 }
 
-model Account {
+model Accounts {
   id                   String        @id @default(uuid())
   userId               String
   name                 String
-  type                 AccountType
   currency             String        @default("GHS")
   color                String?       @default("#176b6c")
   icon                 String?
@@ -64,67 +54,70 @@ model Account {
   accountNumberMasked  String?
   isArchived           Boolean       @default(false)
   position             Int           @default(0)
-  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions         Transaction[] @relation("PrimaryAccountTransactions")
-  transferTransactions Transaction[] @relation("TransferDestinationAccount")
+  user                 Users         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions         Transactions[] @relation("PrimaryAccountTransactions")
+  transferTransactions Transactions[] @relation("TransferDestinationAccount")
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 
   @@unique([userId, name])
   @@index([userId])
+  @@map("accounts")
 }
 
-model Category {
+model Categories {
   id            String        @id @default(uuid())
   userId        String
   name          String
-  type          CategoryType
+  type          EntryType
   color         String?
   icon          String?
   isSystem      Boolean       @default(false)
   isArchived    Boolean       @default(false)
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subCategories SubCategory[]
-  transactions  Transaction[]
+  user          Users         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subCategories SubCategories[]
+  transactions  Transactions[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
   @@index([userId, type])
+  @@map("categories")
 }
 
-model SubCategory {
+model SubCategories {
   id           String        @id @default(uuid())
   categoryId   String
   name         String
   icon         String?
   isSystem     Boolean       @default(false)
   isArchived   Boolean       @default(false)
-  category     Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
+  category     Categories    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  transactions Transactions[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
   @@index([categoryId])
+  @@map("sub_categories")
 }
 
-model Transaction {
+model Transactions {
   id                String          @id @default(uuid())
   userId            String
   accountId         String
   categoryId        String?
   subCategoryId     String?
-  type              TransactionType
+  type              EntryType
   amount            Decimal         @db.Decimal(14, 2)
   description       String
   notes             String?
   transactionDate   DateTime
   transferAccountId String?
   externalReference String?
-  user              User            @relation("UserTransactions", fields: [userId], references: [id], onDelete: Cascade)
-  account           Account         @relation("PrimaryAccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
-  category          Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  subCategory       SubCategory?    @relation(fields: [subCategoryId], references: [id], onDelete: SetNull)
-  transferAccount   Account?        @relation("TransferDestinationAccount", fields: [transferAccountId], references: [id], onDelete: SetNull)
+  user              Users           @relation("UserTransactions", fields: [userId], references: [id], onDelete: Cascade)
+  account           Accounts        @relation("PrimaryAccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
+  category          Categories?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  subCategory       SubCategories?  @relation(fields: [subCategoryId], references: [id], onDelete: SetNull)
+  transferAccount   Accounts?       @relation("TransferDestinationAccount", fields: [transferAccountId], references: [id], onDelete: SetNull)
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
@@ -133,4 +126,5 @@ model Transaction {
   @@index([categoryId])
   @@index([subCategoryId])
   @@index([transferAccountId])
+  @@map("transactions")
 }

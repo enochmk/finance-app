@@ -28,7 +28,7 @@ class ReportsService {
       getPeriodBounds(filters.month, filters.year);
 
     const [transactions, categories, accounts] = await Promise.all([
-      prisma.transaction.findMany({
+      prisma.transactions.findMany({
         where: {
           userId,
           transactionDate: {
@@ -43,14 +43,14 @@ class ReportsService {
         },
         orderBy: [{ transactionDate: 'asc' }, { createdAt: 'asc' }],
       }),
-      prisma.category.findMany({
+      prisma.categories.findMany({
         where: {
           userId,
           isArchived: false,
         },
         orderBy: [{ type: 'asc' }, { name: 'asc' }],
       }),
-      prisma.account.findMany({
+      prisma.accounts.findMany({
         where: {
           userId,
           isArchived: false,
@@ -242,7 +242,6 @@ class ReportsService {
         return {
           accountId: account.id,
           accountName: account.name,
-          type: account.type,
           currency: account.currency,
           income: summary?.income ?? 0,
           expenses: summary?.expenses ?? 0,

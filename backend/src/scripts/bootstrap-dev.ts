@@ -1,12 +1,8 @@
 import bcrypt from 'bcryptjs';
 
+import { EntryType } from '../../generated/prisma/enums';
 import prisma from '../libs/prisma';
 import env from '../env';
-import {
-  AccountType,
-  CategoryType,
-  TransactionType,
-} from '../../generated/prisma/enums';
 import { getLogger } from '../libs/logger';
 import { ensureCurrencies } from '../libs/currencies';
 
@@ -21,15 +17,15 @@ const toUtcDate = (
 ) => new Date(Date.UTC(year, monthIndex, day, hour, minute, 0));
 
 const getBalanceDelta = (
-  type: TransactionType,
+  type: EntryType,
   amount: number,
   direction: 'primary' | 'transfer'
 ) => {
-  if (type === TransactionType.INCOME) {
+  if (type === EntryType.INCOME) {
     return direction === 'primary' ? amount : 0;
   }
 
-  if (type === TransactionType.EXPENSE) {
+  if (type === EntryType.EXPENSE) {
     return direction === 'primary' ? -amount : 0;
   }
 
@@ -41,7 +37,7 @@ type SeedTransaction = {
   accountName: string;
   categoryName?: string;
   transferAccountName?: string;
-  type: TransactionType;
+  type: EntryType;
   amount: number;
   description: string;
   notes?: string;
@@ -56,7 +52,7 @@ export async function bootstrapDevData() {
 
   await ensureCurrencies();
 
-  const ghsCurrency = await prisma.currency.findUniqueOrThrow({
+  const ghsCurrency = await prisma.currencies.findUniqueOrThrow({
     where: { shortcode: 'GHS' },
   });
 
@@ -65,7 +61,7 @@ export async function bootstrapDevData() {
     env.BCRYPT_ROUNDS
   );
 
-  const user = await prisma.user.upsert({
+  const user = await prisma.users.upsert({
     where: { email: env.DEV_SEED_USER_EMAIL },
     update: {
       name: env.DEV_SEED_USER_NAME,
@@ -98,7 +94,6 @@ export async function bootstrapDevData() {
     [
       {
         name: 'Bank',
-        type: AccountType.CHECKING,
         currency: ghsCurrency.shortcode,
         color: '#176b6c',
         icon: 'Building2',
@@ -108,7 +103,6 @@ export async function bootstrapDevData() {
       {
         name: 'Savings',
         categoryName: 'Transfer',
-        type: AccountType.SAVINGS,
         currency: ghsCurrency.shortcode,
         color: '#1d4ed8',
         icon: 'PiggyBank',
@@ -118,7 +112,6 @@ export async function bootstrapDevData() {
       {
         name: 'Wedding',
         categoryName: 'Transfer',
-        type: AccountType.SAVINGS,
         currency: ghsCurrency.shortcode,
         color: '#be185d',
         icon: 'Heart',
@@ -127,7 +120,6 @@ export async function bootstrapDevData() {
       },
       {
         name: 'Mobile Money',
-        type: AccountType.CASH,
         currency: ghsCurrency.shortcode,
         color: '#15803d',
         icon: 'Smartphone',
@@ -136,7 +128,6 @@ export async function bootstrapDevData() {
       },
       {
         name: 'Subscription',
-        type: AccountType.CASH,
         currency: ghsCurrency.shortcode,
         color: '#7c3aed',
         icon: 'CreditCard',
@@ -144,7 +135,7 @@ export async function bootstrapDevData() {
         currentBalance: 200,
       },
     ].map((account) =>
-      prisma.account.upsert({
+      prisma.accounts.upsert({
         where: {
           userId_name: {
             userId: user.id,
@@ -152,7 +143,6 @@ export async function bootstrapDevData() {
           },
         },
         update: {
-          type: account.type,
           currency: account.currency,
           color: account.color,
           icon: account.icon,
@@ -165,7 +155,6 @@ export async function bootstrapDevData() {
         create: {
           userId: user.id,
           name: account.name,
-          type: account.type,
           currency: account.currency,
           color: account.color,
           icon: account.icon,
@@ -185,95 +174,95 @@ export async function bootstrapDevData() {
     [
       {
         name: 'Food & Drinks',
-        type: CategoryType.EXPENSE,
+        type: EntryType.EXPENSE,
         color: '#b45309',
         icon: '🍽️',
       },
       {
         name: 'Shopping',
-        type: CategoryType.EXPENSE,
+        type: EntryType.EXPENSE,
         color: '#176b6c',
         icon: '🛍️',
       },
       {
         name: 'Housing',
-        type: CategoryType.EXPENSE,
+        type: EntryType.EXPENSE,
         color: '#9a3412',
         icon: '🏠',
       },
       {
         name: 'Transportation',
-        type: CategoryType.EXPENSE,
+        type: EntryType.EXPENSE,
         color: '#f59e0b',
         icon: '🚗',
       },
       {
         name: 'Vehicle',
-        type: CategoryType.EXPENSE,
+        type: EntryType.EXPENSE,
         color: '#475569',
         icon: '🔧',
       },
       {
         name: 'Life & Entertainment',
-        type: CategoryType.EXPENSE,
+        type: EntryType.EXPENSE,
         color: '#be185d',
         icon: '🎮',
       },
       {
         name: 'Communications, PC',
-        type: CategoryType.EXPENSE,
+        type: EntryType.EXPENSE,
         color: '#0f766e',
         icon: '💻',
       },
       {
         name: 'Financial Expenses',
-        type: CategoryType.EXPENSE,
+        type: EntryType.EXPENSE,
         color: '#7c3aed',
         icon: '📈',
       },
       {
         name: 'Investments',
-        type: CategoryType.EXPENSE,
+        type: EntryType.EXPENSE,
         color: '#1d4ed8',
         icon: '📊',
       },
       {
         name: 'Income',
-        type: CategoryType.INCOME,
+        type: EntryType.INCOME,
         color: '#15803d',
         icon: '💰',
       },
       {
         name: 'Transfer',
-        type: CategoryType.EXPENSE,
+        type: EntryType.EXPENSE,
         color: '#0f766e',
         icon: '↔️',
       },
       {
         name: 'Unknown',
-        type: CategoryType.EXPENSE,
+        type: EntryType.EXPENSE,
         color: '#dc2626',
         icon: '❓',
       },
       {
         name: 'Unknown',
-        type: CategoryType.INCOME,
+        type: EntryType.INCOME,
         color: '#2563eb',
         icon: '❓',
       },
       {
         name: 'Archived Legacy',
-        type: CategoryType.EXPENSE,
+        type: EntryType.EXPENSE,
         color: '#64748b',
         icon: '📁',
         isArchived: true,
       },
     ].map(async (category) => {
-      const existing = await prisma.category.findFirst({
+      const existing = await prisma.categories.findFirst({
         where: { userId: user.id, name: category.name, type: category.type },
       });
       if (existing) {
-        return prisma.category.update({
+        return prisma.categories.update({
           where: { id: existing.id },
           data: {
             color: category.color,
@@ -283,7 +272,7 @@ export async function bootstrapDevData() {
           },
         });
       }
-      return prisma.category.create({
+      return prisma.categories.create({
         data: {
           userId: user.id,
           name: category.name,
@@ -306,7 +295,7 @@ export async function bootstrapDevData() {
       id: `seed-income-${currentYear}-${currentMonth}`,
       accountName: 'Bank',
       categoryName: 'Income',
-      type: TransactionType.INCOME,
+      type: EntryType.INCOME,
       amount: 4800,
       description: 'Monthly salary deposit',
       transactionDate: monthDate(0, 1, 8),
@@ -315,7 +304,7 @@ export async function bootstrapDevData() {
       id: `seed-mobile-income-${currentYear}-${currentMonth}`,
       accountName: 'Mobile Money',
       categoryName: 'Income',
-      type: TransactionType.INCOME,
+      type: EntryType.INCOME,
       amount: 420,
       description: 'Side gig payment',
       transactionDate: monthDate(0, 3, 18, 45),
@@ -324,7 +313,7 @@ export async function bootstrapDevData() {
       id: `seed-housing-${currentYear}-${currentMonth}`,
       accountName: 'Bank',
       categoryName: 'Housing',
-      type: TransactionType.EXPENSE,
+      type: EntryType.EXPENSE,
       amount: 2200,
       description: 'Rent payment',
       transactionDate: monthDate(0, 2, 9, 10),
@@ -333,7 +322,7 @@ export async function bootstrapDevData() {
       id: `seed-food-${currentYear}-${currentMonth}`,
       accountName: 'Mobile Money',
       categoryName: 'Food & Drinks',
-      type: TransactionType.EXPENSE,
+      type: EntryType.EXPENSE,
       amount: 94.5,
       description: 'Lunch and groceries',
       transactionDate: monthDate(0, 5, 13, 15),
@@ -342,7 +331,7 @@ export async function bootstrapDevData() {
       id: `seed-shopping-${currentYear}-${currentMonth}`,
       accountName: 'Bank',
       categoryName: 'Shopping',
-      type: TransactionType.EXPENSE,
+      type: EntryType.EXPENSE,
       amount: 260,
       description: 'Home essentials',
       transactionDate: monthDate(0, 7, 16, 25),
@@ -351,7 +340,7 @@ export async function bootstrapDevData() {
       id: `seed-data-${currentYear}-${currentMonth}`,
       accountName: 'Subscription',
       categoryName: 'Communications, PC',
-      type: TransactionType.EXPENSE,
+      type: EntryType.EXPENSE,
       amount: 85,
       description: 'Internet renewal',
       transactionDate: monthDate(0, 8, 6, 5),
@@ -360,7 +349,7 @@ export async function bootstrapDevData() {
       id: `seed-streaming-${currentYear}-${currentMonth}`,
       accountName: 'Subscription',
       categoryName: 'Life & Entertainment',
-      type: TransactionType.EXPENSE,
+      type: EntryType.EXPENSE,
       amount: 39,
       description: 'Streaming subscription',
       transactionDate: monthDate(0, 10, 6, 15),
@@ -369,7 +358,7 @@ export async function bootstrapDevData() {
       id: `seed-save-${currentYear}-${currentMonth}`,
       accountName: 'Bank',
       transferAccountName: 'Savings',
-      type: TransactionType.TRANSFER,
+      type: EntryType.TRANSFER,
       amount: 600,
       description: 'Monthly savings transfer',
       transactionDate: monthDate(0, 9, 8, 30),
@@ -378,7 +367,7 @@ export async function bootstrapDevData() {
       id: `seed-wedding-${currentYear}-${currentMonth}`,
       accountName: 'Bank',
       transferAccountName: 'Wedding',
-      type: TransactionType.TRANSFER,
+      type: EntryType.TRANSFER,
 
       amount: 450,
       description: 'Wedding fund contribution',
@@ -388,7 +377,7 @@ export async function bootstrapDevData() {
       id: `seed-momo-topup-${currentYear}-${currentMonth}`,
       accountName: 'Bank',
       transferAccountName: 'Mobile Money',
-      type: TransactionType.TRANSFER,
+      type: EntryType.TRANSFER,
       amount: 300,
       description: 'Mobile money top-up',
       transactionDate: monthDate(0, 14, 11, 0),
@@ -397,7 +386,7 @@ export async function bootstrapDevData() {
       id: `seed-transport-${currentYear}-${currentMonth}`,
       accountName: 'Mobile Money',
       categoryName: 'Transportation',
-      type: TransactionType.EXPENSE,
+      type: EntryType.EXPENSE,
       amount: 58,
       description: 'Ride hailing and fuel',
       transactionDate: monthDate(0, 15, 17, 40),
@@ -406,7 +395,7 @@ export async function bootstrapDevData() {
       id: `seed-fees-${currentYear}-${currentMonth}`,
       accountName: 'Bank',
       categoryName: 'Financial Expenses',
-      type: TransactionType.EXPENSE,
+      type: EntryType.EXPENSE,
       amount: 22,
       description: 'Bank charges',
       transactionDate: monthDate(0, 16, 7, 0),
@@ -415,7 +404,7 @@ export async function bootstrapDevData() {
       id: `seed-investment-${currentYear}-${currentMonth}`,
       accountName: 'Bank',
       categoryName: 'Investments',
-      type: TransactionType.EXPENSE,
+      type: EntryType.EXPENSE,
       amount: 175,
       description: 'Mutual fund contribution',
       transactionDate: monthDate(0, 18, 14, 15),
@@ -424,7 +413,7 @@ export async function bootstrapDevData() {
       id: `seed-prev-food-${currentYear}-${currentMonth}`,
       accountName: 'Mobile Money',
       categoryName: 'Food & Drinks',
-      type: TransactionType.EXPENSE,
+      type: EntryType.EXPENSE,
       amount: 67,
       description: 'Weekend takeaway',
       transactionDate: monthDate(-1, 27, 18, 20),
@@ -455,7 +444,7 @@ export async function bootstrapDevData() {
         throw new Error(`Missing seed category: ${transaction.categoryName}`);
       }
 
-      return prisma.transaction.upsert({
+      return prisma.transactions.upsert({
         where: { id: transaction.id },
         update: {
           accountId: account.id,
@@ -485,7 +474,7 @@ export async function bootstrapDevData() {
     })
   );
 
-  const accountsForBalanceSync = await prisma.account.findMany({
+  const accountsForBalanceSync = await prisma.accounts.findMany({
     where: {
       userId: user.id,
     },
@@ -495,7 +484,7 @@ export async function bootstrapDevData() {
     },
   });
 
-  const allUserTransactions = await prisma.transaction.findMany({
+  const allUserTransactions = await prisma.transactions.findMany({
     where: {
       userId: user.id,
     },
@@ -536,7 +525,7 @@ export async function bootstrapDevData() {
 
   await Promise.all(
     accountsForBalanceSync.map((account) =>
-      prisma.account.update({
+      prisma.accounts.update({
         where: {
           id: account.id,
         },

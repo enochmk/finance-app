@@ -1,17 +1,7 @@
 import { z } from 'zod';
 
-const accountTypeSchema = z.enum([
-  'CASH',
-  'CHECKING',
-  'SAVINGS',
-  'CREDIT_CARD',
-  'INVESTMENT',
-  'LOAN',
-]);
-
 const accountBodySchema = z.object({
   name: z.string().trim().min(1).max(120),
-  type: accountTypeSchema,
   currency: z.string().trim().length(3).toUpperCase().optional(),
   color: z.string().trim().max(32).optional(),
   icon: z.string().trim().max(32).optional(),
@@ -24,7 +14,6 @@ const accountBodySchema = z.object({
 
 export const listAccountsSchema = z.object({
   query: z.object({
-    type: accountTypeSchema.optional(),
     isArchived: z.coerce.boolean().optional(),
   }),
   params: z.object({}),

@@ -645,7 +645,6 @@ function DashboardPage() {
                     {data.selectedAccount.name}
                   </h2>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    {data.selectedAccount.type.replaceAll('_', ' ')} ·{' '}
                     {data.selectedAccount.currency}
                   </p>
                   <div className="mt-4 flex flex-wrap items-center gap-3">
