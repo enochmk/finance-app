@@ -65,19 +65,6 @@ export const TRANSACTION_TYPE_OPTIONS = [
   { value: 'TRANSFER', label: 'Transfer' },
 ] as const
 
-export const RECURRING_FREQUENCY_OPTIONS = [
-  { value: 'WEEKLY', label: 'Weekly' },
-  { value: 'MONTHLY', label: 'Monthly' },
-  { value: 'QUARTERLY', label: 'Quarterly' },
-  { value: 'YEARLY', label: 'Yearly' },
-] as const
-
-export const RECURRING_STATUS_OPTIONS = [
-  { value: 'ACTIVE', label: 'Active' },
-  { value: 'PAUSED', label: 'Paused' },
-  { value: 'COMPLETED', label: 'Completed' },
-] as const
-
 export function getCurrencySymbol(
   shortcode: string,
   currencies: { shortcode: string; symbol: string }[]

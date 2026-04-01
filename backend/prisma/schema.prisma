@@ -28,19 +28,6 @@ enum TransactionType {
   TRANSFER
 }
 
-enum RecurrenceFrequency {
-  WEEKLY
-  MONTHLY
-  QUARTERLY
-  YEARLY
-}
-
-enum RecurringTransactionStatus {
-  ACTIVE
-  PAUSED
-  COMPLETED
-}
-
 model Currency {
   id        String   @id @default(uuid())
   name      String
@@ -59,7 +46,6 @@ model User {
   accounts              Account[]
   categories            Category[]
   budgets               Budget[]
-  recurringTransactions RecurringTransaction[]
   transactions          Transaction[]          @relation("UserTransactions")
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
@@ -80,8 +66,6 @@ model Account {
   isArchived                    Boolean                @default(false)
   position                      Int                    @default(0)
   user                          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  recurringTransactions         RecurringTransaction[] @relation("RecurringPrimaryAccount")
-  recurringTransferTransactions RecurringTransaction[] @relation("RecurringTransferAccount")
   transactions                  Transaction[]          @relation("PrimaryAccountTransactions")
   transferTransactions          Transaction[]          @relation("TransferDestinationAccount")
   createdAt                     DateTime               @default(now())
@@ -103,7 +87,6 @@ model Category {
   user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   subCategories         SubCategory[]
   budgets               Budget[]
-  recurringTransactions RecurringTransaction[]
   transactions          Transaction[]
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
@@ -120,7 +103,6 @@ model SubCategory {
   isArchived            Boolean                @default(false)
   category              Category               @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   transactions          Transaction[]
-  recurringTransactions RecurringTransaction[]
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
 
@@ -170,40 +152,4 @@ model Budget {
 
   @@unique([userId, categoryId, month, year])
   @@index([userId, year, month])
-}
-
-model RecurringTransaction {
-  id                String                     @id @default(uuid())
-  userId            String
-  accountId         String
-  categoryId        String?
-  subCategoryId     String?
-  transferAccountId String?
-  type              TransactionType
-  amount            Decimal                    @db.Decimal(14, 2)
-  description       String
-  notes             String?
-  frequency         RecurrenceFrequency
-  intervalCount     Int                        @default(1)
-  dayOfMonth        Int?
-  dayOfWeek         Int?
-  startDate         DateTime
-  endDate           DateTime?
-  nextRunAt         DateTime
-  lastRunAt         DateTime?
-  status            RecurringTransactionStatus @default(ACTIVE)
-  externalReference String?
-  user              User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  account           Account                    @relation("RecurringPrimaryAccount", fields: [accountId], references: [id], onDelete: Cascade)
-  category          Category?                  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  subCategory       SubCategory?               @relation(fields: [subCategoryId], references: [id], onDelete: SetNull)
-  transferAccount   Account?                   @relation("RecurringTransferAccount", fields: [transferAccountId], references: [id], onDelete: SetNull)
-  createdAt         DateTime                   @default(now())
-  updatedAt         DateTime                   @updatedAt
-
-  @@index([userId, status, nextRunAt])
-  @@index([accountId])
-  @@index([categoryId])
-  @@index([subCategoryId])
-  @@index([transferAccountId])
 }

@@ -5,8 +5,6 @@ import env from '../env';
 import {
   AccountType,
   CategoryType,
-  RecurrenceFrequency,
-  RecurringTransactionStatus,
   TransactionType,
 } from '../../generated/prisma/enums';
 import { getLogger } from '../libs/logger';
@@ -49,26 +47,6 @@ type SeedTransaction = {
   notes?: string;
   externalReference?: string;
   transactionDate: Date;
-};
-
-type SeedRecurringTransaction = {
-  id: string;
-  accountName: string;
-  categoryName?: string;
-  transferAccountName?: string;
-  type: TransactionType;
-  amount: number;
-  description: string;
-  notes?: string;
-  frequency: RecurrenceFrequency;
-  dayOfMonth?: number;
-  dayOfWeek?: number;
-  startDate: Date;
-  endDate?: Date;
-  nextRunAt: Date;
-  lastRunAt?: Date;
-  status: RecurringTransactionStatus;
-  externalReference?: string;
 };
 
 export async function bootstrapDevData() {
@@ -633,134 +611,6 @@ export async function bootstrapDevData() {
         },
       })
     )
-  );
-
-  const seededRecurringTransactions: SeedRecurringTransaction[] = [
-    {
-      id: 'seed-recurring-salary',
-      accountName: 'Bank',
-      categoryName: 'Income',
-      type: TransactionType.INCOME,
-      amount: 4800,
-      description: 'Salary recurring deposit',
-      frequency: RecurrenceFrequency.MONTHLY,
-      dayOfMonth: 1,
-      startDate: monthDate(-2, 1, 8),
-      nextRunAt: toUtcDate(nextMonthYear, nextMonthIndex, 1, 8),
-      status: RecurringTransactionStatus.ACTIVE,
-      externalReference: 'recurring-salary-bank',
-    },
-    {
-      id: 'seed-recurring-subscription',
-      accountName: 'Subscription',
-      categoryName: 'Life & Entertainment',
-      type: TransactionType.EXPENSE,
-      amount: 39,
-      description: 'Streaming subscription renewal',
-      frequency: RecurrenceFrequency.MONTHLY,
-      dayOfMonth: 10,
-      startDate: monthDate(-4, 10, 6),
-      nextRunAt: toUtcDate(nextMonthYear, nextMonthIndex, 10, 6),
-      status: RecurringTransactionStatus.ACTIVE,
-    },
-    {
-      id: 'seed-recurring-savings',
-      accountName: 'Bank',
-      transferAccountName: 'Savings',
-      type: TransactionType.TRANSFER,
-      amount: 600,
-      description: 'Automatic savings contribution',
-      frequency: RecurrenceFrequency.MONTHLY,
-      dayOfMonth: 9,
-      startDate: monthDate(-3, 9, 8, 30),
-      nextRunAt: toUtcDate(nextMonthYear, nextMonthIndex, 9, 8, 30),
-      status: RecurringTransactionStatus.ACTIVE,
-    },
-    {
-      id: 'seed-recurring-wedding',
-      accountName: 'Bank',
-      transferAccountName: 'Wedding',
-      type: TransactionType.TRANSFER,
-      amount: 450,
-      description: 'Wedding fund top-up',
-      frequency: RecurrenceFrequency.MONTHLY,
-      dayOfMonth: 12,
-      startDate: monthDate(-3, 12, 10, 20),
-      nextRunAt: toUtcDate(nextMonthYear, nextMonthIndex, 12, 10, 20),
-      status: RecurringTransactionStatus.PAUSED,
-    },
-  ];
-
-  await Promise.all(
-    seededRecurringTransactions.map((recurringTransaction) => {
-      const account = accountMap.get(recurringTransaction.accountName);
-      const transferAccount = recurringTransaction.transferAccountName
-        ? accountMap.get(recurringTransaction.transferAccountName)
-        : null;
-      const category = recurringTransaction.categoryName
-        ? categoryMap.get(recurringTransaction.categoryName)
-        : null;
-
-      if (!account) {
-        throw new Error(
-          `Missing seed account: ${recurringTransaction.accountName}`
-        );
-      }
-
-      if (recurringTransaction.transferAccountName && !transferAccount) {
-        throw new Error(
-          `Missing seed transfer account: ${recurringTransaction.transferAccountName}`
-        );
-      }
-
-      if (recurringTransaction.categoryName && !category) {
-        throw new Error(
-          `Missing seed category: ${recurringTransaction.categoryName}`
-        );
-      }
-
-      return prisma.recurringTransaction.upsert({
-        where: { id: recurringTransaction.id },
-        update: {
-          accountId: account.id,
-          categoryId: category?.id,
-          transferAccountId: transferAccount?.id,
-          type: recurringTransaction.type,
-          amount: recurringTransaction.amount,
-          description: recurringTransaction.description,
-          notes: recurringTransaction.notes,
-          frequency: recurringTransaction.frequency,
-          dayOfMonth: recurringTransaction.dayOfMonth,
-          dayOfWeek: recurringTransaction.dayOfWeek,
-          startDate: recurringTransaction.startDate,
-          endDate: recurringTransaction.endDate,
-          nextRunAt: recurringTransaction.nextRunAt,
-          lastRunAt: recurringTransaction.lastRunAt,
-          status: recurringTransaction.status,
-          externalReference: recurringTransaction.externalReference,
-        },
-        create: {
-          id: recurringTransaction.id,
-          userId: user.id,
-          accountId: account.id,
-          categoryId: category?.id,
-          transferAccountId: transferAccount?.id,
-          type: recurringTransaction.type,
-          amount: recurringTransaction.amount,
-          description: recurringTransaction.description,
-          notes: recurringTransaction.notes,
-          frequency: recurringTransaction.frequency,
-          dayOfMonth: recurringTransaction.dayOfMonth,
-          dayOfWeek: recurringTransaction.dayOfWeek,
-          startDate: recurringTransaction.startDate,
-          endDate: recurringTransaction.endDate,
-          nextRunAt: recurringTransaction.nextRunAt,
-          lastRunAt: recurringTransaction.lastRunAt,
-          status: recurringTransaction.status,
-          externalReference: recurringTransaction.externalReference,
-        },
-      });
-    })
   );
 
   logger.info('Development bootstrap data is ready', {

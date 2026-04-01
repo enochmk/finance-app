@@ -158,13 +158,6 @@ class AccountsService {
     await this.ensureOwnedAccount(id, userId);
 
     return prisma.$transaction(async (tx) => {
-      await tx.recurringTransaction.deleteMany({
-        where: {
-          userId,
-          OR: [{ accountId: id }, { transferAccountId: id }],
-        },
-      });
-
       await tx.transaction.deleteMany({
         where: {
           userId,

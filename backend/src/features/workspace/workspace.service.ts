@@ -4,7 +4,6 @@ import { DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES_TREE } from './default-workspace';
 class WorkspaceService {
   resetAll = async (userId: string) => {
     await prisma.$transaction(async (tx) => {
-      await tx.recurringTransaction.deleteMany({ where: { userId } });
       await tx.budget.deleteMany({ where: { userId } });
       await tx.transaction.deleteMany({ where: { userId } });
       await tx.account.deleteMany({ where: { userId } });
