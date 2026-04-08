@@ -94,9 +94,7 @@ class TransactionsService {
   create = async (userId: string, data: CreateTransactionBody) => {
     const amount = Number(data.amount);
     const transferCategory =
-      data.type === 'TRANSFER'
-        ? await ensureSystemCategory(userId, 'TRANSFER')
-        : null;
+      data.type === 'TRANSFER' ? await ensureSystemCategory('TRANSFER') : null;
 
     const resolved =
       data.type !== 'TRANSFER'
@@ -124,7 +122,7 @@ class TransactionsService {
         },
       });
 
-      await tx.accounts.update({
+      await tx.wallets.update({
         where: { id: data.accountId },
         data: {
           currentBalance: {
@@ -134,7 +132,7 @@ class TransactionsService {
       });
 
       if (data.type === 'TRANSFER' && data.transferAccountId) {
-        await tx.accounts.update({
+        await tx.wallets.update({
           where: { id: data.transferAccountId },
           data: {
             currentBalance: {
@@ -160,9 +158,7 @@ class TransactionsService {
     const existingTransaction = await this.ensureOwnedTransaction(id, userId);
     const nextType = data.type ?? existingTransaction.type;
     const transferCategory =
-      nextType === 'TRANSFER'
-        ? await ensureSystemCategory(userId, 'TRANSFER')
-        : null;
+      nextType === 'TRANSFER' ? await ensureSystemCategory('TRANSFER') : null;
     const resolved =
       nextType !== 'TRANSFER'
         ? await this.resolveCategory(data.categoryId)
@@ -213,7 +209,7 @@ class TransactionsService {
 
       for (const [accountId, delta] of balanceAdjustments.entries()) {
         if (delta !== 0) {
-          await tx.accounts.update({
+          await tx.wallets.update({
             where: { id: accountId },
             data: {
               currentBalance: {
@@ -263,7 +259,7 @@ class TransactionsService {
     const amount = Number(existingTransaction.amount);
 
     return prisma.$transaction(async (tx) => {
-      await tx.accounts.update({
+      await tx.wallets.update({
         where: { id: existingTransaction.accountId },
         data: {
           currentBalance: {
@@ -277,7 +273,7 @@ class TransactionsService {
       });
 
       if (existingTransaction.transferAccountId) {
-        await tx.accounts.update({
+        await tx.wallets.update({
           where: { id: existingTransaction.transferAccountId },
           data: {
             currentBalance: {
@@ -397,7 +393,7 @@ class TransactionsService {
     label: 'account' | 'transfer account',
     allowArchived = false
   ) => {
-    const account = await prisma.accounts.findFirst({
+    const account = await prisma.wallets.findFirst({
       where: { id, userId },
       select: { id: true, isArchived: true },
     });
@@ -413,11 +409,11 @@ class TransactionsService {
 
   private ensureOwnedCategory = async (
     id: string,
-    userId: string,
+    _userId: string,
     transactionType?: EntryType
   ) => {
     const category = await prisma.categories.findFirst({
-      where: { id, userId },
+      where: { id },
       select: { id: true, type: true },
     });
 

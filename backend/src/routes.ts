@@ -14,6 +14,7 @@ const apiRoutes = Router();
 
 apiRoutes.use('/health', healthRoutes);
 apiRoutes.use('/auth', authRoutes);
+apiRoutes.use('/wallets', accountsRoutes);
 apiRoutes.use('/accounts', accountsRoutes);
 apiRoutes.use('/categories', categoriesRoutes);
 apiRoutes.use('/currencies', currenciesRoutes);

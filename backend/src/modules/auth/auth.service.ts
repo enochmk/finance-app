@@ -4,10 +4,7 @@ import jwt, { type Secret, type SignOptions } from 'jsonwebtoken';
 
 import prisma from '../../libs/prisma';
 import env from '../../env';
-import {
-  DEFAULT_CATEGORIES_TREE,
-  DEFAULT_ONBOARDING_ACCOUNTS,
-} from '../workspace/default-workspace';
+import { DEFAULT_ONBOARDING_ACCOUNTS } from '../workspace/default-workspace';
 import type { LoginBody, RegisterBody } from './auth.schema';
 
 class AuthService {
@@ -29,28 +26,14 @@ class AuthService {
           email: data.email.toLowerCase(),
           passwordHash,
           name: data.name,
-          currency: data.currency ?? 'GHS',
         },
       });
 
-      await tx.categories.createMany({
-        data: DEFAULT_CATEGORIES_TREE.map((category) => ({
-          userId: createdUser.id,
-          name: category.name,
-          type: category.type,
-          color: category.color,
-          isSystem: true,
-          isArchived: false,
-          parentId: null,
-        })),
-        skipDuplicates: true,
-      });
-
-      await tx.accounts.createMany({
+      await tx.wallets.createMany({
         data: DEFAULT_ONBOARDING_ACCOUNTS.map((account) => ({
           userId: createdUser.id,
           name: account.name,
-          currency: createdUser.currency,
+          currency: 'GHS',
           color: account.color,
           icon: account.icon,
           openingBalance: account.openingBalance,
@@ -90,7 +73,6 @@ class AuthService {
     id: string;
     email: string;
     name: string;
-    currency: string;
   }) => {
     const jwtSecret: Secret = env.JWT_SECRET;
     const signOptions: SignOptions = {
@@ -112,7 +94,6 @@ class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
-        currency: user.currency,
       },
     };
   };

@@ -31,7 +31,6 @@ export default async function requireAuth(
         id: true,
         email: true,
         name: true,
-        currency: true,
       },
     });
 

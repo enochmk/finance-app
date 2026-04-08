@@ -27,99 +27,95 @@ model Currencies {
 }
 
 model Users {
-  id           String        @id @default(uuid())
-  email        String        @unique
+  id           String         @id @default(uuid())
+  email        String         @unique
   passwordHash String
   name         String
-  currency     String        @default("GHS")
-  accounts     Accounts[]
-  categories   Categories[]
+  wallets      Wallets[]
   transactions Transactions[] @relation("UserTransactions")
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
   @@map("users")
 }
 
-model Accounts {
-  id                   String        @id @default(uuid())
+model Wallets {
+  id                   String         @id @default(uuid())
   userId               String
   name                 String
-  currency             String        @default("GHS")
-  color                String?       @default("#176b6c")
+  currency             String         @default("GHS")
+  color                String?        @default("#176b6c")
   icon                 String?
-  openingBalance       Decimal       @default(0) @db.Decimal(14, 2)
-  currentBalance       Decimal       @default(0) @db.Decimal(14, 2)
+  openingBalance       Decimal        @default(0) @db.Decimal(14, 2)
+  currentBalance       Decimal        @default(0) @db.Decimal(14, 2)
   institutionName      String?
   accountNumberMasked  String?
-  isArchived           Boolean       @default(false)
-  position             Int           @default(0)
-  user                 Users         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isArchived           Boolean        @default(false)
+  position             Int            @default(0)
+  user                 Users          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions         Transactions[] @relation("PrimaryAccountTransactions")
   transferTransactions Transactions[] @relation("TransferDestinationAccount")
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 
   @@unique([userId, name])
   @@index([userId])
-  @@map("accounts")
+  @@map("wallets")
 }
 
 model Categories {
-  id            String        @id @default(uuid())
-  userId        String
+  id            String          @id @default(uuid())
   name          String
   type          EntryType
   color         String?
   icon          String?
-  isSystem      Boolean       @default(false)
-  isArchived    Boolean       @default(false)
-  user          Users         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isSystem      Boolean         @default(false)
+  isArchived    Boolean         @default(false)
   subCategories SubCategories[]
   transactions  Transactions[]
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
-  @@index([userId, type])
+  @@index([type])
   @@map("categories")
 }
 
 model SubCategories {
-  id           String        @id @default(uuid())
+  id           String         @id @default(uuid())
   categoryId   String
   name         String
   icon         String?
-  isSystem     Boolean       @default(false)
-  isArchived   Boolean       @default(false)
-  category     Categories    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  isSystem     Boolean        @default(false)
+  isArchived   Boolean        @default(false)
+  category     Categories     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   transactions Transactions[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
   @@index([categoryId])
   @@map("sub_categories")
 }
 
 model Transactions {
-  id                String          @id @default(uuid())
+  id                String         @id @default(uuid())
   userId            String
   accountId         String
   categoryId        String?
   subCategoryId     String?
   type              EntryType
-  amount            Decimal         @db.Decimal(14, 2)
+  amount            Decimal        @db.Decimal(14, 2)
   description       String
   notes             String?
   transactionDate   DateTime
   transferAccountId String?
   externalReference String?
-  user              Users           @relation("UserTransactions", fields: [userId], references: [id], onDelete: Cascade)
-  account           Accounts        @relation("PrimaryAccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
-  category          Categories?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  subCategory       SubCategories?  @relation(fields: [subCategoryId], references: [id], onDelete: SetNull)
-  transferAccount   Accounts?       @relation("TransferDestinationAccount", fields: [transferAccountId], references: [id], onDelete: SetNull)
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  user              Users          @relation("UserTransactions", fields: [userId], references: [id], onDelete: Cascade)
+  account           Wallets        @relation("PrimaryAccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
+  category          Categories?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  subCategory       SubCategories? @relation(fields: [subCategoryId], references: [id], onDelete: SetNull)
+  transferAccount   Wallets?       @relation("TransferDestinationAccount", fields: [transferAccountId], references: [id], onDelete: SetNull)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
   @@index([userId, transactionDate])
   @@index([accountId, transactionDate])

@@ -45,12 +45,11 @@ class ReportsService {
       }),
       prisma.categories.findMany({
         where: {
-          userId,
           isArchived: false,
         },
         orderBy: [{ type: 'asc' }, { name: 'asc' }],
       }),
-      prisma.accounts.findMany({
+      prisma.wallets.findMany({
         where: {
           userId,
           isArchived: false,

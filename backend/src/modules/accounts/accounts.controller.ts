@@ -95,7 +95,7 @@ class AccountsController {
 
       return res.status(200).json({
         data: account,
-        message: 'Account deleted successfully',
+        message: 'Wallet deleted successfully',
       });
     } catch (error) {
       return next(error);

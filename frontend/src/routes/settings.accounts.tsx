@@ -416,22 +416,22 @@ function AccountsPage() {
   return (
     <CrudPageShell
       badge="Finance workspace"
-      title="Accounts"
+      title="Wallets"
       description="Create, edit, disable, and retire money buckets without losing control of dashboard visibility or transaction safety."
       icon={Building2}
       actions={
         <Button onClick={() => setIsCreateOpen(true)}>
           <Plus className="h-4 w-4" />
-          Add account
+          Add wallet
         </Button>
       }
     >
       {' '}
       {error ? (
         <CrudTableCard
-          title="Accounts"
-          description="Manage the accounts that power balances, dashboard views, and transaction sources."
-          emptyTitle="Accounts unavailable"
+          title="Wallets"
+          description="Manage the wallets that power balances, dashboard views, and transaction sources."
+          emptyTitle="Wallets unavailable"
           emptyDescription={error}
           isEmpty
         >
@@ -439,24 +439,24 @@ function AccountsPage() {
         </CrudTableCard>
       ) : (
         <CrudTableCard
-          title="Accounts"
-          description="Track account health, search quickly, and control which accounts stay active in the workspace."
+          title="Wallets"
+          description="Track wallet health, search quickly, and control which wallets stay active in the workspace."
           emptyTitle={
             accounts.length === 0
-              ? 'No accounts yet'
-              : 'No accounts match your filters'
+              ? 'No wallets yet'
+              : 'No wallets match your filters'
           }
           emptyDescription={
             accounts.length === 0
-              ? 'Create the first account to start tracking balances and transactions.'
-              : 'Adjust the search, filters, or sorting to find the account you need.'
+              ? 'Create the first wallet to start tracking balances and transactions.'
+              : 'Adjust the search, filters, or sorting to find the wallet you need.'
           }
           isEmpty={sortedAccounts.length === 0}
           toolbar={
             <div className="grid gap-4 xl:grid-cols-[1.2fr_220px_220px_220px]">
               <div className="flex flex-col gap-2">
                 <label htmlFor="account-search" className="text-sm font-medium">
-                  Search accounts
+                  Search wallets
                 </label>
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -532,7 +532,7 @@ function AccountsPage() {
                 totalPages={paginatedAccounts.totalPages}
                 totalItems={paginatedAccounts.totalItems}
                 pageSize={8}
-                itemLabel="accounts"
+                itemLabel="wallets"
                 onPageChange={setCurrentPage}
               />
             ) : null
@@ -543,7 +543,7 @@ function AccountsPage() {
               <TableRow>
                 <TableHead className="w-12">#</TableHead>
                 <SortableHead
-                  label="Account"
+                  label="Wallet"
                   onClick={() => updateSort('name')}
                   isActive={sortField === 'name'}
                   direction={sortDirection}

@@ -27,7 +27,7 @@ function getBalanceDelta(
 
 class AccountsService {
   list = async (userId: string, filters: ListAccountsQuery) => {
-    return prisma.accounts.findMany({
+    return prisma.wallets.findMany({
       where: {
         userId,
         isArchived: filters.isArchived,
@@ -41,7 +41,7 @@ class AccountsService {
   };
 
   reorder = async (userId: string, orderedIds: string[]) => {
-    const accounts = await prisma.accounts.findMany({
+    const accounts = await prisma.wallets.findMany({
       where: { userId },
       select: { id: true },
     });
@@ -50,20 +50,20 @@ class AccountsService {
 
     for (const id of orderedIds) {
       if (!ownedIds.has(id)) {
-        throw createHttpError(403, 'Access denied to one or more accounts');
+        throw createHttpError(403, 'Access denied to one or more wallets');
       }
     }
 
     await prisma.$transaction(
       orderedIds.map((id, index) =>
-        prisma.accounts.update({
+        prisma.wallets.update({
           where: { id },
           data: { position: index },
         })
       )
     );
 
-    return prisma.accounts.findMany({
+    return prisma.wallets.findMany({
       where: { userId },
       orderBy: [
         { isArchived: 'asc' },
@@ -74,7 +74,7 @@ class AccountsService {
   };
 
   create = async (userId: string, data: CreateAccountBody) => {
-    return prisma.accounts.create({
+    return prisma.wallets.create({
       data: {
         userId,
         name: data.name,
@@ -108,12 +108,11 @@ class AccountsService {
       balanceAdjustmentDelta === 0
         ? null
         : await ensureSystemCategory(
-            userId,
             balanceAdjustmentDelta > 0 ? 'UNKNOWN_INCOME' : 'UNKNOWN_EXPENSE'
           );
 
     return prisma.$transaction(async (tx) => {
-      const account = await tx.accounts.update({
+      const account = await tx.wallets.update({
         where: { id },
         data: {
           name: data.name,
@@ -163,11 +162,11 @@ class AccountsService {
         },
       });
 
-      const deletedAccount = await tx.accounts.delete({
+      const deletedAccount = await tx.wallets.delete({
         where: { id },
       });
 
-      const remainingAccounts = await tx.accounts.findMany({
+      const remainingAccounts = await tx.wallets.findMany({
         where: { userId },
         select: {
           id: true,
@@ -223,7 +222,7 @@ class AccountsService {
         }
 
         for (const account of remainingAccounts) {
-          await tx.accounts.update({
+          await tx.wallets.update({
             where: { id: account.id },
             data: {
               currentBalance:
@@ -239,7 +238,7 @@ class AccountsService {
   };
 
   private ensureOwnedAccount = async (id: string, userId: string) => {
-    const account = await prisma.accounts.findFirst({
+    const account = await prisma.wallets.findFirst({
       where: { id, userId },
       select: {
         id: true,
@@ -250,7 +249,7 @@ class AccountsService {
     });
 
     if (!account) {
-      throw createHttpError(404, 'Account not found');
+      throw createHttpError(404, 'Wallet not found');
     }
 
     return account;

@@ -49,6 +49,51 @@ export const seedCategoriesSchema = z.object({
   body: z.object({}).optional(),
 });
 
+export const subCategoryParamsSchema = z.object({
+  categoryId: z.string().uuid('Category id must be a valid UUID'),
+});
+
+export const subCategoryIdParamsSchema = z.object({
+  categoryId: z.string().uuid('Category id must be a valid UUID'),
+  id: z.string().uuid('Subcategory id must be a valid UUID'),
+});
+
+export const listSubCategoriesSchema = z.object({
+  params: subCategoryParamsSchema,
+  query: z.object({
+    isArchived: z.coerce.boolean().optional(),
+  }),
+  body: z.object({}).optional(),
+});
+
+export const createSubCategorySchema = z.object({
+  params: subCategoryParamsSchema,
+  query: z.object({}),
+  body: z.object({
+    name: z.string().trim().min(1).max(80),
+    icon: z.string().trim().max(64).optional(),
+    isSystem: z.boolean().optional(),
+    isArchived: z.boolean().optional(),
+  }),
+});
+
+export const updateSubCategorySchema = z.object({
+  params: subCategoryIdParamsSchema,
+  query: z.object({}),
+  body: z.object({
+    name: z.string().trim().min(1).max(80).optional(),
+    icon: z.string().trim().max(64).optional(),
+    isSystem: z.boolean().optional(),
+    isArchived: z.boolean().optional(),
+  }),
+});
+
+export const deleteSubCategorySchema = z.object({
+  params: subCategoryIdParamsSchema,
+  query: z.object({}),
+  body: z.object({}).optional(),
+});
+
 export type ListCategoriesQuery = z.infer<typeof listCategoriesSchema>['query'];
 export type CreateCategoryBody = z.infer<typeof createCategorySchema>['body'];
 export type UpdateCategoryParams = z.infer<
@@ -59,3 +104,18 @@ export type DeleteCategoryParams = z.infer<
   typeof deleteCategorySchema
 >['params'];
 export type SeedCategoriesBody = z.infer<typeof seedCategoriesSchema>['body'];
+export type ListSubCategoriesQuery = z.infer<
+  typeof listSubCategoriesSchema
+>['query'];
+export type CreateSubCategoryBody = z.infer<
+  typeof createSubCategorySchema
+>['body'];
+export type UpdateSubCategoryBody = z.infer<
+  typeof updateSubCategorySchema
+>['body'];
+export type UpdateSubCategoryParams = z.infer<
+  typeof updateSubCategorySchema
+>['params'];
+export type DeleteSubCategoryParams = z.infer<
+  typeof deleteSubCategorySchema
+>['params'];

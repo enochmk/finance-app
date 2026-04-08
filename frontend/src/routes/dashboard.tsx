@@ -1069,17 +1069,16 @@ function DashboardPage() {
             <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
               <Card>
                 <CardHeader>
-                  <CardTitle>Balance by Accounts</CardTitle>
+                  <CardTitle>Balance by Wallets</CardTitle>
                   <CardDescription>
-                    Ending balance across active accounts for{' '}
-                    {activePeriodLabel}
+                    Ending balance across active wallets for {activePeriodLabel}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   {accountBalanceData.length === 0 ? (
                     <Alert>
-                      <AlertTitle>No accounts</AlertTitle>
-                      <AlertDescription>No accounts found.</AlertDescription>
+                      <AlertTitle>No wallets</AlertTitle>
+                      <AlertDescription>No wallets found.</AlertDescription>
                     </Alert>
                   ) : (
                     <ChartContainer>
@@ -1222,10 +1221,10 @@ function DashboardPage() {
           </div>
         ) : (
           <Alert>
-            <AlertTitle>No active accounts yet</AlertTitle>
+            <AlertTitle>No active wallets yet</AlertTitle>
             <AlertDescription>
-              Create an account in the management workspace to unlock the
-              account-specific dashboard.
+              Create a wallet in the management workspace to unlock the
+              wallet-specific dashboard.
             </AlertDescription>
           </Alert>
         )

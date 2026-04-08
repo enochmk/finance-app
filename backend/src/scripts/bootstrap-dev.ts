@@ -66,13 +66,11 @@ export async function bootstrapDevData() {
     update: {
       name: env.DEV_SEED_USER_NAME,
       passwordHash,
-      currency: ghsCurrency.shortcode,
     },
     create: {
       email: env.DEV_SEED_USER_EMAIL,
       name: env.DEV_SEED_USER_NAME,
       passwordHash,
-      currency: ghsCurrency.shortcode,
     },
   });
 
@@ -135,7 +133,7 @@ export async function bootstrapDevData() {
         currentBalance: 200,
       },
     ].map((account) =>
-      prisma.accounts.upsert({
+      prisma.wallets.upsert({
         where: {
           userId_name: {
             userId: user.id,
@@ -234,7 +232,7 @@ export async function bootstrapDevData() {
       },
       {
         name: 'Transfer',
-        type: EntryType.EXPENSE,
+        type: EntryType.TRANSFER,
         color: '#0f766e',
         icon: '↔️',
       },
@@ -259,7 +257,7 @@ export async function bootstrapDevData() {
       },
     ].map(async (category) => {
       const existing = await prisma.categories.findFirst({
-        where: { userId: user.id, name: category.name, type: category.type },
+        where: { name: category.name, type: category.type },
       });
       if (existing) {
         return prisma.categories.update({
@@ -274,7 +272,6 @@ export async function bootstrapDevData() {
       }
       return prisma.categories.create({
         data: {
-          userId: user.id,
           name: category.name,
           type: category.type,
           color: category.color,
@@ -474,7 +471,7 @@ export async function bootstrapDevData() {
     })
   );
 
-  const accountsForBalanceSync = await prisma.accounts.findMany({
+  const accountsForBalanceSync = await prisma.wallets.findMany({
     where: {
       userId: user.id,
     },
@@ -525,7 +522,7 @@ export async function bootstrapDevData() {
 
   await Promise.all(
     accountsForBalanceSync.map((account) =>
-      prisma.accounts.update({
+      prisma.wallets.update({
         where: {
           id: account.id,
         },

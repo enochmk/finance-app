@@ -30,7 +30,6 @@ function SignInPage() {
     name: '',
     email: 'dev@budget.local',
     password: 'dev-password-123',
-    currency: 'USD',
   })
 
   useEffect(() => {
@@ -53,7 +52,6 @@ function SignInPage() {
           name: form.name,
           email: form.email,
           password: form.password,
-          currency: form.currency,
         })
         toast.success('Account created successfully')
       }
@@ -148,23 +146,6 @@ function SignInPage() {
                 required
               />
             </div>
-
-            {mode === 'sign-up' ? (
-              <div className="space-y-2">
-                <Label htmlFor="currency">Currency</Label>
-                <Input
-                  id="currency"
-                  value={form.currency}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      currency: event.target.value.toUpperCase(),
-                    }))
-                  }
-                />
-              </div>
-            ) : null}
-
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button type="submit" className="flex-1" disabled={isSubmitting}>
                 {isSubmitting

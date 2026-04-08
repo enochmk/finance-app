@@ -405,7 +405,7 @@ class DashboardService {
       period.start.getTime() - (period.end.getTime() - period.start.getTime())
     );
 
-    const accounts = await prisma.accounts.findMany({
+    const accounts = await prisma.wallets.findMany({
       where: {
         userId,
         isArchived: false,
@@ -464,7 +464,7 @@ class DashboardService {
       accounts[0];
 
     if (!selectedAccount) {
-      throw createHttpError(404, 'Selected account not found');
+      throw createHttpError(404, 'Selected wallet not found');
     }
 
     const accountIds = accounts.map((account) => account.id);
@@ -585,7 +585,7 @@ class DashboardService {
         _sum: { amount: true },
       }),
       prisma.categories.findMany({
-        where: { userId },
+        where: {},
         select: { id: true, name: true, type: true, color: true, icon: true },
       }),
       prisma.transactions.findMany({

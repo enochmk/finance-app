@@ -26,7 +26,6 @@ type SessionContextValue = {
     name: string
     email: string
     password: string
-    currency?: string
   }) => Promise<AuthUser>
   signOut: () => void
   refreshSession: () => Promise<void>

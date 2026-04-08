@@ -104,7 +104,7 @@ export function TransactionToolbar({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">All accounts</SelectItem>
+            <SelectItem value="ALL">All wallets</SelectItem>
             {accounts.map((account) => (
               <SelectItem key={account.id} value={account.id}>
                 {account.name}

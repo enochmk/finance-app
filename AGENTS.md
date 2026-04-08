@@ -22,7 +22,7 @@ If any of them are added later, treat them as additional instructions and merge 
 - The repo now has a small root `package.json` for convenience dev scripts; app-specific npm commands still primarily run against `backend/` or `frontend/`.
 - Backend code is mostly in `backend/src/`, with shared middleware in `backend/src/middlewares/` and logging helpers in `backend/src/libs/`.
 - Backend architecture notes in `docs/BACKEND_PATTERNS.md` prefer module folders like `src/modules/<module>/` with files such as `.controller.ts`, `.service.ts`, `.schema.ts`, `.middleware.ts`, and `.routes.ts`.
-- Backend Prisma models use plural names so generated client delegates stay plural camelCase, e.g. `prisma.accounts`, `prisma.categories`, and `prisma.transactions`.
+- Backend Prisma models use plural names so generated client delegates stay plural camelCase, e.g. `prisma.wallets`, `prisma.categories`, and `prisma.transactions`.
 - Backend database tables must use plural lowercase snake_case names, expressed in Prisma with `@@map(...)` and enum `@@map(...)` where needed.
 - Frontend routes live in `frontend/src/routes/`; shared UI lives in `frontend/src/components/`.
 - Frontend path aliases `#/*` and `@/*` both map to `frontend/src/*`, though current code mostly uses relative imports.

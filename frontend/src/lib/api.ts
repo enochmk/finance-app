@@ -12,7 +12,6 @@ export type AuthUser = {
   id: string
   email: string
   name: string
-  currency: string
 }
 
 export type AuthResponse = {
@@ -332,7 +331,6 @@ export async function register(payload: {
   name: string
   email: string
   password: string
-  currency?: string
 }) {
   return request<AuthResponse>('/auth/register', {
     method: 'POST',
@@ -345,7 +343,7 @@ export async function getMe() {
 }
 
 export async function getAccounts() {
-  return request<Account[]>('/accounts')
+  return request<Account[]>('/wallets')
 }
 
 export async function createAccount(payload: {
@@ -358,7 +356,7 @@ export async function createAccount(payload: {
   institutionName?: string
   accountNumberMasked?: string
 }) {
-  return request<Account>('/accounts', {
+  return request<Account>('/wallets', {
     method: 'POST',
     body: payload,
   })
@@ -378,20 +376,20 @@ export async function updateAccount(
     isArchived?: boolean
   }
 ) {
-  return request<Account>(`/accounts/${id}`, {
+  return request<Account>(`/wallets/${id}`, {
     method: 'PATCH',
     body: payload,
   })
 }
 
 export async function deleteAccount(id: string) {
-  return request<Account>(`/accounts/${id}`, {
+  return request<Account>(`/wallets/${id}`, {
     method: 'DELETE',
   })
 }
 
 export async function reorderAccounts(orderedIds: string[]) {
-  return request<Account[]>('/accounts/reorder', {
+  return request<Account[]>('/wallets/reorder', {
     method: 'PATCH',
     body: { orderedIds },
   })

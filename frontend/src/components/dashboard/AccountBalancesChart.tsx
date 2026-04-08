@@ -42,16 +42,16 @@ export function AccountBalancesChart({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Balance by Accounts</CardTitle>
+        <CardTitle>Balance by Wallets</CardTitle>
         <CardDescription>
-          Ending balance across active accounts for {activePeriodLabel}
+          Ending balance across active wallets for {activePeriodLabel}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {data.length === 0 ? (
           <Alert>
-            <AlertTitle>No accounts</AlertTitle>
-            <AlertDescription>No accounts found.</AlertDescription>
+            <AlertTitle>No wallets</AlertTitle>
+            <AlertDescription>No wallets found.</AlertDescription>
           </Alert>
         ) : (
           <ChartContainer>

@@ -123,7 +123,7 @@ export function CommandPalette() {
             }
           >
             <Landmark />
-            <span>Accounts</span>
+            <span>Wallets</span>
           </CommandItem>
           <CommandItem
             onSelect={() =>

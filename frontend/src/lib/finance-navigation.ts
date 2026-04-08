@@ -15,9 +15,9 @@ export type WorkspaceLink = {
 export const financeSectionLinks: WorkspaceLink[] = [
   {
     to: '/settings/accounts',
-    label: 'Accounts',
+    label: 'Wallets',
     description:
-      'Savings, wedding, bank, mobile money, and other money buckets.',
+      'Savings, wedding, bank, mobile money, and other money wallets.',
     icon: Landmark,
   },
   {

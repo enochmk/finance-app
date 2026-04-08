@@ -23,18 +23,15 @@ const SYSTEM_CATEGORY_DEFINITIONS = {
   },
 } as const;
 
-export async function ensureSystemCategory(
-  userId: string,
-  key: SystemCategoryKey
-) {
+export async function ensureSystemCategory(key: SystemCategoryKey) {
   const definition = SYSTEM_CATEGORY_DEFINITIONS[key];
 
   // For TRANSFER, match by name only — handles migration from old EXPENSE type
   const existing = await prisma.categories.findFirst({
     where:
       key === 'TRANSFER'
-        ? { userId, name: definition.name, isSystem: true }
-        : { userId, name: definition.name, type: definition.type },
+        ? { name: definition.name, isSystem: true }
+        : { name: definition.name, type: definition.type },
   });
 
   if (existing) {
@@ -52,7 +49,6 @@ export async function ensureSystemCategory(
 
   return prisma.categories.create({
     data: {
-      userId,
       name: definition.name,
       type: definition.type,
       color: definition.color,
@@ -63,12 +59,12 @@ export async function ensureSystemCategory(
   });
 }
 
-export async function ensureRequiredSystemCategories(userId: string) {
+export async function ensureRequiredSystemCategories() {
   const [transferCategory, unknownExpenseCategory, unknownIncomeCategory] =
     await Promise.all([
-      ensureSystemCategory(userId, 'TRANSFER'),
-      ensureSystemCategory(userId, 'UNKNOWN_EXPENSE'),
-      ensureSystemCategory(userId, 'UNKNOWN_INCOME'),
+      ensureSystemCategory('TRANSFER'),
+      ensureSystemCategory('UNKNOWN_EXPENSE'),
+      ensureSystemCategory('UNKNOWN_INCOME'),
     ]);
 
   return {
@@ -79,7 +75,7 @@ export async function ensureRequiredSystemCategories(userId: string) {
 }
 
 export async function backfillTransferCategory(userId: string) {
-  const transferCategory = await ensureSystemCategory(userId, 'TRANSFER');
+  const transferCategory = await ensureSystemCategory('TRANSFER');
 
   await prisma.transactions.updateMany({
     where: {

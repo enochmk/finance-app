@@ -1,11 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import {
-  AlertTriangle,
-  FolderTree,
-  Landmark,
-  List,
-  RotateCcw,
-} from 'lucide-react'
+import { AlertTriangle, Landmark, List, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -38,15 +32,9 @@ const CONSEQUENCES = [
   },
   {
     icon: Landmark,
-    label: 'All accounts deleted',
+    label: 'All wallets deleted',
     detail:
-      'Every bank account, wallet, and money bucket will be removed along with their balances.',
-  },
-  {
-    icon: FolderTree,
-    label: 'All categories deleted',
-    detail:
-      'Every custom income and expense category will be permanently erased.',
+      'Every bank wallet, cash wallet, and money bucket will be removed along with their balances.',
   },
 ]
 
@@ -75,7 +63,7 @@ function ResetWorkspacePage() {
       await refreshAll()
       toast.success('Workspace reset', {
         description:
-          'All transactions, accounts, and categories have been cleared.',
+          'All transactions and wallets have been cleared. Global categories were left intact.',
       })
     } catch (err) {
       toast.error('Reset failed', {
@@ -98,14 +86,15 @@ function ResetWorkspacePage() {
         <CardHeader>
           <CardTitle className="text-base">Current workspace data</CardTitle>
           <CardDescription>
-            The following data will be permanently deleted on reset.
+            Transactions and wallets will be deleted on reset. Categories remain
+            shared system data.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-3">
             {[
               { label: 'Transactions', count: transactions.length },
-              { label: 'Accounts', count: accounts.length },
+              { label: 'Wallets', count: accounts.length },
               { label: 'Categories', count: categories.length },
             ].map((item) => (
               <div
@@ -134,8 +123,8 @@ function ResetWorkspacePage() {
             </CardTitle>
           </div>
           <CardDescription>
-            All of the following will be permanently and irreversibly removed
-            from your workspace.
+            Only user-owned transaction and wallet data will be permanently and
+            irreversibly removed from your workspace.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -182,7 +171,7 @@ function ResetWorkspacePage() {
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Reset your entire workspace?"
-        description="This will permanently delete all transactions, accounts, and categories. This action cannot be undone. Are you absolutely sure?"
+        description="This will permanently delete all transactions and wallets from your workspace. Global categories will remain. This action cannot be undone. Are you absolutely sure?"
         confirmLabel={isResetting ? 'Resetting…' : 'Yes, reset everything'}
         confirmIcon={RotateCcw}
         icon={AlertTriangle}

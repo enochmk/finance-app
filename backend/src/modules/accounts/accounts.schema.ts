@@ -28,7 +28,7 @@ export const createAccountSchema = z.object({
 
 export const updateAccountSchema = z.object({
   params: z.object({
-    id: z.string().uuid('Account id must be a valid UUID'),
+    id: z.string().uuid('Wallet id must be a valid UUID'),
   }),
   query: z.object({}),
   body: accountBodySchema.partial(),
@@ -36,7 +36,7 @@ export const updateAccountSchema = z.object({
 
 export const deleteAccountSchema = z.object({
   params: z.object({
-    id: z.string().uuid('Account id must be a valid UUID'),
+    id: z.string().uuid('Wallet id must be a valid UUID'),
   }),
   query: z.object({}),
   body: z.object({}).optional(),

@@ -41,7 +41,7 @@ const navigationItems = [
 ] as const
 
 const settingsItems = [
-  { to: '/settings/accounts', label: 'Accounts', icon: Landmark },
+  { to: '/settings/accounts', label: 'Wallets', icon: Landmark },
   { to: '/settings/categories', label: 'Categories', icon: FolderTree },
   { to: '/settings/currencies', label: 'Currencies', icon: CircleDollarSign },
   { to: '/settings/reset', label: 'Reset workspace', icon: RotateCcw },
